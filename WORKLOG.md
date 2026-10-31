@@ -5,19 +5,20 @@ commicie, który coś zmienia. Najnowsze wpisy dziennika są na górze.
 
 ## Teraz
 
-- **Stan:** `launcher` ma nad `main` przygotowanie podpisu SignPath i samoaktualizację (2026-10-31, ta jeszcze
-  niewypchnięta). Gotowe są M1, M2 i M3 (statystyki z prawdziwych danych, mapy treningowe, logowanie Microsoft
-  z ekranami), import ustawień z innych launcherów, jedna instancja 1.16.1 ze stroną Mody, szlif UI i tekstów po
-  ocenie ekranów oraz blokada grania offline w wersji z client ID. Szczegóły w dzienniku.
+- **Stan:** `launcher` i `main` to ten sam commit (7f6fc77 plus ten wpis), a pierwsze numerowane wydanie
+  `v0.1.0` jest opublikowane (2026-10-31, niepodpisane, `releases/latest`). Gotowe są M1, M2 i M3 (statystyki
+  z prawdziwych danych, mapy treningowe, logowanie Microsoft z ekranami), import ustawień z innych launcherów,
+  jedna instancja 1.16.1 ze stroną Mody, szlif UI i tekstów, blokada grania offline w wersji z client ID,
+  podpis SignPath po stronie CI i samoaktualizacja. Szczegóły w dzienniku.
 - **Repozytorium jest publiczne** od 2026-10-31 (GPL-3.0-or-later), z jednym commitem na start. Historia sprzed
   niego jest w prywatnym `mlodygbelmondo/speedrunning-launcher-private` (lokalnie remote `private`).
 - **Podpis SignPath:** CI jest gotowe (ręczne uruchomienie z zaznaczonym `sign`, a wydania z tagu same, gdy
   SignPath jest skonfigurowany), README ma „Code signing policy”. Czeka na Piotra: wniosek na signpath.org, potem
   konfiguracja z `launcher/tools/windows/SIGNPATH.md`.
-- **Samoaktualizacja launchera** jest zrobiona (2026-10-31, szczegóły w dzienniku), ale nikt jej jeszcze nie
-  uruchomił na Windowsie. Czeka na Piotra: przejrzeć i wypchnąć commity, potem pierwsze wydanie
-  `git tag v0.1.0 && git push origin v0.1.0` (wersja w `launcher/Cargo.toml` to już 0.1.0; kolejne: podbij
-  wersję, commit, tag, instrukcja w `launcher/README.md`, „Releasing a version”). Test na Windowsie: rozpakuj wydanie, potem wydaj `v0.1.1` i uruchom stary exe:
+- **Samoaktualizacja launchera** jest zrobiona i wypchnięta (2026-10-31, szczegóły w dzienniku), CI zielone,
+  wydanie `v0.1.0` opublikowane, suma SHA-256 sprawdzona po pobraniu. Nikt jej jeszcze nie uruchomił na Windowsie.
+  Kolejne wydanie: podbij wersję w `launcher/Cargo.toml`, commit, tag `vX.Y.Z`, push tagu (`launcher/README.md`,
+  „Releasing a version”). Test na Windowsie: rozpakuj `v0.1.0`, potem wydajemy `v0.1.1` i uruchamiasz stary exe:
   w Ustawieniach, w O programie, ma się pojawić „Uruchom ponownie”, a po kliknięciu nowa wersja (0.1.1 w O programie)
   i brak `speedrunning-launcher.old.exe` w folderze po kilku sekundach.
 - **Logowanie Microsoft** jest wyłączone, dopóki Mojang nie zatwierdzi naszego client ID. Poradnik dla Piotra:

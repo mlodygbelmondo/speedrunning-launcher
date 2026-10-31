@@ -13,10 +13,11 @@
 //! `SRL_DEMO=1` fills in the prototype's sample data for design comparison, `SRL_FAKE_FAIL=1`
 //! makes the fake's first install fail, `SRL_TRACE_RENDERS=1` logs every rendered frame. The demo
 //! and the screen ids with a state (`installing`, `error`, `running`, `account*`, `login*`,
-//! `msa-*`, `practice-<state>`) imply `SRL_FAKE`. `SRL_MSA_CLIENT_ID` turns Microsoft login on
-//! (srl-auth), `SRL_MSA_BASE_URL` points it at srl-auth's mock (`backend/account.rs`) and
-//! `SRL_DEV_GAME_HOME` gives test games (modes and practice) their own `user.home`
-//! (`backend/pipeline.rs`).
+//! `msa-*`, `practice-<state>`, `update-*`) imply `SRL_FAKE`. `SRL_MSA_CLIENT_ID` turns Microsoft
+//! login on (srl-auth), `SRL_MSA_BASE_URL` points it at srl-auth's mock (`backend/account.rs`),
+//! `SRL_UPDATE_URL` points the launcher's own update check at another release JSON
+//! (`backend/update.rs`) and `SRL_DEV_GAME_HOME` gives test games (modes and practice) their own
+//! `user.home` (`backend/pipeline.rs`).
 #![cfg_attr(all(windows, not(debug_assertions)), windows_subsystem = "windows")]
 
 mod app;
@@ -42,7 +43,7 @@ use app::{Launcher, Page, PracticeSel, Start};
 use assets::{Assets, FONTS};
 use backend::{
     AccountsPreset, Backend, FakeBackend, FakeOptions, ImportPreset, Language, ModeState,
-    PracticePreset, RealBackend, Settings, StatsPreset, ToolsPreset,
+    PracticePreset, RealBackend, Settings, StatsPreset, ToolsPreset, UpdatePreset,
 };
 
 fn flag(name: &str) -> bool {
@@ -67,6 +68,7 @@ struct Preset {
     renew_warning: bool,
     practice: PracticePreset,
     import: ImportPreset,
+    update: UpdatePreset,
 }
 
 impl Preset {
@@ -80,6 +82,7 @@ impl Preset {
             renew_warning: false,
             practice: PracticePreset::Default,
             import: ImportPreset::Found,
+            update: UpdatePreset::Default,
         }
     }
 
@@ -343,6 +346,45 @@ fn deep_link(id: &str, data_dir: &Path) -> Option<(Start, Option<Preset>)> {
                 }),
             ));
         }
+        // The launcher's own update: the notice in the top nav over Home (`update-ready`), the
+        // same while a mode installs (`update-blocked`, on Settings so About says why), and
+        // About in every other state.
+        "update" => {
+            start.page = Page::Settings;
+            let (update, state) = match mode? {
+                "ready" => {
+                    start.page = Page::Home;
+                    (UpdatePreset::Ready, None)
+                }
+                "about" => (UpdatePreset::Ready, None),
+                "blocked" => (
+                    UpdatePreset::Ready,
+                    Some((
+                        Mode::Rsg,
+                        ModeState::Installing(Progress {
+                            stage: Stage::Mods,
+                            done: 3,
+                            total: 7,
+                            unit: Unit::Files,
+                        }),
+                    )),
+                ),
+                "checking" => (UpdatePreset::Checking, None),
+                "current" => (UpdatePreset::Default, None),
+                "downloading" => (UpdatePreset::Downloading, None),
+                "manual" => (UpdatePreset::Manual, None),
+                "error" => (UpdatePreset::Failed, None),
+                "local" => (UpdatePreset::Local, None),
+                _ => return None,
+            };
+            return Some((
+                start,
+                Some(Preset {
+                    update,
+                    ..Preset::new(state)
+                }),
+            ));
+        }
         "settings" if mode == Some("credits") => {
             start.page = Page::Settings;
             start.credits = true;
@@ -510,6 +552,7 @@ fn main() {
         }),
         data_dir,
         import: preset.as_ref().map_or(ImportPreset::Found, |p| p.import),
+        update: preset.as_ref().map_or(UpdatePreset::Default, |p| p.update),
     };
 
     gpui_platform::application()
@@ -674,6 +717,24 @@ mod tests {
             ImportPreset::Found
         );
         assert!(link("import-x").is_none());
+        let (s, p) = link("update-ready").unwrap();
+        assert_eq!(
+            (s.page, p.unwrap().update),
+            (Page::Home, UpdatePreset::Ready)
+        );
+        let (s, p) = link("update-blocked").unwrap();
+        let p = p.unwrap();
+        assert_eq!((s.page, p.update), (Page::Settings, UpdatePreset::Ready));
+        assert!(matches!(
+            p.mode,
+            Some((Mode::Rsg, ModeState::Installing(_)))
+        ));
+        assert_eq!(
+            link("update-error").unwrap().1.unwrap().update,
+            UpdatePreset::Failed
+        );
+        assert!(link("update").is_none());
+        assert!(link("update-x").is_none());
         // A deep link never offers the import on its own.
         assert!(!link("home").unwrap().0.offer_import);
         assert!(link("account-x").is_none());

@@ -1,8 +1,8 @@
 //! Settings in the v3 style: two columns of sections with hairline rows over the overworld art band.
 //! Left: language, the player name and the settings import, the Microsoft account (`account.rs`; in a build without
 //! Microsoft login only its one line), the Ranked and Draftout names for Stats, the optional mods,
-//! the data folder. Right: every mode's Java and memory in one table, then About (the version,
-//! Mojang's disclaimer and the credits). The page scrolls once it is taller than the window. Every
+//! the data folder. Right: every mode's Java and memory in one table, then About (the version, the
+//! launcher's own updates, Mojang's disclaimer and the credits). The page scrolls once it is taller than the window. Every
 //! change is saved at once through the backend; the names when their edit ends.
 //!
 //! The credits are a view of their own (`Launcher::settings_credits`): `assets/credits.md` (or
@@ -17,9 +17,12 @@ use srl_core::Mode;
 use crate::{
     app::Launcher,
     assets::{CREDITS_MD, CREDITS_PL_MD, NOTICES_MD, card_path},
-    backend::{Language, MEMORY_CHOICES_MB, Settings, mode_needs},
+    backend::{
+        Language, MEMORY_CHOICES_MB, Settings, UpdateState, mode_needs,
+        update::{Unavailable, UpdateFailure},
+    },
     catalog,
-    copy::{lang, t, tf},
+    copy::{self, lang, t, tf},
     v3::*,
 };
 
@@ -507,7 +510,30 @@ impl Launcher {
                     .text_color(muted3())
                     .child(version_line()),
             );
-        Self::section(t("settings.section_about"), vec![version])
+        let mut rows = vec![version, self.update_row(cx)];
+        if !matches!(self.update, UpdateState::Unavailable(_)) {
+            let auto = Self::switch(
+                "settings-auto-update",
+                self.settings.auto_update,
+                cx,
+                |this, on, cx| {
+                    let settings = Settings {
+                        auto_update: on,
+                        ..this.settings.clone()
+                    };
+                    this.save_settings(settings, cx);
+                },
+            );
+            rows.push(Self::setting_row(
+                t("settings.auto_update"),
+                Some(Self::hint(
+                    &t("settings.auto_update_hint"),
+                    RIGHT_W - 44. - GAP,
+                )),
+                auto,
+            ));
+        }
+        Self::section(t("settings.section_about"), rows)
             .child(
                 // Mojang's exact words, in English in every language (REDESIGN.md "Disclaimer").
                 inter(12., FontWeight::NORMAL, 1.45)
@@ -532,6 +558,101 @@ impl Launcher {
                     },
                 )),
             ))
+    }
+
+    /// The launcher's own update: where it stands, and the one thing to do about it (check,
+    /// restart into the new version, or download it by hand).
+    fn update_row(&self, cx: &mut Context<Self>) -> Div {
+        // "Restart to update" (the widest control) and a little air.
+        const CONTROL_W: f32 = 230.;
+        let text_w = RIGHT_W - CONTROL_W - GAP;
+        let check = |live: bool| -> AnyElement {
+            let label = t("settings.update_check");
+            if live {
+                secondary("settings-update-check", &label)
+                    .on_click(cx.listener(|this, _, _, _| this.backend().updates().check()))
+                    .into_any_element()
+            } else {
+                secondary_off(&label).into_any_element()
+            }
+        };
+        let page_button = |url: String| -> AnyElement {
+            secondary("settings-update-page", &t("settings.update_page"))
+                .on_click(cx.listener(move |_, _, _, cx| cx.open_url(&url)))
+                .into_any_element()
+        };
+        let (text, under, control): (SharedString, Option<SharedString>, AnyElement) =
+            match &self.update {
+                UpdateState::Unavailable(why) => (
+                    t(match why {
+                        Unavailable::LocalBuild => "settings.update_local",
+                        Unavailable::Platform => "settings.update_platform",
+                    }),
+                    None,
+                    page_button(srl_update::RELEASES_PAGE.into()),
+                ),
+                UpdateState::Idle => (t("settings.update_idle"), None, check(true)),
+                UpdateState::Checking => (t("settings.update_checking"), None, check(false)),
+                UpdateState::UpToDate => (t("settings.update_current"), None, check(true)),
+                UpdateState::Downloading { version, size } => (
+                    tf(
+                        "settings.update_downloading",
+                        &[("v", version), ("size", &copy::size(*size))],
+                    ),
+                    None,
+                    check(false),
+                ),
+                UpdateState::Ready { version } => {
+                    let label = t("settings.update_restart");
+                    let blocker = self.restart_blocker();
+                    let control = match blocker {
+                        None => primary("settings-update-restart", &label)
+                            .on_click(cx.listener(|this, _, _, cx| this.restart_to_update(cx)))
+                            .into_any_element(),
+                        Some(_) => secondary_off(&label).into_any_element(),
+                    };
+                    (
+                        tf("settings.update_ready", &[("v", version)]),
+                        blocker.map(t),
+                        control,
+                    )
+                }
+                UpdateState::Manual { version, dir, page } => (
+                    tf(
+                        "settings.update_manual",
+                        &[("v", version), ("dir", &dir.display().to_string())],
+                    ),
+                    None,
+                    page_button(page.clone()),
+                ),
+                UpdateState::Failed { why, .. } => (
+                    t(match why {
+                        UpdateFailure::Offline => "settings.update_offline",
+                        UpdateFailure::RateLimited => "settings.update_rate_limited",
+                        UpdateFailure::Checksum => "settings.update_checksum",
+                        UpdateFailure::Other => "settings.update_failed",
+                    }),
+                    None,
+                    check(true),
+                ),
+            };
+        let hint = div()
+            .flex()
+            .flex_col()
+            .gap(px(4.))
+            .child(
+                inter(12., FontWeight::NORMAL, 1.4)
+                    .whitespace_nowrap()
+                    .text_color(muted3())
+                    .child(wrap_paths(&text, INTER, FontWeight::NORMAL, 12., text_w)),
+            )
+            .children(under.map(|u| {
+                inter(12., FontWeight::MEDIUM, 1.4)
+                    .whitespace_nowrap()
+                    .text_color(accent2())
+                    .child(wrap(&u, INTER, FontWeight::MEDIUM, 12., text_w))
+            }));
+        Self::setting_row(t("settings.updates"), Some(hint), control)
     }
 
     pub fn render_settings(&mut self, window: &mut Window, cx: &mut Context<Self>) -> AnyElement {

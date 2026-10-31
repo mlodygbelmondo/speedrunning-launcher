@@ -5389,6 +5389,7 @@ dependencies = [
  "srl-practice",
  "srl-stats",
  "srl-tools",
+ "srl-update",
  "tokio",
  "uuid",
  "windows-sys 0.61.2",
@@ -5532,6 +5533,24 @@ dependencies = [
  "srl-game",
  "tokio",
  "windows-sys 0.61.2",
+ "zip",
+]
+
+[[package]]
+name = "srl-update"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "hex",
+ "httparse",
+ "reqwest",
+ "semver",
+ "serde",
+ "serde_json",
+ "sha2",
+ "srl-core",
+ "srl-practice",
+ "tokio",
  "zip",
 ]
 

@@ -47,6 +47,7 @@ output, and when CI pipes the output it writes there.
 | `src/screens/account.rs` | The account section on Settings and the login dialog. |
 | `src/backend/practice.rs` | The practice extension of the facade: `PracticeMaps`, `PracticeSnapshot`, `PracticeEvent`, `RealPractice` (srl-practice built once, and the practice game through the pipeline) and `FakePractice`. Decides what the practice instance runs (`target`, `mod_set`, `TOOLS_LIKE`). |
 | `src/backend/importer.rs` | The settings import's extension of the facade: `Importer`, `ImportEvent`, `ImportResult`, `targets` (every mode and the practice instance, Draftout with its seeded line), `effective` (the ticks a source can bring), `RealImport` (srl-import on the blocking pool, instances whose game runs or installs left out) and `FakeImport` (`ImportPreset`). |
+| `src/backend/update.rs` | The launcher's own update (srl-update): `Updates`, `UpdateState`, `RealUpdates` (when a build checks, the check on start and by hand, the swap right after the verified download, Restart) and `FakeUpdates` (`UpdatePreset`). Settings → About shows it; the gear in the top nav carries an accent square while an update is ready. |
 | `src/screens/import.rs` | The Import page (`ImportView`): the instances found, "Choose folder…", the four ticks, Import, the result; the first start's offer. |
 | `src/cli.rs` | The headless command line. |
 | `src/catalog.rs` | Static data: modes, their layers, the practice maps (srl-practice's catalogue, the one source), Practice's categories and tools (`assets/practice.json`), Learn's topics and guides (`assets/learn.json`). |
@@ -112,6 +113,12 @@ pub trait Tools {
     fn snapshot(&self) -> Vec<ToolSnapshot>; // every tool, in ToolId::ALL order, no I/O
     fn install(&self, tool: ToolId);         // install or update; progress comes as Event::Tool
     fn cancel(&self, tool: ToolId);          // stop an install; the state goes back
+}
+
+pub trait Updates {
+    fn snapshot(&self) -> UpdateState;       // Unavailable, Idle, Checking, UpToDate, Downloading, Ready, Manual, Failed
+    fn check(&self);                         // "Check now": check, download, verify, swap; Event::Update
+    fn restart(&self) -> bool;               // start the new exe; true: quit now
 }
 
 pub trait Accounts {
@@ -307,6 +314,7 @@ Learn is real: other runners' guides in `assets/learn.json`, each with its autho
 | `SRL_KEYSTORE=file` | srl-auth keeps the tokens in its encrypted file instead of the system keyring (tests). |
 | `SRL_IMPORT_HOME=<dir>` | The settings import searches this folder as if it were the home folder, and nothing else (tests with fake MultiMC, Prism, MCSR Launcher and `.minecraft` trees). |
 | `SRL_IMPORT_PICK=<dir>` | "Choose folder…" takes this folder instead of opening the system's folder picker (tests: the picker is a desktop portal on Linux, which would open on the real desktop). |
+| `SRL_UPDATE_URL=<url>` | The launcher's update check asks this URL for the latest release's JSON instead of GitHub's API, and runs on Linux too (still only in a CI-like build with `SRL_COMMIT`: `GITHUB_SHA=<sha> cargo build`). For tests with a local server; the swap then replaces the running binary. |
 | `SRL_DEV_GAME_HOME=<dir>` | Every game this launcher starts (modes and practice) gets `-Duser.home=<dir>`, so a test game keeps what mods write to the home folder (SpeedRunIGT's records) out of the real one. For tests; the app has no JVM arguments setting. |
 
 ## Screen ids
@@ -359,6 +367,10 @@ Learn is real: other runners' guides in `assets/learn.json`, each with its autho
 | `msa-running`, `msa-warning` | The game screen with a Microsoft account; the same when the sign-in couldn't be renewed ("valid until"). |
 | `msa-relogin`, `msa-keyring` | Play stopped by the account: the sign-in was revoked (Log in again), the keyring is locked. |
 | `msa-sign-in-first` | Play stopped before anyone has signed in, in a build that can log in: offline opens after one sign-in (Sign in). |
+| `update-ready` | Home while a new version of the launcher is ready: the accent square on the gear. |
+| `update-about`, `update-blocked` | Settings → About with 0.2.0 ready (Restart to update); the same while RSG installs (Restart waits, and says why). |
+| `update-checking`, `update-current`, `update-downloading` | About while the check runs, up to date, 0.2.0 downloading (26 MB). |
+| `update-manual`, `update-error`, `update-local` | About when the launcher's folder can't be written (the releases page), after a check by hand failed offline, in a local build (no update). |
 
 ## Tools
 

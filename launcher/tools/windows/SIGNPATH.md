@@ -6,14 +6,21 @@ projects. The rules the project follows are in the README's
 
 ## How a build gets signed
 
-1. Run the `launcher` workflow by hand (Actions → launcher → Run workflow) with **sign** ticked.
-2. The Windows job tests the exe as usual, then uploads it and submits a signing request to SignPath.
-3. An approver confirms the request on signpath.io. The job waits up to an hour.
-4. The job checks the signature, packs the signed exe into the zip and the publish job replaces the
-   `launcher-latest` asset. The release notes and `VERSION.txt` say whether the build is signed.
+- **A release** (a pushed tag `vX.Y.Z`, `launcher/README.md` "Releasing a version") is signed whenever the
+  SignPath secret and variable below are set; without them it is published unsigned.
+- **A test build** is signed only when the `launcher` workflow is run by hand (Actions → launcher → Run
+  workflow) with **sign** ticked; that run fails if SignPath isn't set up.
 
-Pushes to `launcher` still build unsigned test zips, so a push after a signed run replaces the signed zip with
-an unsigned one.
+Either way:
+
+1. The Windows job tests the exe as usual, then uploads it and submits a signing request to SignPath.
+2. An approver confirms the request on signpath.io. The job waits up to an hour.
+3. The job checks the signature, packs the signed exe into the zip and the publish job puts it in the release
+   (or replaces the `launcher-latest` asset). The release notes and `VERSION.txt` say whether the build is
+   signed.
+
+Pushes to `launcher` still build unsigned test zips, so a push after a signed run replaces the signed test zip
+with an unsigned one. Releases keep theirs.
 
 ## Setup, once
 

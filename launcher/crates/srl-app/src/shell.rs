@@ -1,10 +1,14 @@
 //! The app shell (REDESIGN.md "Shell: top nav"): a 68 px bar over every page except the game
-//! screen and the name prompt, with no background of its own.
+//! screen and the name prompt, with no background of its own. When a new version of the launcher
+//! is ready (or out, to download by hand) the gear carries an accent square, as VS Code's does:
+//! Settings → About says what and offers "Restart to update". A text notice doesn't fit the bar
+//! at 1280 px in Polish.
 use gpui::{Context, Div, FontWeight, ParentElement, Styled, div, prelude::*, px, svg};
 
 use crate::{
     app::{Launcher, Page},
     assets::icon_path,
+    backend::UpdateState,
     copy::{t, tf},
     demo,
     v3::*,
@@ -189,9 +193,14 @@ impl Launcher {
                     })
             }));
 
+        let update = matches!(
+            self.update,
+            UpdateState::Ready { .. } | UpdateState::Manual { .. }
+        );
         let gear = div()
             .id("nav-settings")
             .group("nav-gear")
+            .relative()
             .flex_none()
             .cursor_pointer()
             .on_click(cx.listener(|this, _, _, cx| this.navigate(Page::Settings, cx)))
@@ -205,7 +214,19 @@ impl Launcher {
                         muted3()
                     })
                     .group_hover("nav-gear", |s| s.text_color(text3())),
-            );
+            )
+            .when(update, |d| {
+                d.child(
+                    div()
+                        .absolute()
+                        .top(px(-4.))
+                        .right(px(-5.))
+                        .size(px(10.))
+                        .border_2()
+                        .border_color(bg3())
+                        .bg(accent2()),
+                )
+            });
 
         // Accounts isn't built yet; the player name lives in Settings, so the block opens it.
         let me = self

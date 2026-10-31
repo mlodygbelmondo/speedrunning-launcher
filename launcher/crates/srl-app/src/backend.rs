@@ -31,6 +31,7 @@ mod real;
 pub mod stats;
 mod stats_sample;
 pub mod tools;
+pub mod update;
 
 pub use account::{AccountProblem, AccountSnapshot, Accounts, AccountsPreset};
 pub use fake::{
@@ -43,6 +44,7 @@ pub use real::RealBackend;
 pub use stats::{StatsEvent, StatsService, StatsSettings, StatsView};
 pub use stats_sample::StatsPreset;
 pub use tools::{ToolId, ToolSnapshot, ToolState, Tools, ToolsPreset};
+pub use update::{UpdatePreset, UpdateState, Updates};
 
 /// What a mode is doing, as the Play button shows it.
 #[derive(Clone, Debug, PartialEq)]
@@ -258,6 +260,9 @@ pub struct Settings {
     /// Temporary, for development: hide every tagline and subtitle (`copy::is_tagline`).
     #[serde(skip_serializing_if = "std::ops::Not::not")]
     pub dev_hide_taglines: bool,
+    /// Look for a new version of the launcher on start, and install it (`update.rs`). On by
+    /// default.
+    pub auto_update: bool,
 }
 
 /// Everything that decides a mode's mods besides the mod lists: the optional mods of Settings
@@ -307,6 +312,7 @@ impl Default for Settings {
             mod_choices: BTreeMap::new(),
             custom_jars: Vec::new(),
             dev_hide_taglines: false,
+            auto_update: true,
         }
     }
 }
@@ -544,6 +550,8 @@ pub enum Event {
     /// A jar the player picked on the Mods page is in the store (`Backend::add_jar`), or why
     /// not.
     JarAdded(Mode, Result<srl_mods::CustomJar, String>),
+    /// The launcher's own update (`Updates`): its new state.
+    Update(UpdateState),
 }
 
 /// Where a backend sends its events. Unbounded: the UI drains it every frame it wakes up for.
@@ -575,6 +583,8 @@ pub trait Backend {
     fn practice(&self) -> &dyn PracticeMaps;
     /// The settings import from other launchers (srl-import).
     fn import(&self) -> &dyn Importer;
+    /// The launcher's own updates (srl-update).
+    fn updates(&self) -> &dyn Updates;
     /// Copies the player's jar at `path` into the content store for `mode`'s Mods page; the
     /// answer comes as `Event::JarAdded` (the UI then turns it on in its settings).
     fn add_jar(&self, mode: Mode, path: PathBuf);

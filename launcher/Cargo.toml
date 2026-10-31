@@ -1,6 +1,6 @@
 [workspace]
 resolver = "3"
-members = ["crates/srl-core", "crates/srl-game", "crates/srl-mods", "crates/srl-tools", "crates/srl-app", "crates/srl-stats", "crates/srl-practice", "crates/srl-auth", "crates/srl-import"]
+members = ["crates/srl-core", "crates/srl-game", "crates/srl-mods", "crates/srl-tools", "crates/srl-app", "crates/srl-stats", "crates/srl-practice", "crates/srl-auth", "crates/srl-import", "crates/srl-update"]
 default-members = ["crates/srl-app"]
 
 [workspace.package]
@@ -18,6 +18,7 @@ srl-stats = { path = "crates/srl-stats" }
 srl-auth = { path = "crates/srl-auth" }
 srl-practice = { path = "crates/srl-practice" }
 srl-import = { path = "crates/srl-import" }
+srl-update = { path = "crates/srl-update" }
 
 anyhow = "1"
 bytes = "1"

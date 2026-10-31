@@ -5,13 +5,21 @@ commicie, który coś zmienia. Najnowsze wpisy dziennika są na górze.
 
 ## Teraz
 
-- **Stan:** `launcher` i `main` to ten sam commit. Gotowe są M1, M2 i M3 (statystyki z prawdziwych danych, mapy
-  treningowe, logowanie Microsoft z ekranami), import ustawień z innych launcherów, jedna instancja 1.16.1 ze stroną
-  Mody, szlif UI i tekstów po ocenie ekranów oraz blokada grania offline w wersji z client ID. Szczegóły w dzienniku.
+- **Stan:** `launcher` ma nad `main` przygotowanie podpisu SignPath i samoaktualizację (2026-10-31, ta jeszcze
+  niewypchnięta). Gotowe są M1, M2 i M3 (statystyki z prawdziwych danych, mapy treningowe, logowanie Microsoft
+  z ekranami), import ustawień z innych launcherów, jedna instancja 1.16.1 ze stroną Mody, szlif UI i tekstów po
+  ocenie ekranów oraz blokada grania offline w wersji z client ID. Szczegóły w dzienniku.
 - **Repozytorium jest publiczne** od 2026-10-31 (GPL-3.0-or-later), z jednym commitem na start. Historia sprzed
   niego jest w prywatnym `mlodygbelmondo/speedrunning-launcher-private` (lokalnie remote `private`).
-- **Podpis SignPath:** CI jest gotowe (ręczne uruchomienie z zaznaczonym `sign`), README ma „Code signing policy”.
-  Czeka na Piotra: wniosek na signpath.org, potem konfiguracja z `launcher/tools/windows/SIGNPATH.md`.
+- **Podpis SignPath:** CI jest gotowe (ręczne uruchomienie z zaznaczonym `sign`, a wydania z tagu same, gdy
+  SignPath jest skonfigurowany), README ma „Code signing policy”. Czeka na Piotra: wniosek na signpath.org, potem
+  konfiguracja z `launcher/tools/windows/SIGNPATH.md`.
+- **Samoaktualizacja launchera** jest zrobiona (2026-10-31, szczegóły w dzienniku), ale nikt jej jeszcze nie
+  uruchomił na Windowsie. Czeka na Piotra: przejrzeć i wypchnąć commity, potem pierwsze wydanie
+  `git tag v0.1.0 && git push origin v0.1.0` (wersja w `launcher/Cargo.toml` to już 0.1.0; kolejne: podbij
+  wersję, commit, tag, instrukcja w `launcher/README.md`, „Releasing a version”). Test na Windowsie: rozpakuj wydanie, potem wydaj `v0.1.1` i uruchom stary exe:
+  w Ustawieniach, w O programie, ma się pojawić „Uruchom ponownie”, a po kliknięciu nowa wersja (0.1.1 w O programie)
+  i brak `speedrunning-launcher.old.exe` w folderze po kilku sekundach.
 - **Logowanie Microsoft** jest wyłączone, dopóki Mojang nie zatwierdzi naszego client ID. Poradnik dla Piotra:
   `launcher/docs/microsoft-login.md` (Azure i formularz Mojanga, po polsku). Bez client ID gra offline działa jak
   dotąd, więc testy w czasie weryfikacji nie potrzebują konta.
@@ -52,6 +60,9 @@ commicie, który coś zmienia. Najnowsze wpisy dziennika są na górze.
   - Gdy mcsr-meta nie ma legalnej wersji moda dla trybu, tryb daje błąd. Nie wraca do starszej legalnej wersji.
   - Przerwana aktualizacja Javy bez sieci: launcher nie wraca jeszcze sam do poprzedniej wersji.
   - Katalog danych na Windowsie: Roaming czy LocalAppData, do decyzji.
+  - Samoaktualizacja tylko na Linuksie i w testach: zmiana nazwy działającego exe, start nowego i usunięcie
+    `.old.exe` przy następnym starcie trzeba sprawdzić na prawdziwym Windowsie (też z Defenderem i folderem
+    w Program Files, gdzie launcher ma pokazać link do wydań).
   - Listę modów Draftout trzeba sprawdzać ręcznie przy każdej nowej wersji Draftout.
   - Ekrany M3 bez pełnego przeglądu kodu (29.10 przejrzany był backend: wspólna instancja, import, trening, pod
     kątem utraty danych i Windowsa; wyniki w dzienniku). Niesprawdzone końcówki: kod z telefonu i Anuluj
@@ -141,7 +152,8 @@ Poza planem, na prośbę Piotra:
 
 Potem:
 
-- [ ] Aktualizacje, instalator i podpis.
+- [x] Aktualizacje launchera: numerowane wydania z tagów i samoaktualizacja (2026-10-31, czeka na test na Windowsie).
+- [ ] Instalator i podpis.
 
 ## Decyzje
 
@@ -193,6 +205,44 @@ Potem:
 ## Dziennik
 
 ### 2026-10-31
+
+- **Samoaktualizacja launchera i numerowane wydania** (subagent, gałąź `launcher`, decyzja Piotra o budowie).
+  - **CI:** tag `v<wersja>` buduje i testuje jak push, sprawdza, że tag to `v` plus `[workspace.package]
+    version` (inaczej oba joby padają), i publikuje zwykłe wydanie (nie prerelease, oznaczone jako latest), więc
+    `releases/latest` GitHuba je zwraca. Obok zipa jest `speedrunning-launcher-windows.zip.sha256` (jedna linia
+    w formacie `sha256sum`), także w `launcher-latest`. Podpis: tag podpisuje, gdy są sekret
+    `SIGNPATH_API_TOKEN` i zmienna `SIGNPATH_ORGANIZATION_ID`, bez nich buduje bez podpisu; ręczne `sign` jak
+    dotąd; push do `launcher` nigdy. `VERSION.txt` ma teraz wersję. actionlint czysty. Tagów ani wydań nie
+    tworzyłem.
+  - **Nowy crate `srl-update`:** porównanie wersji (semver, bez pre-release, metadane builda się nie liczą),
+    wybór assetów, suma z pliku `.sha256`, pobranie zipa przez `Downloader` z srl-core (SHA-256 sprawdzone przed
+    użyciem; srl-core ma teraz typowany błąd `HashMismatch`), rozpakowanie do `<dane>/updates/<wersja>/staged`
+    ze strażnikiem zip-slip z srl-practice, bez symlinków i powtórzonych nazw, limity 1000 wpisów i 512 MB.
+  - **Kiedy podmiana:** od razu po pobraniu i sprawdzeniu, nie dopiero przy „Uruchom ponownie”. Nowy exe jest
+    kopiowany obok jako `.new`, działający dostaje nazwę `speedrunning-launcher.old.exe` (Windows pozwala zmienić
+    nazwę działającego exe), `.new` bierze jego nazwę, reszta plików zipa jest kopiowana obok; nieudana zmiana
+    nazwy przywraca stary exe. Następny start usuwa `.old.exe` (z ponowieniem, bo poprzedni proces może jeszcze
+    kończyć). Dzięki temu aktualizacja działa przy każdym następnym starcie, a „Uruchom ponownie” tylko ją
+    przyspiesza. Folder bez prawa zapisu (Program Files): nic się nie pobiera, O programie mówi to wprost i daje
+    link do wydania.
+  - **Aplikacja:** sprawdzenie raz przy starcie w tle (przełącznik „Sprawdzaj aktualizacje automatycznie”,
+    domyślnie włączony, pole `auto_update` w `settings.json`) i „Sprawdź teraz” w Ustawieniach, w O programie, ze
+    stanami: sprawdzanie, aktualna, pobieranie, gotowa, ręcznie, błąd (offline, limit GitHuba, zła suma, inny).
+    Automatyczne sprawdzenie bez sieci tylko pisze do logu. Tylko build z CI na Windowsie (`SRL_COMMIT`); lokalny
+    i Linux mówią, że same się nie aktualizują; `SRL_FAKE`/`SRL_DEMO` używają symulacji. „Uruchom ponownie”
+    czeka, gdy gra z launchera działa albo coś się instaluje, i mówi dlaczego. Powiadomienie: akcentowy kwadracik
+    na zębatce w górnym pasku (jak w VS Code); napis się nie mieścił, bo po polsku pasek przy 1280 px ma wolne
+    około 50 px. `SRL_UPDATE_URL` kieruje sprawdzenie na inny serwer (testy). Ekrany `update-*` w README aplikacji.
+  - **Testy:** `cargo test --workspace` 338 (było 320): 12 jednostkowych w srl-update (wersje, assety, plik sumy,
+    zip-slip, duplikaty, podmiana, wycofanie przy każdym kroku, uprawnienia, sprzątanie), 4 integracyjne z lokalnym
+    serwerem HTTP (nowsza wersja pobrana, sprawdzona, rozpakowana i podmieniona; ta sama wersja nic nie pobiera;
+    zła suma odrzucona; 404, limit, zły JSON, offline), 2 w aplikacji. Na Linuksie prawdziwy backend
+    (`GITHUB_SHA=… cargo build`, `SRL_UPDATE_URL`, Xvfb, `SRL_HOME` w cache): wydanie 0.2.0 pobrane, podmienione,
+    stary plik `.old-3` usunięty przy starcie, klik „Restart to update” zamknął launcher i uruchomił nowy plik;
+    zła suma: tylko linia w logu; folder tylko do odczytu: komunikat z linkiem; ta sama wersja: nic. Zrzuty
+    w `~/.cache/srl-e2e/selfupdate/` (`en/`, `pl/`, `e2e-real-*.jpg`).
+  - **Niesprawdzone (tylko Windows):** zmiana nazwy działającego exe, start nowego, usunięcie `.old.exe`,
+    Defender przy podmianie, Program Files.
 
 - **Publiczne repozytorium.** Stare repo zmienione na prywatne `speedrunning-launcher-private`. Nowe publiczne
   `mlodygbelmondo/speedrunning-launcher` startuje od jednego commita z drzewem z 7d6a3b1: bez `research/visual/`

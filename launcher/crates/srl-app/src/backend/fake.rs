@@ -24,6 +24,7 @@ use super::{
     stats::StatsService,
     stats_sample::{FakeStats, StatsPreset},
     tools::{FakeTools, ToolId, Tools, ToolsPreset},
+    update::{FakeUpdates, UpdatePreset, Updates},
 };
 
 /// How often a running install reports progress: 20 Hz is smooth for a bar and cheap to draw.
@@ -60,6 +61,8 @@ pub struct FakeOptions {
     pub data_dir: PathBuf,
     /// The import's starting state (`SRL_SCREEN=import*`).
     pub import: ImportPreset,
+    /// The launcher update's starting state (`SRL_SCREEN=update-*`).
+    pub update: UpdatePreset,
 }
 
 pub struct FakeBackend {
@@ -70,6 +73,7 @@ pub struct FakeBackend {
     accounts: FakeAccounts,
     practice: FakePractice,
     import: FakeImport,
+    updates: FakeUpdates,
 }
 
 enum Cmd {
@@ -195,6 +199,7 @@ impl FakeBackend {
         let tools = FakeTools::new(events.clone(), options.tools);
         let stats = FakeStats::new(options.stats, events.clone());
         let import = FakeImport::new(events.clone(), options.import, options.data_dir.clone());
+        let updates = FakeUpdates::new(events.clone(), options.update, &options.data_dir);
         let practice = FakePractice::new(
             events.clone(),
             options.practice,
@@ -226,6 +231,7 @@ impl FakeBackend {
             accounts,
             practice,
             import,
+            updates,
         }
     }
 }
@@ -339,6 +345,9 @@ impl Backend for FakeBackend {
     }
     fn import(&self) -> &dyn Importer {
         &self.import
+    }
+    fn updates(&self) -> &dyn Updates {
+        &self.updates
     }
     fn add_jar(&self, mode: Mode, path: PathBuf) {
         let _ = self.cmds.send(Cmd::AddJar(mode, path));
@@ -644,6 +653,7 @@ mod tests {
             practice_demo: None,
             data_dir: std::env::temp_dir(),
             import: ImportPreset::Found,
+            update: UpdatePreset::Default,
         }
     }
 

@@ -1,4 +1,4 @@
-Speedrunning Launcher, test build (milestone 2)
+Speedrunning Launcher for Windows
 
 Run
   Unzip anywhere and double-click speedrunning-launcher.exe. Enter a player name, pick a mode
@@ -13,6 +13,13 @@ Tools
   Ninjabrain Bot and Toolscreen start with the game in Ranked, RSG, FSG and SSG, and close when
   it exits. The Tools page installs and updates them and sets which modes start each one.
   Draftout bans Ninjabrain Bot. Toolscreen's log: %USERPROFILE%\.config\toolscreen\logs\latest.log
+
+Updates
+  On start the launcher looks for a newer release on GitHub, downloads it, checks its SHA-256
+  and puts it in place of speedrunning-launcher.exe (the previous one is kept as
+  speedrunning-launcher.old.exe until the next start). Settings, About: Restart to update,
+  Check now, and a switch to turn the automatic check off. Keep this folder somewhere you can
+  write to (not Program Files), or update by hand from the releases page.
 
 Where things are
   Game, mods, tools and settings: %APPDATA%\SpeedrunningLauncher\data
@@ -30,5 +37,5 @@ Command line (no window), for checks and bug reports:
   it to wait and see the output: .\speedrunning-launcher.exe --install rsg | Out-Host
   Set SRL_HOME to a folder to keep the data there instead.
 
-VERSION.txt names the commit this build comes from. The licences of the bundled fonts and icons
+VERSION.txt names the version and the commit this build comes from. The licences of the bundled fonts and icons
 are in licenses\, and those of adapted code in THIRD_PARTY_NOTICES.md.

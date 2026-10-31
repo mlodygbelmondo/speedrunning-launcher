@@ -1,11 +1,18 @@
 # Speedrunning Launcher: format, test and build on Linux and Windows, install RSG, Ninjabrain Bot
-# and Toolscreen headless on Windows, and publish the Windows build (zip) as the `launcher-latest`
-# prerelease. Run by hand with `sign` ticked, the exe is signed through SignPath first. See launcher/README.md.
+# and Toolscreen headless on Windows, and publish the Windows build (zip and its SHA-256).
+# - A push to `launcher`: the `launcher-latest` prerelease, unsigned. Run by hand with `sign`
+#   ticked, the exe is signed through SignPath first.
+# - A tag `v<version>` (the `[workspace.package]` version in launcher/Cargo.toml): the release
+#   `v<version>`, the one GitHub's `releases/latest` returns and the launcher updates itself from.
+#   Signed when SignPath is set up, else unsigned.
+# See launcher/README.md.
 name: launcher
 
 on:
   push:
     branches: [launcher]
+    # Path filters don't apply to tags: every version tag builds.
+    tags: ['v*']
     paths:
       - 'launcher/**'
       - '.github/workflows/launcher.yml'
@@ -37,6 +44,15 @@ jobs:
         working-directory: launcher
     steps:
       - uses: actions/checkout@v4
+
+      # A release tag must name the version the exe reports (Settings, the update check).
+      - name: Tag matches the version
+        if: github.ref_type == 'tag'
+        run: |
+          want=$(sed -n '/^\[workspace.package\]/,/^\[/s/^version *= *"\(.*\)".*/\1/p' Cargo.toml | tr -d '\r')
+          echo "tag $GITHUB_REF_NAME, workspace version $want"
+          [[ "$want" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || { echo "::error::the workspace version '$want' is not X.Y.Z"; exit 1; }
+          [ "$GITHUB_REF_NAME" = "v$want" ] || { echo "::error::tag $GITHUB_REF_NAME doesn't match the workspace version $want (launcher/Cargo.toml)"; exit 1; }
 
       # GPUI's build needs these (launcher/README.md, "Build").
       - name: Install system packages
@@ -77,6 +93,15 @@ jobs:
         working-directory: launcher
     steps:
       - uses: actions/checkout@v4
+
+      # A release tag must name the version the exe reports (Settings, the update check).
+      - name: Tag matches the version
+        if: github.ref_type == 'tag'
+        run: |
+          want=$(sed -n '/^\[workspace.package\]/,/^\[/s/^version *= *"\(.*\)".*/\1/p' Cargo.toml | tr -d '\r')
+          echo "tag $GITHUB_REF_NAME, workspace version $want"
+          [[ "$want" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || { echo "::error::the workspace version '$want' is not X.Y.Z"; exit 1; }
+          [ "$GITHUB_REF_NAME" = "v$want" ] || { echo "::error::tag $GITHUB_REF_NAME doesn't match the workspace version $want (launcher/Cargo.toml)"; exit 1; }
 
       - uses: dtolnay/rust-toolchain@stable
         with:
@@ -147,18 +172,31 @@ jobs:
 
       # Signing: the tested exe goes to SignPath as an artifact, an approver confirms the request on
       # signpath.io, and the signed exe replaces it before packaging. Needs the SIGNPATH_API_TOKEN secret
-      # and the SIGNPATH_ORGANIZATION_ID variable (tools/windows/SIGNPATH.md).
-      - name: Check SignPath settings
-        if: inputs.sign
+      # and the SIGNPATH_ORGANIZATION_ID variable (tools/windows/SIGNPATH.md). A run by hand with
+      # `sign` ticked fails without them; a release tag signs when they are set and builds unsigned
+      # when they aren't; a push to `launcher` never signs.
+      - name: Sign or not
+        id: signing
         env:
           TOKEN: ${{ secrets.SIGNPATH_API_TOKEN }}
           ORG: ${{ vars.SIGNPATH_ORGANIZATION_ID }}
+          ASKED: ${{ inputs.sign }}
         run: |
-          [ -n "$TOKEN" ] || { echo "the SIGNPATH_API_TOKEN secret is not set"; exit 1; }
-          [ -n "$ORG" ] || { echo "the SIGNPATH_ORGANIZATION_ID variable is not set"; exit 1; }
+          configured=yes
+          [ -n "$TOKEN" ] || { echo "the SIGNPATH_API_TOKEN secret is not set"; configured=no; }
+          [ -n "$ORG" ] || { echo "the SIGNPATH_ORGANIZATION_ID variable is not set"; configured=no; }
+          sign=no
+          if [ "$ASKED" = true ]; then
+            [ "$configured" = yes ] || exit 1
+            sign=yes
+          elif [ "$GITHUB_REF_TYPE" = tag ] && [ "$configured" = yes ]; then
+            sign=yes
+          fi
+          echo "sign: $sign"
+          echo "sign=$sign" >> "$GITHUB_OUTPUT"
 
       - name: Upload the unsigned exe
-        if: inputs.sign
+        if: steps.signing.outputs.sign == 'yes'
         id: unsigned
         uses: actions/upload-artifact@v4
         with:
@@ -167,7 +205,7 @@ jobs:
           if-no-files-found: error
 
       - name: Sign through SignPath
-        if: inputs.sign
+        if: steps.signing.outputs.sign == 'yes'
         uses: signpath/github-action-submit-signing-request@v3
         with:
           api-token: ${{ secrets.SIGNPATH_API_TOKEN }}
@@ -182,7 +220,7 @@ jobs:
           output-artifact-directory: ${{ runner.temp }}/signed
 
       - name: Use the signed exe
-        if: inputs.sign
+        if: steps.signing.outputs.sign == 'yes'
         shell: pwsh
         run: |
           $signed = Join-Path $env:RUNNER_TEMP 'signed/speedrunning-launcher.exe'
@@ -193,7 +231,7 @@ jobs:
 
       - name: Signed or not
         id: signed
-        run: echo "signed=${{ inputs.sign && 'yes' || 'no' }}" >> "$GITHUB_OUTPUT"
+        run: echo "signed=${{ steps.signing.outputs.sign }}" >> "$GITHUB_OUTPUT"
 
       - name: Package
         run: |
@@ -204,8 +242,9 @@ jobs:
           cp assets/fonts/*.txt dist/licenses/
           cp assets/icons/LICENSE-lucide.txt dist/licenses/
           sed 's/\r*$/\r/' tools/windows/README.txt > dist/README.txt
-          printf 'commit %s\nbuilt %s\nrun %s\nsigned %s\n' "$GITHUB_SHA" "$(date -u +%FT%TZ)" "$GITHUB_RUN_ID" \
-            "${{ steps.signed.outputs.signed }}" > dist/VERSION.txt
+          version=$(sed -n '/^\[workspace.package\]/,/^\[/s/^version *= *"\(.*\)".*/\1/p' Cargo.toml | tr -d '\r')
+          printf 'version %s\ncommit %s\nbuilt %s\nrun %s\nsigned %s\n' "$version" "$GITHUB_SHA" "$(date -u +%FT%TZ)" \
+            "$GITHUB_RUN_ID" "${{ steps.signed.outputs.signed }}" > dist/VERSION.txt
           rm -f speedrunning-launcher-windows.zip
           (cd dist && 7z a -tzip -mx=9 ../speedrunning-launcher-windows.zip . > /dev/null)
           ls -l speedrunning-launcher-windows.zip
@@ -216,7 +255,8 @@ jobs:
           path: launcher/speedrunning-launcher-windows.zip
           if-no-files-found: error
 
-  # Only a build that passed on both systems replaces the published zip.
+  # Only a build that passed on both systems is published. The SHA-256 goes next to the zip in
+  # sha256sum's format; the launcher's update checks the zip against it (crates/srl-update).
   publish:
     needs: [linux, windows]
     runs-on: ubuntu-latest
@@ -226,7 +266,13 @@ jobs:
         with:
           name: speedrunning-launcher-windows
 
+      - name: Checksum
+        run: |
+          sha256sum speedrunning-launcher-windows.zip > speedrunning-launcher-windows.zip.sha256
+          cat speedrunning-launcher-windows.zip.sha256
+
       - name: Publish prerelease launcher-latest
+        if: github.ref_type != 'tag'
         env:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
@@ -246,13 +292,47 @@ jobs:
 
           Built from ${GITHUB_SHA} by run ${GITHUB_RUN_ID}."
           if gh release view launcher-latest > /dev/null 2>&1; then
-            # move the tag to this commit, then replace the asset
+            # move the tag to this commit, then replace the assets
             gh api -X PATCH "repos/${GITHUB_REPOSITORY}/git/refs/tags/launcher-latest" -f sha="${GITHUB_SHA}" -F force=true > /dev/null \
               || echo "warning: could not move tag launcher-latest"
-            gh release upload launcher-latest speedrunning-launcher-windows.zip --clobber
+            gh release upload launcher-latest speedrunning-launcher-windows.zip speedrunning-launcher-windows.zip.sha256 --clobber
             gh release edit launcher-latest --prerelease --title "Launcher test build (latest)" --notes "$notes"
           else
-            gh release create launcher-latest speedrunning-launcher-windows.zip --prerelease \
-              --target "${GITHUB_SHA}" --title "Launcher test build (latest)" --notes "$notes"
+            gh release create launcher-latest speedrunning-launcher-windows.zip speedrunning-launcher-windows.zip.sha256 \
+              --prerelease --target "${GITHUB_SHA}" --title "Launcher test build (latest)" --notes "$notes"
           fi
           gh release view launcher-latest --json url,assets --jq '.url, (.assets[] | .url)'
+
+      # A normal release (not a prerelease), marked latest: `releases/latest` returns it, so every
+      # installed launcher finds it on its next start.
+      - name: Publish release ${{ github.ref_name }}
+        if: github.ref_type == 'tag'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          SIGNED: ${{ needs.windows.outputs.signed }}
+          TAG: ${{ github.ref_name }}
+        run: |
+          mb=$(du -m speedrunning-launcher-windows.zip | cut -f1)
+          if [ "$SIGNED" = yes ]; then
+            signing="The exe is signed. Free code signing provided by SignPath.io, certificate by SignPath Foundation."
+          else
+            signing="This build is not signed, so Windows SmartScreen may ask the first time: choose More info, then Run anyway."
+          fi
+          notes="Speedrunning Launcher ${TAG#v} for Windows 10 and 11 (x64).
+
+          New here: download speedrunning-launcher-windows.zip (${mb} MB), unzip it and run speedrunning-launcher.exe. README.txt in the zip says where the data and logs are.
+
+          Already have it: the launcher finds this version on its next start, installs it and asks you to restart (Settings, About).
+
+          ${signing} SHA-256: $(cut -d' ' -f1 speedrunning-launcher-windows.zip.sha256)
+
+          Built from ${GITHUB_SHA} by run ${GITHUB_RUN_ID}."
+          files=(speedrunning-launcher-windows.zip speedrunning-launcher-windows.zip.sha256)
+          if gh release view "$TAG" > /dev/null 2>&1; then
+            gh release upload "$TAG" "${files[@]}" --clobber
+            gh release edit "$TAG" --prerelease=false --draft=false --latest --title "Speedrunning Launcher ${TAG#v}" --notes "$notes"
+          else
+            gh release create "$TAG" "${files[@]}" --verify-tag --latest --title "Speedrunning Launcher ${TAG#v}" --notes "$notes"
+          fi
+          gh release view "$TAG" --json url,isPrerelease,assets --jq '.url, .isPrerelease, (.assets[] | .url)'

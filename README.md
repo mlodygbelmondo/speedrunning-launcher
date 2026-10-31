@@ -81,11 +81,17 @@ its author and opened in your browser.
 
 ## Download
 
-Windows test builds are published as the
+Download `speedrunning-launcher-windows.zip` from the
+[latest release](https://github.com/mlodygbelmondo/speedrunning-launcher/releases/latest), unzip it anywhere you can
+write to (not `Program Files`) and run `speedrunning-launcher.exe`. From then on the launcher updates itself: on
+start it looks for a newer release, downloads it in the background, checks it against the release's SHA-256 and
+installs it for the next start (Settings, About: "Restart to update", "Check now", and a switch to turn the
+automatic check off). Until the builds are signed (see the [Code signing policy](#code-signing-policy)),
+SmartScreen may ask: choose *More info*, then *Run anyway*. The release notes say whether a build is signed.
+
+Test builds of every change on the `launcher` branch are the
 [`launcher-latest`](https://github.com/mlodygbelmondo/speedrunning-launcher/releases/tag/launcher-latest)
-prerelease. Unzip the archive and run the `.exe` inside. Until the builds are signed (see the
-[Code signing policy](#code-signing-policy)), SmartScreen may ask: choose *More info*, then *Run anyway*. The
-release notes say whether a build is signed.
+prerelease. They update themselves to the next numbered release once it is newer than their version.
 
 The launcher keeps its data in `%APPDATA%\SpeedrunningLauncher\data` on Windows and in
 `~/.local/share/speedrunninglauncher` on Linux.
@@ -127,7 +133,9 @@ On Windows, build with the MSVC toolchain. Release builds also need the Windows 
     every mode plays with an offline account.
   - Tested end to end on Linux.
 - [ ] Approval as an allowed launcher on speedrun.com.
-- [ ] Installer, auto-update and code signing.
+- [ ] Auto-update: built (numbered releases from version tags, and the launcher updates itself from them); waits
+  for the first release and a test on Windows.
+- [ ] Installer and code signing.
 
 Day-to-day progress is in [`WORKLOG.md`](WORKLOG.md) (in Polish).
 
@@ -179,6 +187,8 @@ feature needs:
   start the launcher downloads the current mod lists to see whether installed modes need updates.
 - **Signing in with Microsoft**, when you choose to: Microsoft, Xbox Live and Minecraft services. The sign-in
   token stays on your computer.
+- **Updating the launcher**, on start (unless turned off in Settings) and when you click "Check now": GitHub's
+  API for the latest release of this repository, then GitHub for its download.
 - **Stats**, when you open them: the public MCSR Ranked and Draftout APIs, asked for the nickname you play with.
 - **Skins** on the Stats and account screens: Minecraft's texture server.
 

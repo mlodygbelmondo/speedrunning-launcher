@@ -95,6 +95,7 @@ and `shots/m3/pl/`.
 | `srl-practice` | Practice maps: the catalogue (author download URLs, pinned sha512, credits), the practice instance, install, reset, update and uninstall. The app's Practice page uses it (`crates/srl-app/src/backend/practice.rs`). |
 | `srl-auth` | Microsoft login (browser with PKCE racing the device code), the token chain to Minecraft, tokens in the OS keystore. Off until Mojang approves our client ID (`SRL_MSA_CLIENT_ID`); guide: `docs/microsoft-login.md`. The app's Settings, login dialog and Play use it (`crates/srl-app/src/backend/account.rs`); `examples/mock-services.rs` runs its test mock for the app. |
 | `srl-import` | "Import my current settings": finds the player's instances in MultiMC, Prism Launcher (and PolyMC), MCSR Launcher and the official launcher (search roots are a parameter; `SRL_IMPORT_HOME` for tests), and copies the ticked parts (options.txt, mod settings, resource packs, worlds) into the launcher's instances: everything into the ones on the source's Minecraft version, only key bindings, mouse sensitivity and FOV into the others (Draftout). Backs up what it replaces (`import-backup-<unix time>/` in the instance), never writes to the source, never follows links. See the top of `src/lib.rs`. |
+| `srl-update` | The launcher's own update: the latest GitHub release against the running version (semver), the zip checked against its `.sha256` asset, extracted with the zip-slip guard and size caps, and swapped in for the running exe with a rollback. The app's Settings → About and the gear's badge use it (`crates/srl-app/src/backend/update.rs`); see the top of `src/lib.rs`. |
 | `srl-app` | The GPUI app: scene v3 ported from the prototype, wired to the core through a `Backend` facade. |
 
 Async code runs on tokio. The app owns one tokio runtime on a background thread and talks to it through the
@@ -150,7 +151,8 @@ GitHub's `windows-latest` has.
 
 ## CI and the Windows build
 
-`.github/workflows/launcher.yml` runs on every push to the `launcher` branch that touches `launcher/` (and by hand):
+`.github/workflows/launcher.yml` runs on every push to the `launcher` branch that touches `launcher/`, on every tag
+`v<version>` and by hand:
 
 - **Linux:** `cargo fmt --check`, `cargo clippy -D warnings`, `cargo test --workspace`, the release build.
 - **Windows:** `cargo fmt --check`, `cargo test --workspace`, the release build (its version resource must name
@@ -158,10 +160,52 @@ GitHub's `windows-latest` has.
   empty `SRL_HOME`, a headless install of Ninjabrain Bot and Toolscreen into another one (every file the launcher
   reports is hashed again with coreutils and must match a hash pinned in `srl-tools`), and the zip: the exe,
   `README.txt` (`tools/windows/README.txt`), the licences and `VERSION.txt`.
-- **Signing**, only in a run started by hand with `sign` ticked: the tested exe goes to SignPath, an approver
-  confirms the request and the signed exe goes into the zip (`tools/windows/SIGNPATH.md`).
-- **Publish**, when both pass: the zip replaces the asset of the `launcher-latest` prerelease:
-  <https://github.com/mlodygbelmondo/speedrunning-launcher/releases/download/launcher-latest/speedrunning-launcher-windows.zip>.
+- **Signing:** the tested exe goes to SignPath, an approver confirms the request and the signed exe goes into the
+  zip (`tools/windows/SIGNPATH.md`). A run started by hand with `sign` ticked always signs (and fails without the
+  SignPath settings); a tag signs when the `SIGNPATH_API_TOKEN` secret and the `SIGNPATH_ORGANIZATION_ID` variable
+  are set, and builds unsigned when they aren't; a push to `launcher` never signs.
+- **Publish**, when both pass, with the zip's SHA-256 next to it (`speedrunning-launcher-windows.zip.sha256`, one
+  `sha256sum` line):
+  - a push to `launcher`: the assets of the `launcher-latest` prerelease, a test build:
+    <https://github.com/mlodygbelmondo/speedrunning-launcher/releases/download/launcher-latest/speedrunning-launcher-windows.zip>;
+  - a tag `vX.Y.Z`: the release `vX.Y.Z`, a normal release marked latest, so GitHub's `releases/latest` returns it
+    and every installed launcher updates to it. Both jobs first check that the tag is `v` plus the
+    `[workspace.package]` version and fail otherwise.
+
+### Releasing a version
+
+1. Bump `version` under `[workspace.package]` in `launcher/Cargo.toml` (semver: `0.2.0`), run `cargo check` so
+   `Cargo.lock` follows, and add a line to `WORKLOG.md`.
+2. Commit and push to `launcher` as usual.
+3. Tag that commit and push the tag: `git tag v0.2.0 && git push origin v0.2.0`.
+
+CI builds, tests and publishes the release `v0.2.0`. Never move or reuse a version tag: launchers that already
+updated to it won't download it again.
+
+### Self-update
+
+`srl-update` and `crates/srl-app/src/backend/update.rs`. Only a Windows build from CI (`SRL_COMMIT` set) updates
+itself; a local build and other systems say so in Settings → About and do nothing.
+
+- **When:** once on start, in the background, unless Settings → About's "Check for updates automatically" is off,
+  and when the player clicks "Check now". An automatic check that fails (offline, GitHub's rate limit, a bad
+  answer) only writes a log line.
+- **What:** `GET https://api.github.com/repos/mlodygbelmondo/speedrunning-launcher/releases/latest` (never a
+  prerelease, so `launcher-latest` is never offered). A tag newer than the running version (semver precedence, no
+  pre-releases) with both assets is an update. The checksum is downloaded first, then the zip into
+  `<data>/updates/<version>/` with srl-core's `Downloader`, which checks the SHA-256 before the file is used. The
+  zip is extracted into `staged/` with srl-practice's zip-slip guard, no symlinks or duplicate names, at most 1,000
+  entries and 512 MB, and must have `speedrunning-launcher.exe` at its root.
+- **The swap happens right after that**, not on Restart, so the update applies on any next start: the new exe is
+  copied next to the running one as `.new`, the running exe is renamed to `speedrunning-launcher.old.exe`
+  (Windows allows renaming a running exe), `.new` takes its name and the zip's other files are copied over; a
+  failed rename puts the old exe back. The next start deletes the `.old.exe`. If the exe's folder can't be
+  written (Program Files), nothing is downloaded and About says so, with the release's page.
+- **Restart to update** (About, the primary button while an update is ready; the gear in the top nav carries an
+  accent square then) starts the new exe and quits. It waits while a game the launcher started runs or anything
+  installs, and says which.
+- **Tests:** `SRL_UPDATE_URL=<release JSON URL>` points the check at another server and lets it run on Linux
+  too; `crates/srl-update/tests/update.rs` runs the whole path against a local HTTP server.
 
 ## Sources
 

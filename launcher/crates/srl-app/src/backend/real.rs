@@ -41,6 +41,7 @@ use super::{
     practice::{Host, PracticeMaps, RealPractice},
     stats::{RealStats, StatsService},
     tools::{RealTools, Tools},
+    update::{RealUpdates, Updates},
 };
 
 /// At most this often a running install sends progress to the UI: smooth for a bar, and a few
@@ -59,6 +60,8 @@ pub struct RealBackend {
     practice: RealPractice,
     /// The settings import from other launchers (srl-import).
     import: RealImport,
+    /// The launcher's own updates (srl-update).
+    updates: RealUpdates,
     rt: tokio::runtime::Handle,
     /// Dropping it ends the runtime thread. Games keep running: they aren't tied to the launcher,
     /// and neither are the tools started with them (a Ninjabrain Bot next to a game that still
@@ -246,10 +249,21 @@ impl RealBackend {
             inner.events.clone(),
             rt.clone(),
         );
+        let updates = RealUpdates::new(
+            inner.core.paths(),
+            inner.core.downloader().clone(),
+            inner.events.clone(),
+            rt.clone(),
+        );
+        if data_error.is_none() {
+            let auto = inner.snap.lock().unwrap().settings.auto_update;
+            updates.start(auto);
+        }
         Ok(Self {
             inner,
             practice,
             import,
+            updates,
             rt,
             _stop: stop_tx,
         })
@@ -364,6 +378,10 @@ impl Backend for RealBackend {
 
     fn import(&self) -> &dyn Importer {
         &self.import
+    }
+
+    fn updates(&self) -> &dyn Updates {
+        &self.updates
     }
 
     fn add_jar(&self, mode: Mode, path: std::path::PathBuf) {

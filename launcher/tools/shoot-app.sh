@@ -31,7 +31,8 @@ ids=("$@")
   login-done login-error msa-home msa-signing msa-running msa-warning msa-relogin msa-keyring msa-sign-in-first
   practice-installed practice-about practice-installing practice-update practice-reset practice-remove practice-starting
   practice-running practice-error practice-link import import-scanning import-none import-other import-importing
-  import-done mods mods-ssg mods-draftout)
+  import-done mods mods-ssg mods-draftout update-ready update-about update-blocked update-checking update-current
+  update-downloading update-manual update-error update-local)
 extra=${SHOOT_SETTINGS:+,$SHOOT_SETTINGS}
 [ -x "$bin" ] || { echo "no binary at $bin (build with cargo build --release -p srl-app)" >&2; exit 1; }
 mkdir -p "$out"

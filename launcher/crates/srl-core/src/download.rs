@@ -10,7 +10,7 @@ use std::{
     time::Duration,
 };
 
-use anyhow::{Context, Result, bail};
+use anyhow::{Context, Result};
 use futures::{StreamExt, TryStreamExt, stream};
 use serde::de::DeserializeOwned;
 use sha1::Sha1;
@@ -38,6 +38,26 @@ pub struct Download {
     /// From the manifest, for progress in bytes. `None` counts the file as 1.
     pub size: Option<u64>,
 }
+
+/// A downloaded file whose hash isn't the expected one. In the error chain of `Downloader::download`,
+/// so a caller can tell a bad file from a network or disk error.
+#[derive(Debug)]
+pub struct HashMismatch {
+    pub expected: String,
+    pub got: String,
+}
+
+impl std::fmt::Display for HashMismatch {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "hash mismatch: expected {}, got {}",
+            self.expected, self.got
+        )
+    }
+}
+
+impl std::error::Error for HashMismatch {}
 
 /// How long `Downloader::refresh_bytes` may take in all, connect included. The biggest list it
 /// fetches (mcsr-meta's `mods.json`, about 360 KB) needs under a second on a working connection.
@@ -140,7 +160,11 @@ impl Downloader {
                 && !want.eq_ignore_ascii_case(&got)
             {
                 let _ = tokio::fs::remove_file(&part).await;
-                bail!("hash mismatch: expected {want}, got {got}");
+                return Err(HashMismatch {
+                    expected: want.to_ascii_lowercase(),
+                    got,
+                }
+                .into());
             }
             tokio::fs::rename(&part, &d.dest).await?;
             Ok(())

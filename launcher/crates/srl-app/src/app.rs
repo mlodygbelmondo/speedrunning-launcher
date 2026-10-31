@@ -26,7 +26,7 @@ use crate::{
     assets::{embedded, hero_path},
     backend::{
         AccountSnapshot, Backend, Event, Language, ModeSnapshot, ModeState, PracticeEvent,
-        PracticeSnapshot, Settings, StatsView, ToolSnapshot, index,
+        PracticeSnapshot, Settings, StatsView, ToolSnapshot, ToolState, UpdateState, index,
         practice::Question,
         stats::{self, Refresh},
     },
@@ -187,6 +187,8 @@ pub struct Launcher {
     pub import: crate::screens::import::ImportView,
     /// The Mods page: its list's scroll and the last jar that could not be added.
     pub mods: crate::screens::mods::ModsView,
+    /// The launcher's own update, as the backend last reported it.
+    pub update: UpdateState,
 }
 
 impl Launcher {
@@ -228,6 +230,7 @@ impl Launcher {
             this.backend.account().refresh_in_background()
         });
         let practice = backend.practice().snapshot();
+        let update = backend.updates().snapshot();
         let name = snap.settings.player_name.clone().unwrap_or_default();
         let mut page = start.page;
         // The first start (no deep link) offers the settings import once, after the name. The
@@ -331,6 +334,7 @@ impl Launcher {
                 ..Default::default()
             },
             mods: Default::default(),
+            update,
         };
         // Stats on start: the records (Home's PBs) and the APIs from their cache only, no
         // network. A deep link to Stats opens it like a click would.
@@ -474,6 +478,7 @@ impl Launcher {
             Event::Practice(ev) => self.apply_practice(ev),
             Event::Import(ev) => self.apply_import(ev, cx),
             Event::JarAdded(mode, answer) => self.jar_added(mode, answer, cx),
+            Event::Update(state) => self.update = state,
         }
     }
 
@@ -551,6 +556,37 @@ impl Launcher {
         if self.state(mi) == &ModeState::Running {
             self.stopping = true;
             cx.notify();
+        }
+    }
+
+    /// Why "Restart to update" has to wait, as a copy key: a game this launcher started is
+    /// running (restarting would lose track of it), or something is installing (a mode, the
+    /// practice game, a map, a tool, an import). `None`: it can restart now.
+    pub fn restart_blocker(&self) -> Option<&'static str> {
+        let game = self.modes.iter().any(|m| m.state == ModeState::Running)
+            || self.practice.game.state == ModeState::Running;
+        if game {
+            return Some("settings.update_wait_game");
+        }
+        let installing = self
+            .modes
+            .iter()
+            .any(|m| matches!(m.state, ModeState::Installing(_)))
+            || matches!(self.practice.game.state, ModeState::Installing(_))
+            || self.practice.maps.iter().any(|m| m.job.is_some())
+            || self
+                .tools
+                .iter()
+                .any(|t| matches!(t.state, ToolState::Installing(_)))
+            || self.import.progress.is_some();
+        installing.then_some("settings.update_wait_install")
+    }
+
+    /// "Restart to update": starts the new version and quits, unless something has to finish
+    /// first (`restart_blocker`).
+    pub fn restart_to_update(&mut self, cx: &mut Context<Self>) {
+        if self.restart_blocker().is_none() && self.backend.updates().restart() {
+            cx.quit();
         }
     }
 

@@ -1,0 +1,54 @@
+[workspace]
+resolver = "3"
+members = ["crates/srl-core", "crates/srl-game", "crates/srl-mods", "crates/srl-tools", "crates/srl-app", "crates/srl-stats", "crates/srl-practice", "crates/srl-auth", "crates/srl-import"]
+default-members = ["crates/srl-app"]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2024"
+publish = false
+license = "GPL-3.0-or-later"
+
+[workspace.dependencies]
+srl-core = { path = "crates/srl-core" }
+srl-game = { path = "crates/srl-game" }
+srl-mods = { path = "crates/srl-mods" }
+srl-tools = { path = "crates/srl-tools" }
+srl-stats = { path = "crates/srl-stats" }
+srl-auth = { path = "crates/srl-auth" }
+srl-practice = { path = "crates/srl-practice" }
+srl-import = { path = "crates/srl-import" }
+
+anyhow = "1"
+bytes = "1"
+directories = "6"
+futures = "0.3"
+hex = "0.4"
+libc = "0.2"
+md-5 = "0.10"
+png = "0.18"
+regex = { version = "1", default-features = false, features = ["std", "unicode-perl"] }
+reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls", "stream", "http2"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+sha1 = "0.10"
+sha2 = "0.10"
+tokio = { version = "1", features = ["rt", "rt-multi-thread", "macros", "fs", "io-util", "sync", "time", "process"] }
+uuid = { version = "1", features = ["serde"] }
+windows-sys = "0.61"
+x11rb = "0.13"
+zip = { version = "9", default-features = false, features = ["deflate-flate2-zlib-rs"] }
+
+gpui = { git = "https://github.com/zed-industries/zed", rev = "fc9258b4632544c0819953c59e2c31b9e92ea362" }
+gpui_platform = { git = "https://github.com/zed-industries/zed", rev = "fc9258b4632544c0819953c59e2c31b9e92ea362", features = ["font-kit", "x11", "wayland", "runtime_shaders"] }
+
+# Our own crates build fast and stay debuggable; dependencies (gpui above all) are optimised once, so a
+# dev build of the app is smooth enough to judge animations.
+[profile.dev.package."*"]
+opt-level = 2
+
+# The shipped build. No fat LTO while we iterate: it multiplies link times.
+[profile.release]
+opt-level = 3
+codegen-units = 16
+strip = true

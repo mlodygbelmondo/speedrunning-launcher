@@ -1,0 +1,155 @@
+{
+ "status": "success",
+ "data": {
+  "uuid": "00000000000000000000000000000000",
+  "nickname": "SampleRunner",
+  "roleType": 3,
+  "eloRate": 2325,
+  "eloRank": 11,
+  "achievements": {
+   "display": [],
+   "total": []
+  },
+  "timestamp": {
+   "firstOnline": 1676212174,
+   "lastOnline": 1792893633,
+   "lastRanked": 1792897731,
+   "nextDecay": 1793545731
+  },
+  "statistics": {
+   "season": {
+    "bestTime": {
+     "ranked": 388989,
+     "casual": null
+    },
+    "highestWinStreak": {
+     "ranked": 11,
+     "casual": 0
+    },
+    "currentWinStreak": {
+     "ranked": 0,
+     "casual": 0
+    },
+    "playedMatches": {
+     "ranked": 954,
+     "casual": 0
+    },
+    "playtime": {
+     "ranked": 524456015,
+     "casual": 0
+    },
+    "completionTime": {
+     "ranked": 272275446,
+     "casual": 0
+    },
+    "forfeits": {
+     "ranked": 23,
+     "casual": 0
+    },
+    "completions": {
+     "ranked": 478,
+     "casual": 0
+    },
+    "wins": {
+     "ranked": 546,
+     "casual": 0
+    },
+    "loses": {
+     "ranked": 398,
+     "casual": 0
+    }
+   },
+   "total": {
+    "bestTime": {
+     "ranked": 342789,
+     "casual": null
+    },
+    "highestWinStreak": {
+     "ranked": 17,
+     "casual": 0
+    },
+    "currentWinStreak": {
+     "ranked": 0,
+     "casual": 0
+    },
+    "playedMatches": {
+     "ranked": 17988,
+     "casual": 3
+    },
+    "playtime": {
+     "ranked": 10519005070,
+     "casual": 1659124
+    },
+    "forfeits": {
+     "ranked": 2037,
+     "casual": 2
+    },
+    "completions": {
+     "ranked": 7969,
+     "casual": 0
+    },
+    "wins": {
+     "ranked": 9778,
+     "casual": 0
+    },
+    "loses": {
+     "ranked": 7810,
+     "casual": 3
+    },
+    "completionTime": {
+     "ranked": 5066323864,
+     "casual": 0
+    }
+   }
+  },
+  "connections": {},
+  "weeklyRaces": [
+   {
+    "id": 1,
+    "time": 257943,
+    "rank": 15
+   },
+   {
+    "id": 2,
+    "time": 296085,
+    "rank": 11
+   },
+   {
+    "id": 9,
+    "time": 375041,
+    "rank": 1
+   },
+   {
+    "id": 10,
+    "time": 233808,
+    "rank": 12
+   },
+   {
+    "id": 28,
+    "time": 193848,
+    "rank": 7
+   }
+  ],
+  "country": "pl",
+  "seasonResult": {
+   "last": {
+    "eloRate": 2325,
+    "eloRank": 11,
+    "phasePoint": 45,
+    "percentile": 0
+   },
+   "highest": 2437,
+   "phaseHighest": 2437,
+   "lowest": 1673,
+   "phases": [
+    {
+     "type": "eloRate",
+     "phase": 1,
+     "eloRate": 2237,
+     "eloRank": 4,
+     "point": 45
+    }
+   ]
+  }
+ }
+}

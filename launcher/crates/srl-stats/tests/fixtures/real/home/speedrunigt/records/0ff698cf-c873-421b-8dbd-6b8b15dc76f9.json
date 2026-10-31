@@ -1,0 +1,209 @@
+{
+  "mc_version": "1.16.1",
+  "speedrunigt_version": "16.0+1.16.1",
+  "category": "ANY",
+  "run_type": "random_seed",
+  "is_completed": true,
+  "is_coop": false,
+  "is_hardcore": false,
+  "world_name": "Random Speedrun #4",
+  "is_cheat_allowed": true,
+  "default_gamemode": 0,
+  "date": 1793015745257,
+  "retimed_igt": 261116,
+  "final_igt": 248040,
+  "stats_igt": 251200,
+  "final_rta": 264018,
+  "open_lan": 20383,
+  "timelines": [
+    {
+      "name": "enter_nether",
+      "igt": 12239,
+      "rta": 25358
+    },
+    {
+      "name": "enter_bastion",
+      "igt": 107953,
+      "rta": 121916
+    },
+    {
+      "name": "enter_fortress",
+      "igt": 112303,
+      "rta": 126272
+    },
+    {
+      "name": "enter_stronghold",
+      "igt": 125222,
+      "rta": 139960
+    },
+    {
+      "name": "enter_end",
+      "igt": 129522,
+      "rta": 144213
+    }
+  ],
+  "advancements": {
+    "minecraft:nether/explore_nether": {
+      "complete": false,
+      "is_advancement": true,
+      "criteria": {
+        "minecraft:crimson_forest": {
+          "igt": 180326,
+          "rta": 195565
+        },
+        "minecraft:soul_sand_valley": {
+          "igt": 12239,
+          "rta": 25865
+        }
+      },
+      "igt": 0,
+      "rta": 0
+    },
+    "minecraft:adventure/adventuring_time": {
+      "complete": false,
+      "is_advancement": true,
+      "criteria": {
+        "minecraft:forest": {
+          "igt": 160440,
+          "rta": 175558
+        },
+        "minecraft:taiga": {
+          "igt": 0,
+          "rta": 0
+        }
+      },
+      "igt": 0,
+      "rta": 0
+    },
+    "minecraft:nether/root": {
+      "complete": true,
+      "is_advancement": true,
+      "criteria": {
+        "entered_nether": {
+          "igt": 12239,
+          "rta": 25643
+        }
+      },
+      "igt": 12239,
+      "rta": 25679
+    },
+    "minecraft:story/enter_the_nether": {
+      "complete": true,
+      "is_advancement": true,
+      "criteria": {
+        "entered_nether": {
+          "igt": 12239,
+          "rta": 25642
+        }
+      },
+      "igt": 12239,
+      "rta": 25679
+    },
+    "minecraft:nether/find_bastion": {
+      "complete": true,
+      "is_advancement": true,
+      "criteria": {
+        "bastion": {
+          "igt": 107903,
+          "rta": 121872
+        }
+      },
+      "igt": 107953,
+      "rta": 121916
+    },
+    "minecraft:nether/find_fortress": {
+      "complete": true,
+      "is_advancement": true,
+      "criteria": {
+        "fortress": {
+          "igt": 112253,
+          "rta": 126226
+        }
+      },
+      "igt": 112303,
+      "rta": 126272
+    },
+    "minecraft:recipes/decorations/ender_chest": {
+      "complete": true,
+      "is_advancement": false,
+      "criteria": {
+        "has_ender_eye": {
+          "igt": 116203,
+          "rta": 130189
+        },
+        "has_the_recipe": {
+          "igt": 116203,
+          "rta": 130189
+        }
+      },
+      "igt": 116253,
+      "rta": 130238
+    },
+    "minecraft:recipes/decorations/end_crystal": {
+      "complete": true,
+      "is_advancement": false,
+      "criteria": {
+        "has_ender_eye": {
+          "igt": 116203,
+          "rta": 130191
+        },
+        "has_the_recipe": {
+          "igt": 116203,
+          "rta": 130191
+        }
+      },
+      "igt": 116253,
+      "rta": 130238
+    },
+    "minecraft:story/follow_ender_eye": {
+      "complete": true,
+      "is_advancement": true,
+      "criteria": {
+        "in_stronghold": {
+          "igt": 125172,
+          "rta": 139897
+        }
+      },
+      "igt": 125222,
+      "rta": 139960
+    },
+    "minecraft:story/enter_the_end": {
+      "complete": true,
+      "is_advancement": true,
+      "criteria": {
+        "entered_end": {
+          "igt": 129522,
+          "rta": 144277
+        }
+      },
+      "igt": 129522,
+      "rta": 144304
+    },
+    "minecraft:end/root": {
+      "complete": true,
+      "is_advancement": true,
+      "criteria": {
+        "entered_end": {
+          "igt": 129522,
+          "rta": 144276
+        }
+      },
+      "igt": 129522,
+      "rta": 144304
+    }
+  },
+  "stats": {
+    "a01e3843-e521-3998-958a-f459800e4d11": {
+      "stats": {
+        "minecraft:custom": {
+          "minecraft:time_since_rest": 2754,
+          "minecraft:play_one_minute": 5511,
+          "minecraft:damage_taken": 490,
+          "minecraft:time_since_death": 1905,
+          "minecraft:deaths": 2
+        }
+      },
+      "DataVersion": 2567
+    }
+  }
+}

@@ -1,0 +1,77 @@
+[
+ {
+  "game_versions": [
+   "1.16.1"
+  ],
+  "loaders": [
+   "fabric"
+  ],
+  "id": "qc4OUmcd",
+  "project_id": "XZOGBIpM",
+  "version_number": "5.3.0+MC1.16.1",
+  "date_published": "2026-01-22T13:55:09.592959Z",
+  "version_type": "release",
+  "files": [
+   {
+    "hashes": {
+     "sha512": "93f8d9b30f828938b57737ed6ad0c7ac85d2af709e3f389bf829d986f81e2c50d252f1ea3142e9f3bf5226a597f432e878c75ab9794411d120e986842ceab11b",
+     "sha1": "a38d67e309f58548f63c109110a2c286a701dbca"
+    },
+    "url": "https://cdn.modrinth.com/data/XZOGBIpM/versions/qc4OUmcd/FSG-Mod-5.3.0%2BMC1.16.1.jar",
+    "filename": "FSG-Mod-5.3.0+MC1.16.1.jar",
+    "primary": true,
+    "size": 99724
+   }
+  ]
+ },
+ {
+  "game_versions": [
+   "1.16.1"
+  ],
+  "loaders": [
+   "fabric"
+  ],
+  "id": "4IW4nMP3",
+  "project_id": "XZOGBIpM",
+  "version_number": "5.2.0+MC1.16.1",
+  "date_published": "2025-10-21T07:55:11.761759Z",
+  "version_type": "release",
+  "files": [
+   {
+    "hashes": {
+     "sha1": "3c545d14ccd0cdeac5fedca5d0a7d7541b4ba6bf",
+     "sha512": "cbb664c7b560e707498d426f80f7246cd5eb2224558f9de5f4f041cb5c3ac76fb6caea39d8e9d2b4500bbdbe40ffcd3e92ffcd424c61fbb9cffb1e74562bae83"
+    },
+    "url": "https://cdn.modrinth.com/data/XZOGBIpM/versions/4IW4nMP3/fsg-mod-5.2.0%2BMC1.16.1.jar",
+    "filename": "fsg-mod-5.2.0+MC1.16.1.jar",
+    "primary": true,
+    "size": 98704
+   }
+  ]
+ },
+ {
+  "game_versions": [
+   "1.16.1"
+  ],
+  "loaders": [
+   "fabric"
+  ],
+  "id": "TcTlTNlF",
+  "project_id": "XZOGBIpM",
+  "version_number": "5.1.0+MC1.16.1",
+  "date_published": "2025-08-18T01:52:36.486398Z",
+  "version_type": "release",
+  "files": [
+   {
+    "hashes": {
+     "sha1": "e182ebab6e4b4bc70dbc0e99bc9393383f0838f7",
+     "sha512": "ea97ad8d413e855321913bc52242dd476fbe3b9fc87c18586ae2bf29257fe522129f6fe1eaa19df044c54b0e1c181de5004e010e831d083b53e0b80510e5e128"
+    },
+    "url": "https://cdn.modrinth.com/data/XZOGBIpM/versions/TcTlTNlF/fsg-mod-5.1.0%2BMC1.16.1.jar",
+    "filename": "fsg-mod-5.1.0+MC1.16.1.jar",
+    "primary": true,
+    "size": 98445
+   }
+  ]
+ }
+]

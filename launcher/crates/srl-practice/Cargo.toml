@@ -1,0 +1,30 @@
+[package]
+name = "srl-practice"
+description = "Practice maps: the install catalogue, the practice instance profile, and installing, resetting, updating and removing maps"
+version.workspace = true
+edition.workspace = true
+publish.workspace = true
+
+[dependencies]
+srl-core.workspace = true
+anyhow.workspace = true
+futures.workspace = true
+hex.workspace = true
+reqwest.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+sha2.workspace = true
+tokio.workspace = true
+zip.workspace = true
+# level.dat is gzip NBT. Already in the tree through zip; the same pure-Rust backend.
+flate2 = { version = "1.1", default-features = false, features = ["zlib-rs"] }
+
+[target.'cfg(unix)'.dependencies]
+# fcntl(F_GETLK): is the game holding a world's session.lock?
+libc.workspace = true
+
+[dev-dependencies]
+# Only for the examples that start the practice instance (examples/practice_game.rs). The real
+# wiring into srl-game and srl-mods comes with the integration after M2.
+srl-game.workspace = true
+srl-mods.workspace = true

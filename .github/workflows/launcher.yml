@@ -1,0 +1,184 @@
+# Speedrunning Launcher: format, test and build on Linux and Windows, install RSG, Ninjabrain Bot
+# and Toolscreen headless on Windows, and publish the Windows build (zip) as the `launcher-latest`
+# prerelease. See launcher/README.md.
+name: launcher
+
+on:
+  push:
+    branches: [launcher]
+    paths:
+      - 'launcher/**'
+      - '.github/workflows/launcher.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: launcher-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  CARGO_TERM_COLOR: always
+  RUST_BACKTRACE: 1
+
+jobs:
+  linux:
+    runs-on: ubuntu-latest
+    # A cold cache builds GPUI three times (clippy, tests, release): about 40 minutes.
+    timeout-minutes: 75
+    defaults:
+      run:
+        working-directory: launcher
+    steps:
+      - uses: actions/checkout@v4
+
+      # GPUI's build needs these (launcher/README.md, "Build").
+      - name: Install system packages
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            build-essential pkg-config libxkbcommon-dev libxkbcommon-x11-dev libxcb1-dev \
+            libwayland-dev libfontconfig-dev libfreetype-dev libvulkan1
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: launcher -> target
+
+      - name: cargo fmt --check
+        run: cargo fmt --all --check
+
+      - name: cargo clippy
+        run: cargo clippy --workspace --all-targets --locked -- -D warnings
+
+      - name: cargo test
+        run: cargo test --workspace --locked --no-fail-fast
+
+      - name: Release build
+        run: cargo build --release --locked -p srl-app
+
+  windows:
+    runs-on: windows-latest
+    timeout-minutes: 120
+    defaults:
+      run:
+        shell: bash
+        working-directory: launcher
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: launcher -> target
+
+      - name: cargo fmt --check
+        run: cargo fmt --all --check
+
+      - name: cargo test
+        run: cargo test --workspace --locked --no-fail-fast
+
+      # Release builds compile GPUI's shaders with fxc.exe and embed its manifest with rc.exe, both
+      # from the Windows SDK on windows-latest.
+      - name: Release build
+        run: cargo build --release --locked -p srl-app
+
+      # The real pipeline without a window: Java, Minecraft 1.16.1, Fabric Loader and the RSG mods
+      # into an empty data folder. Fails the job when the install fails (exit code 1). The release
+      # exe is a windowed program; bash waits for it and gets its output through the pipe.
+      - name: Headless RSG install
+        run: |
+          export SRL_HOME="$RUNNER_TEMP/srl-home"
+          exe=target/release/speedrunning-launcher.exe
+          "$exe" --install rsg
+          "$exe" --status
+          test -n "$(ls "$SRL_HOME/instances/mcsr/mods")"
+          du -sh "$SRL_HOME"
+
+      # Ninjabrain Bot and Toolscreen the way the Tools page installs them, into an empty data
+      # folder. The launcher prints each installed file with its hash; coreutils hashes the file
+      # again, and that hash must be one pinned in srl-tools (Ninjabrain's jar, Toolscreen's DLLs).
+      - name: Headless tool installs
+        run: |
+          export SRL_HOME="$RUNNER_TEMP/srl-tools-home"
+          exe=target/release/speedrunning-launcher.exe
+          out="$RUNNER_TEMP/tool-installs.txt"
+          : > "$out"
+          for tool in ninjabrain-bot toolscreen; do
+            "$exe" --install-tool "$tool" | tee -a "$out"
+          done
+          "$exe" --tools
+          n=0
+          while read -r _ path kind hash; do
+            got=$("${kind}sum" "$path" | cut -d' ' -f1)
+            got=${got#\\}
+            [ "$got" = "$hash" ] || { echo "$path: ${kind} $got, the launcher printed $hash"; exit 1; }
+            grep -rqi "$got" crates/srl-tools/src || { echo "$path: ${kind} $got is not pinned in srl-tools"; exit 1; }
+            echo "verified ${kind} $path"
+            n=$((n + 1))
+          done < <(grep '^file ' "$out")
+          # Ninjabrain-Bot-1.5.2.jar, Toolscreen.dll and liblogger_x64.dll
+          [ "$n" -eq 3 ] || { echo "expected 3 installed files, verified $n"; exit 1; }
+
+      - name: Default data folder
+        run: target/release/speedrunning-launcher.exe --status
+
+      - name: Package
+        run: |
+          set -x
+          rm -rf dist && mkdir -p dist/licenses
+          cp target/release/speedrunning-launcher.exe dist/
+          cp THIRD_PARTY_NOTICES.md dist/
+          cp assets/fonts/*.txt dist/licenses/
+          cp assets/icons/LICENSE-lucide.txt dist/licenses/
+          sed 's/\r*$/\r/' tools/windows/README.txt > dist/README.txt
+          printf 'commit %s\nbuilt %s\nrun %s\n' "$GITHUB_SHA" "$(date -u +%FT%TZ)" "$GITHUB_RUN_ID" > dist/VERSION.txt
+          rm -f speedrunning-launcher-windows.zip
+          (cd dist && 7z a -tzip -mx=9 ../speedrunning-launcher-windows.zip . > /dev/null)
+          ls -l speedrunning-launcher-windows.zip
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: speedrunning-launcher-windows
+          path: launcher/speedrunning-launcher-windows.zip
+          if-no-files-found: error
+
+  # Only a build that passed on both systems replaces the published zip.
+  publish:
+    needs: [linux, windows]
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: speedrunning-launcher-windows
+
+      - name: Publish prerelease launcher-latest
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          mb=$(du -m speedrunning-launcher-windows.zip | cut -f1)
+          notes="Windows test build of Speedrunning Launcher.
+
+          Download speedrunning-launcher-windows.zip (${mb} MB), unzip it and run speedrunning-launcher.exe. README.txt in the zip says where the data and logs are.
+
+          Built from ${GITHUB_SHA} by run ${GITHUB_RUN_ID}."
+          if gh release view launcher-latest > /dev/null 2>&1; then
+            # move the tag to this commit, then replace the asset
+            gh api -X PATCH "repos/${GITHUB_REPOSITORY}/git/refs/tags/launcher-latest" -f sha="${GITHUB_SHA}" -F force=true > /dev/null \
+              || echo "warning: could not move tag launcher-latest"
+            gh release upload launcher-latest speedrunning-launcher-windows.zip --clobber
+            gh release edit launcher-latest --prerelease --title "Launcher test build (latest)" --notes "$notes"
+          else
+            gh release create launcher-latest speedrunning-launcher-windows.zip --prerelease \
+              --target "${GITHUB_SHA}" --title "Launcher test build (latest)" --notes "$notes"
+          fi
+          gh release view launcher-latest --json url,assets --jq '.url, (.assets[] | .url)'

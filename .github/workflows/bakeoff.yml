@@ -1,0 +1,239 @@
+# Speedrunluncher UI bake-off: build the three test apps, smoke-test the harnesses and publish
+# the Windows test pack (zip) as the `bakeoff-latest` prerelease. See bakeoff/README.md.
+name: bakeoff
+
+on:
+  push:
+    branches: [bakeoff]
+    paths:
+      - 'bakeoff/**'
+      - '.github/workflows/bakeoff.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: bakeoff-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  windows:
+    runs-on: windows-latest
+    timeout-minutes: 120
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 12
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: lts/*
+          cache: pnpm
+          cache-dependency-path: |
+            bakeoff/scene/pnpm-lock.yaml
+            bakeoff/tauri/pnpm-lock.yaml
+            bakeoff/electron/pnpm-lock.yaml
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache cargo (tauri)
+        uses: Swatinem/rust-cache@v2
+        with:
+          key: tauri
+          workspaces: bakeoff/tauri/src-tauri -> target
+
+      - name: Cache cargo (gpui)
+        uses: Swatinem/rust-cache@v2
+        with:
+          key: gpui
+          workspaces: bakeoff/gpui -> target
+
+      # Build commands: bakeoff/scene/README.md (scene, Tauri, Electron) and bakeoff/gpui/README.md.
+      - name: Build scene
+        working-directory: bakeoff/scene
+        run: |
+          pnpm install --frozen-lockfile
+          pnpm build
+
+      - name: Build Tauri (release, --no-bundle)
+        working-directory: bakeoff/tauri
+        run: |
+          pnpm install --frozen-lockfile
+          pnpm build
+
+      - name: Build Electron (packager win32 x64)
+        working-directory: bakeoff/electron
+        run: |
+          pnpm install --frozen-lockfile
+          pnpm package
+
+      - name: Build GPUI (release)
+        working-directory: bakeoff/gpui
+        run: cargo build --release --locked
+
+      - name: Assemble dist
+        run: |
+          set -x
+          rm -rf dist && mkdir -p dist/tauri dist/electron dist/gpui
+          cp bakeoff/tauri/src-tauri/target/release/bakeoff-tauri.exe dist/tauri/
+          cp -r bakeoff/electron/out/bakeoff-electron-win32-x64/. dist/electron/
+          cp bakeoff/gpui/target/release/bakeoff-gpui.exe dist/gpui/
+          cp bakeoff/harness/windows/run-bakeoff.ps1 bakeoff/harness/windows/run-bakeoff.cmd dist/
+          sed 's/$/\r/' bakeoff/harness/windows/README-WINDOWS.txt > dist/README-WINDOWS.txt
+          printf 'commit %s\nbuilt %s\n' "$GITHUB_SHA" "$(date -u +%FT%TZ)" > dist/VERSION.txt
+          test -f dist/electron/bakeoff-electron.exe
+          du -sh dist/*
+
+      - name: Zip
+        run: |
+          rm -f speedrunluncher-bakeoff-windows.zip
+          (cd dist && 7z a -tzip -mx=9 ../speedrunluncher-bakeoff-windows.zip . > /dev/null)
+          ls -l speedrunluncher-bakeoff-windows.zip
+          echo "ZIP_MB=$(du -m speedrunluncher-bakeoff-windows.zip | cut -f1)" >> "$GITHUB_ENV"
+
+      # Smoke test in stock Windows PowerShell 5.1 through the same .cmd launcher users double-click.
+      # Fails only on crashes / missing protocol events (exit code != 0), never on the numbers.
+      - name: Smoke test harness (PS 5.1, 2 s phases, no PresentMon)
+        shell: cmd
+        run: |
+          call dist\run-bakeoff.cmd -PhaseMs 2000 -Runs 1 -PauseSec 1 -NoPresentMon -NoPause -NoElevate -OutDir "%GITHUB_WORKSPACE%\smoke"
+          if errorlevel 1 exit /b 1
+
+      # Informational: does PresentMon work on a GPU-less runner? Never fails the job.
+      - name: Smoke test with PresentMon (informational)
+        continue-on-error: true
+        shell: cmd
+        run: call dist\run-bakeoff.cmd -Apps gpui,electron -PhaseMs 2000 -Runs 1 -PauseSec 1 -NoPause -NoElevate -NoSizeCheck -OutDir "%GITHUB_WORKSPACE%\smoke-presentmon"
+
+      - name: Upload test pack
+        uses: actions/upload-artifact@v4
+        with:
+          name: speedrunluncher-bakeoff-windows
+          path: speedrunluncher-bakeoff-windows.zip
+          if-no-files-found: error
+
+      - name: Upload smoke results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: smoke-results-windows
+          path: |
+            smoke/
+            smoke-presentmon/
+          if-no-files-found: ignore
+
+      - name: Publish prerelease bakeoff-latest
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          notes="Windows test pack for the Speedrunluncher UI bake-off.
+
+          Download speedrunluncher-bakeoff-windows.zip (${ZIP_MB} MB), extract it, double-click run-bakeoff.cmd, accept the admin prompt, keep hands off for ~20 minutes, then send back the results-windows-*.json it names at the end. Details: bakeoff/README.md.
+
+          Built from ${GITHUB_SHA} by run ${GITHUB_RUN_ID}."
+          if gh release view bakeoff-latest > /dev/null 2>&1; then
+            # move the tag to this commit, then replace the asset
+            gh api -X PATCH "repos/${GITHUB_REPOSITORY}/git/refs/tags/bakeoff-latest" -f sha="${GITHUB_SHA}" -F force=true > /dev/null \
+              || echo "warning: could not move tag bakeoff-latest"
+            gh release upload bakeoff-latest speedrunluncher-bakeoff-windows.zip --clobber
+            gh release edit bakeoff-latest --prerelease --title "Bake-off test pack (latest)" --notes "$notes"
+          else
+            gh release create bakeoff-latest speedrunluncher-bakeoff-windows.zip --prerelease \
+              --target "${GITHUB_SHA}" --title "Bake-off test pack (latest)" --notes "$notes"
+          fi
+
+  linux:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install system packages
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            build-essential pkg-config curl file \
+            libwebkit2gtk-4.1-dev libgtk-3-dev libsoup-3.0-dev libjavascriptcoregtk-4.1-dev \
+            librsvg2-dev libayatana-appindicator3-dev \
+            libxkbcommon-dev libxkbcommon-x11-dev libxcb1-dev libwayland-dev libfontconfig-dev \
+            libfreetype-dev libvulkan1 mesa-vulkan-drivers libegl1 libgl1-mesa-dri \
+            libnss3 libatk-bridge2.0-0 libgbm1 libasound2t64 libxss1 libxtst6 \
+            weston xwayland
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 12
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: lts/*
+          cache: pnpm
+          cache-dependency-path: |
+            bakeoff/scene/pnpm-lock.yaml
+            bakeoff/tauri/pnpm-lock.yaml
+            bakeoff/electron/pnpm-lock.yaml
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache cargo (tauri)
+        uses: Swatinem/rust-cache@v2
+        with:
+          key: tauri
+          workspaces: bakeoff/tauri/src-tauri -> target
+
+      - name: Cache cargo (gpui)
+        uses: Swatinem/rust-cache@v2
+        with:
+          key: gpui
+          workspaces: bakeoff/gpui -> target
+
+      - name: Build scene
+        working-directory: bakeoff/scene
+        run: |
+          pnpm install --frozen-lockfile
+          pnpm build
+
+      - name: Build Tauri
+        working-directory: bakeoff/tauri
+        run: |
+          pnpm install --frozen-lockfile
+          pnpm build
+
+      - name: Build Electron
+        working-directory: bakeoff/electron
+        run: |
+          pnpm install --frozen-lockfile
+          pnpm package
+          # setuid sandbox helper, as a .deb install would set it (AppArmor blocks the userns fallback)
+          sudo chown root:root out/bakeoff-electron-linux-x64/chrome-sandbox
+          sudo chmod 4755 out/bakeoff-electron-linux-x64/chrome-sandbox
+
+      - name: Build GPUI
+        working-directory: bakeoff/gpui
+        run: cargo build --release --locked
+
+      # No GPU on the runner: run.py starts headless weston with the GL renderer (llvmpipe) and
+      # falls back to pixman by itself. Fails only on crashes / missing protocol events.
+      - name: Smoke test harness (nested weston, 2 s phases)
+        run: python3 bakeoff/harness/linux/run.py --nested --runs 1 --phase-ms 2000 --refresh-hz 60 --pause-s 1
+
+      - name: Harness self-test with the mock app
+        if: always()
+        run: python3 bakeoff/harness/linux/run.py --apps mock --nested --runs 1 --phase-ms 1000 --pause-s 0
+
+      - name: Upload results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: smoke-results-linux
+          path: bakeoff/results/
+          if-no-files-found: ignore

@@ -1,0 +1,430 @@
+{
+  "_comment": "SRL_DEMO=1 only: the prototype's sample data (made-up player data), for design comparison with bakeoff/shots/v3. The app never shows any of it without SRL_DEMO.",
+  "account": {
+    "name": "VioletRunner",
+    "avatar": "042"
+  },
+  "season": 12,
+  "online": "1 243",
+  "disk_saved": "410 MB",
+  "status": {
+    "ranked": "update",
+    "rsg": "ready",
+    "fsg": "ready",
+    "ssg": "missing",
+    "draftout": "missing"
+  },
+  "modes": {
+    "ranked": {
+      "mods_total": 23,
+      "disk": "94 MB",
+      "update_mod": "MCSR Ranked"
+    },
+    "rsg": {
+      "mods_total": 22,
+      "disk": "88 MB"
+    },
+    "fsg": {
+      "mods_total": 23,
+      "disk": "90 MB"
+    },
+    "ssg": {
+      "mods_total": 20,
+      "disk": "38 MB",
+      "download": "38 MB"
+    },
+    "draftout": {
+      "mods_total": 8,
+      "disk": "612 MB",
+      "download": "612 MB"
+    }
+  },
+  "ranked": {
+    "elo": 1642,
+    "elo_delta": "+24",
+    "tier": "diamond",
+    "season_w": 18,
+    "season_l": 11,
+    "best": "12:48.302",
+    "matches": [
+      {
+        "opponent": "Dracored",
+        "avatar": "002",
+        "won": true,
+        "time": "12:48.302",
+        "elo": "+14"
+      },
+      {
+        "opponent": "Ninjatow91",
+        "avatar": "146",
+        "won": false,
+        "time": "13:20.551",
+        "elo": "-11"
+      },
+      {
+        "opponent": "Etherdoogcour",
+        "avatar": "011",
+        "won": true,
+        "time": "15:02.117",
+        "elo": "+12"
+      }
+    ],
+    "weekly": {
+      "n": 42,
+      "place": 214,
+      "total": "3 980",
+      "time": "13:51.090"
+    }
+  },
+  "runs": {
+    "rsg": {
+      "pb": "14:32.481",
+      "pb_date": "Oct 24",
+      "sob": "12:34.118",
+      "runs_month": 214,
+      "splits": [
+        {
+          "name": "Nether",
+          "art": "nether-portal",
+          "secs": 151,
+          "time": "2:31",
+          "best": "2:18"
+        },
+        {
+          "name": "Bastion",
+          "art": "bastion",
+          "secs": 101,
+          "time": "1:41",
+          "best": "1:22"
+        },
+        {
+          "name": "Fortress",
+          "art": "fortress",
+          "secs": 148,
+          "time": "2:28",
+          "best": "2:05"
+        },
+        {
+          "name": "Blind",
+          "art": "overworld",
+          "secs": 78,
+          "time": "1:18",
+          "best": "1:06"
+        },
+        {
+          "name": "Stronghold",
+          "art": "stronghold",
+          "secs": 173,
+          "time": "2:53",
+          "best": "2:31"
+        },
+        {
+          "name": "End",
+          "art": "the-end",
+          "secs": 221,
+          "time": "3:41",
+          "best": "3:12"
+        }
+      ]
+    },
+    "fsg": {
+      "pb": "9:51.337",
+      "pb_date": "Oct 22",
+      "sob": "8:42.910",
+      "runs_month": 31,
+      "splits": [
+        {
+          "name": "Nether",
+          "art": "nether-portal",
+          "secs": 72,
+          "time": "1:12",
+          "best": "1:05"
+        },
+        {
+          "name": "Bastion",
+          "art": "bastion",
+          "secs": 88,
+          "time": "1:28",
+          "best": "1:16"
+        },
+        {
+          "name": "Fortress",
+          "art": "fortress",
+          "secs": 111,
+          "time": "1:51",
+          "best": "1:38"
+        },
+        {
+          "name": "Blind",
+          "art": "overworld",
+          "secs": 49,
+          "time": "0:49",
+          "best": "0:42"
+        },
+        {
+          "name": "Stronghold",
+          "art": "stronghold",
+          "secs": 112,
+          "time": "1:52",
+          "best": "1:41"
+        },
+        {
+          "name": "End",
+          "art": "the-end",
+          "secs": 159,
+          "time": "2:39",
+          "best": "2:20"
+        }
+      ]
+    }
+  },
+  "key_tools": {
+    "rsg": "SeedQueue 1.8 · Ninjabrain · PaceMan",
+    "fsg": "FSG Mod · Ninjabrain · PaceMan"
+  },
+  "layers": {
+    "java": {
+      "detail": "Temurin 21",
+      "mods": []
+    },
+    "game": {
+      "detail": "Fabric Loader 0.20.1",
+      "mods": []
+    },
+    "perf": {
+      "mods": [
+        [
+          "Sodium",
+          "2.5.1"
+        ],
+        [
+          "Lithium",
+          "1.0"
+        ],
+        [
+          "Starlight",
+          "1.3.0"
+        ],
+        [
+          "Voyager",
+          "1.0.1"
+        ],
+        [
+          "LazyDFU",
+          "0.1.2"
+        ],
+        [
+          "Krypton",
+          "0.1.3"
+        ],
+        [
+          "Antigone",
+          "2.0.0"
+        ],
+        [
+          "Chunkumulator",
+          "1.1.1"
+        ],
+        [
+          "AntiResourceReload",
+          "5.2.0"
+        ],
+        [
+          "SpeedrunAPI",
+          "2.2"
+        ],
+        [
+          "ForcePort",
+          "1.3.0"
+        ],
+        [
+          "SleepBackground",
+          "4.1"
+        ]
+      ]
+    },
+    "run": {
+      "mods": [
+        [
+          "SpeedRunIGT",
+          "16.0"
+        ],
+        [
+          "StandardSettings",
+          "2.3"
+        ],
+        [
+          "FastReset",
+          "2.4.1"
+        ],
+        [
+          "Hermes",
+          "0.16.0"
+        ],
+        [
+          "State Output",
+          "1.2.3"
+        ],
+        [
+          "MCSR Fairplay",
+          "latest"
+        ]
+      ]
+    },
+    "rsg": {
+      "mods": [
+        [
+          "Atum",
+          "2.7.2"
+        ],
+        [
+          "SeedQueue",
+          "1.8"
+        ],
+        [
+          "WorldPreview",
+          "6.3.1"
+        ],
+        [
+          "LazyStronghold",
+          "1.1.4"
+        ]
+      ]
+    },
+    "ssg": {
+      "mods": [
+        [
+          "Atum",
+          "2.7.2"
+        ],
+        [
+          "SetSpawn",
+          "4.2.1"
+        ]
+      ]
+    },
+    "ranked": {
+      "mods": [
+        [
+          "MCSR Ranked",
+          "self-updating"
+        ]
+      ]
+    },
+    "fsg": {
+      "mods": [
+        [
+          "FSG Mod",
+          "latest"
+        ]
+      ]
+    },
+    "java25": {
+      "detail": "Temurin 25",
+      "mods": []
+    },
+    "game26": {
+      "detail": "Fabric Loader 0.20.1",
+      "mods": []
+    },
+    "perf26": {
+      "mods": [
+        [
+          "Sodium",
+          "latest"
+        ],
+        [
+          "Lithium",
+          "latest"
+        ],
+        [
+          "Planifolia",
+          "latest"
+        ],
+        [
+          "Krypton",
+          "latest"
+        ],
+        [
+          "ForcePort",
+          "latest"
+        ],
+        [
+          "Hermes",
+          "latest"
+        ],
+        [
+          "SpeedRunIGT",
+          "latest"
+        ]
+      ]
+    },
+    "draftout": {
+      "mods": [
+        [
+          "Draftout",
+          "latest"
+        ]
+      ]
+    }
+  },
+  "maps": {
+    "the-mcsr-practice-map-dibedy": {
+      "status": "installed",
+      "downloads": "273k"
+    },
+    "llama-s-bastion-practice-llamapag": {
+      "status": "update",
+      "downloads": "467k"
+    },
+    "end-practice-ryguy2k4": {
+      "status": "installed",
+      "downloads": "374k"
+    },
+    "zero-practice-mescht": {
+      "status": "available",
+      "downloads": "117k"
+    },
+    "portal-practice-v2-semperzz": {
+      "status": "available",
+      "downloads": "290k"
+    },
+    "portal-practice-mescht": {
+      "status": "available",
+      "downloads": ""
+    },
+    "ow-practice-7rowl": {
+      "status": "available",
+      "downloads": ""
+    },
+    "crafting-practice-v2-semperzz": {
+      "status": "available",
+      "downloads": ""
+    },
+    "bt-practice-mescht": {
+      "status": "available",
+      "downloads": ""
+    },
+    "blaze-practice-mescht": {
+      "status": "available",
+      "downloads": ""
+    },
+    "blaze-practice-semperzz": {
+      "status": "available",
+      "downloads": ""
+    },
+    "end-portal-fill-v2-cylorun": {
+      "status": "available",
+      "downloads": ""
+    },
+    "zero-sorting-practice-semperzz": {
+      "status": "available",
+      "downloads": ""
+    }
+  },
+  "tools": {
+    "minipracticekit": "installed",
+    "peepopractice": "available",
+    "strongholdtrainer": "available"
+  }
+}

@@ -1,0 +1,46 @@
+{
+  "mc_version": "1.16.1",
+  "speedrunigt_version": "16.0+1.16.1",
+  "category": "ANY",
+  "run_type": "random_seed",
+  "is_completed": false,
+  "is_coop": false,
+  "is_hardcore": false,
+  "world_name": "Random Speedrun #2",
+  "is_cheat_allowed": false,
+  "default_gamemode": 0,
+  "date": 1793015434003,
+  "retimed_igt": 18225,
+  "final_igt": 18225,
+  "stats_igt": 0,
+  "final_rta": 18250,
+  "open_lan": null,
+  "timelines": [],
+  "advancements": {
+    "minecraft:adventure/adventuring_time": {
+      "complete": false,
+      "is_advancement": true,
+      "criteria": {
+        "minecraft:plains": {
+          "igt": 0,
+          "rta": 0
+        }
+      },
+      "igt": 0,
+      "rta": 0
+    }
+  },
+  "stats": {
+    "a01e3843-e521-3998-958a-f459800e4d11": {
+      "stats": {
+        "minecraft:custom": {
+          "minecraft:time_since_rest": 365,
+          "minecraft:play_one_minute": 365,
+          "minecraft:time_since_death": 365,
+          "minecraft:walk_one_cm": 3247
+        }
+      },
+      "DataVersion": 2567
+    }
+  }
+}

@@ -1,0 +1,181 @@
+{
+ "player": {
+  "uuid": "00000000-0000-0000-0000-000000000000",
+  "username": "SampleRunner",
+  "elo": 1915,
+  "rd": 101.66911228580433,
+  "ranked": true,
+  "rank": 1,
+  "rankName": "Guardian II",
+  "rankColor": "#36775F",
+  "eraId": 2
+ },
+ "record": {
+  "matches": 183,
+  "completedMatches": 96,
+  "wins": 160,
+  "losses": 22,
+  "draws": 1,
+  "winRate": 0.8791208791208791,
+  "averageFinishTime": 1521095.2857142857,
+  "averageGoals": 4.041666666666667
+ },
+ "aggregate": {
+  "peakElo": 1998,
+  "bestStreak": 20,
+  "fastestWinMs": 666503,
+  "forfeitCount": 10
+ },
+ "matches": [
+  {
+   "id": 621640,
+   "matchType": "competitive",
+   "gameMode": "draftout",
+   "worldSeedMode": "random",
+   "boardMode": "random",
+   "usedCommands": false,
+   "outcome": "finished",
+   "completedAt": 1792978711713,
+   "durationMs": 1175746,
+   "participants": [
+    {
+     "uuid": "00000000-0000-0000-0000-000000000000",
+     "username": "SampleRunner",
+     "won": true,
+     "score": 13,
+     "eloBefore": 1908,
+     "eloChange": 7,
+     "eloAfter": 1915,
+     "rd": 101.66911228580433
+    },
+    {
+     "uuid": "00000001-0000-0000-0000-000000000000",
+     "username": "Player1",
+     "won": false,
+     "score": 7,
+     "eloBefore": 1549,
+     "eloChange": -7,
+     "eloAfter": 1542,
+     "rd": 100
+    }
+   ]
+  },
+  {
+   "id": 621592,
+   "matchType": "competitive",
+   "gameMode": "draftout",
+   "worldSeedMode": "random",
+   "boardMode": "random",
+   "usedCommands": false,
+   "outcome": "finished",
+   "completedAt": 1792976996035,
+   "durationMs": 1240974,
+   "participants": [
+    {
+     "uuid": "00000000-0000-0000-0000-000000000000",
+     "username": "SampleRunner",
+     "won": true,
+     "score": 13,
+     "eloBefore": 1903,
+     "eloChange": 5,
+     "eloAfter": 1908,
+     "rd": 101.66911228580433
+    },
+    {
+     "uuid": "00000002-0000-0000-0000-000000000000",
+     "username": "Player2",
+     "won": false,
+     "score": 5,
+     "eloBefore": 1466,
+     "eloChange": -5,
+     "eloAfter": 1461,
+     "rd": 100
+    }
+   ]
+  },
+  {
+   "id": 621538,
+   "matchType": "competitive",
+   "gameMode": "draftout",
+   "worldSeedMode": "random",
+   "boardMode": "random",
+   "usedCommands": false,
+   "outcome": "forfeited",
+   "completedAt": 1792975173198,
+   "durationMs": 484651,
+   "participants": [
+    {
+     "uuid": "00000003-0000-0000-0000-000000000000",
+     "username": "Player3",
+     "won": false,
+     "score": 3,
+     "eloBefore": 1594,
+     "eloChange": -9,
+     "eloAfter": 1585,
+     "rd": 100
+    },
+    {
+     "uuid": "00000000-0000-0000-0000-000000000000",
+     "username": "SampleRunner",
+     "won": true,
+     "score": 5,
+     "eloBefore": 1894,
+     "eloChange": 9,
+     "eloAfter": 1903,
+     "rd": 101.66911228580433
+    }
+   ]
+  },
+  {
+   "id": 621516,
+   "matchType": "competitive",
+   "gameMode": "draftout",
+   "worldSeedMode": "random",
+   "boardMode": "random",
+   "usedCommands": false,
+   "outcome": "forfeited",
+   "completedAt": 1792974319459,
+   "durationMs": 2144597,
+   "participants": [
+    {
+     "uuid": "00000000-0000-0000-0000-000000000000",
+     "username": "SampleRunner",
+     "won": false,
+     "score": 9,
+     "eloBefore": 1944,
+     "eloChange": -50,
+     "eloAfter": 1894,
+     "rd": 101.66911228580433
+    },
+    {
+     "uuid": "00000004-0000-0000-0000-000000000000",
+     "username": "Player4",
+     "won": true,
+     "score": 11,
+     "eloBefore": 1660,
+     "eloChange": 47,
+     "eloAfter": 1707,
+     "rd": 102.36387655466355
+    }
+   ]
+  }
+ ],
+ "page": 1,
+ "totalPages": 10,
+ "filter": "competitive",
+ "eraId": 2,
+ "eras": [
+  {
+   "id": 1,
+   "firstMatchId": 0,
+   "season": null,
+   "system": "elo"
+  },
+  {
+   "id": 2,
+   "firstMatchId": 514840,
+   "season": null,
+   "system": "glicko2"
+  }
+ ]
+}

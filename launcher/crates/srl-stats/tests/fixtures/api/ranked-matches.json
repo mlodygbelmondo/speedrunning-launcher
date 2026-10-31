@@ -1,0 +1,403 @@
+{
+ "status": "success",
+ "data": [
+  {
+   "id": 14436519,
+   "type": 2,
+   "seed": {
+    "id": "mtf311hmshykbpim",
+    "overworld": "VILLAGE",
+    "nether": "STABLES",
+    "endTowers": [
+     97,
+     85,
+     79,
+     94
+    ],
+    "variations": [
+     "biome:structure:plains",
+     "biome:structure:plains",
+     "bastion:good_gap:2",
+     "bastion:triple:1",
+     "bastion:single:2",
+     "biome:bastion:warped_forest",
+     "biome:fortress:warped_forest",
+     "end_spawn:buried:56",
+     "end_tower:caged:back"
+    ]
+   },
+   "category": "ANY",
+   "gameMode": "default",
+   "players": [
+    {
+     "uuid": "00000000000000000000000000000000",
+     "nickname": "SampleRunner",
+     "roleType": 3,
+     "eloRate": 2325,
+     "eloRank": 11,
+     "country": "pl"
+    },
+    {
+     "uuid": "00000001000000000000000000000000",
+     "nickname": "Player1",
+     "roleType": 1,
+     "eloRate": 2264,
+     "eloRank": 18,
+     "country": "pl"
+    }
+   ],
+   "spectators": [],
+   "result": {
+    "uuid": "00000001000000000000000000000000",
+    "time": 210241
+   },
+   "forfeited": true,
+   "decayed": false,
+   "rank": {
+    "season": null,
+    "allTime": null
+   },
+   "vod": [
+    {
+     "uuid": "00000000000000000000000000000000",
+     "url": "https://example.invalid/vod",
+     "startsAt": 1792869127
+    },
+    {
+     "uuid": "00000001000000000000000000000000",
+     "url": "https://example.invalid/vod",
+     "startsAt": 1792878372
+    }
+   ],
+   "changes": [
+    {
+     "uuid": "00000001000000000000000000000000",
+     "change": 25,
+     "eloRate": 2217
+    },
+    {
+     "uuid": "00000000000000000000000000000000",
+     "change": -25,
+     "eloRate": 2350
+    }
+   ],
+   "beginner": false,
+   "botSource": null,
+   "season": 12,
+   "date": 1792897731,
+   "replayExists": 1,
+   "seedType": "VILLAGE",
+   "bastionType": "STABLES",
+   "tag": null
+  },
+  {
+   "id": 14436441,
+   "type": 2,
+   "seed": {
+    "id": "mtf49v6eygqd8b4c",
+    "overworld": "DESERT_TEMPLE",
+    "nether": "STABLES",
+    "endTowers": [
+     97,
+     76,
+     79,
+     91
+    ],
+    "variations": [
+     "chest:structure:egap",
+     "chest:structure:egap",
+     "bastion:good_gap:1",
+     "bastion:triple:1",
+     "bastion:small_single:2",
+     "biome:bastion:crimson_forest",
+     "biome:fortress:crimson_forest",
+     "end_tower:caged:back"
+    ]
+   },
+   "category": "ANY",
+   "gameMode": "default",
+   "players": [
+    {
+     "uuid": "00000000000000000000000000000000",
+     "nickname": "SampleRunner",
+     "roleType": 3,
+     "eloRate": 2325,
+     "eloRank": 11,
+     "country": "pl"
+    },
+    {
+     "uuid": "00000002000000000000000000000000",
+     "nickname": "Player2",
+     "roleType": 0,
+     "eloRate": 2253,
+     "eloRank": 22,
+     "country": "pl"
+    }
+   ],
+   "spectators": [],
+   "result": {
+    "uuid": "00000000000000000000000000000000",
+    "time": 919156
+   },
+   "forfeited": false,
+   "decayed": false,
+   "rank": {
+    "season": null,
+    "allTime": null
+   },
+   "vod": [
+    {
+     "uuid": "00000000000000000000000000000000",
+     "url": "https://example.invalid/vod",
+     "startsAt": 1792869127
+    }
+   ],
+   "changes": [
+    {
+     "uuid": "00000000000000000000000000000000",
+     "change": 12,
+     "eloRate": 2338
+    },
+    {
+     "uuid": "00000002000000000000000000000000",
+     "change": -12,
+     "eloRate": 2109
+    }
+   ],
+   "beginner": false,
+   "botSource": null,
+   "season": 12,
+   "date": 1792897468,
+   "replayExists": 1,
+   "seedType": "DESERT_TEMPLE",
+   "bastionType": "STABLES",
+   "tag": null
+  },
+  {
+   "id": 14436124,
+   "type": 2,
+   "seed": {
+    "id": "mtf367gxrcpali64",
+    "overworld": "DESERT_TEMPLE",
+    "nether": "TREASURE",
+    "endTowers": [
+     82,
+     76,
+     91,
+     94
+    ],
+    "variations": [
+     "chest:structure:diamond",
+     "chest:structure:diamond",
+     "biome:bastion:crimson_forest",
+     "biome:fortress:nether_wastes",
+     "end_tower:caged:front"
+    ]
+   },
+   "category": "ANY",
+   "gameMode": "default",
+   "players": [
+    {
+     "uuid": "00000001000000000000000000000000",
+     "nickname": "Player1",
+     "roleType": 1,
+     "eloRate": 2264,
+     "eloRank": 18,
+     "country": "pl"
+    },
+    {
+     "uuid": "00000000000000000000000000000000",
+     "nickname": "SampleRunner",
+     "roleType": 3,
+     "eloRate": 2325,
+     "eloRank": 11,
+     "country": "pl"
+    }
+   ],
+   "spectators": [],
+   "result": {
+    "uuid": "00000001000000000000000000000000",
+    "time": 588899
+   },
+   "forfeited": false,
+   "decayed": false,
+   "rank": {
+    "season": null,
+    "allTime": null
+   },
+   "vod": [
+    {
+     "uuid": "00000001000000000000000000000000",
+     "url": "https://example.invalid/vod",
+     "startsAt": 1792878372
+    },
+    {
+     "uuid": "00000000000000000000000000000000",
+     "url": "https://example.invalid/vod",
+     "startsAt": 1792869127
+    }
+   ],
+   "changes": [
+    {
+     "uuid": "00000001000000000000000000000000",
+     "change": 27,
+     "eloRate": 2167
+    },
+    {
+     "uuid": "00000000000000000000000000000000",
+     "change": -27,
+     "eloRate": 2365
+    }
+   ],
+   "beginner": false,
+   "botSource": null,
+   "season": 12,
+   "date": 1792896489,
+   "replayExists": 1,
+   "seedType": "DESERT_TEMPLE",
+   "bastionType": "TREASURE",
+   "tag": null
+  },
+  {
+   "id": 14435908,
+   "type": 3,
+   "seed": {
+    "id": "mtf3ij7ktege3wdp",
+    "overworld": "DESERT_TEMPLE",
+    "nether": "TREASURE",
+    "endTowers": [
+     103,
+     82,
+     100,
+     97
+    ],
+    "variations": [
+     "biome:bastion:crimson_forest",
+     "biome:fortress:crimson_forest",
+     "end_tower:caged:front_center"
+    ]
+   },
+   "category": "ANY",
+   "gameMode": "default",
+   "players": [
+    {
+     "uuid": "00000000000000000000000000000000",
+     "nickname": "SampleRunner",
+     "roleType": 3,
+     "eloRate": 2325,
+     "eloRank": 11,
+     "country": "pl"
+    }
+   ],
+   "spectators": [],
+   "result": {
+    "uuid": null,
+    "time": 76058
+   },
+   "forfeited": true,
+   "decayed": false,
+   "rank": {
+    "season": null,
+    "allTime": null
+   },
+   "vod": [],
+   "changes": [],
+   "beginner": false,
+   "botSource": null,
+   "season": 12,
+   "date": 1792895875,
+   "replayExists": 1,
+   "seedType": "DESERT_TEMPLE",
+   "bastionType": "TREASURE",
+   "tag": null
+  },
+  {
+   "id": 14435834,
+   "type": 2,
+   "seed": {
+    "id": "mtf4496fxqzngqyg",
+    "overworld": "DESERT_TEMPLE",
+    "nether": "STABLES",
+    "endTowers": [
+     85,
+     76,
+     82,
+     94
+    ],
+    "variations": [
+     "chest:structure:diamond",
+     "chest:structure:diamond",
+     "bastion:good_gap:1",
+     "bastion:triple:1",
+     "bastion:single:2",
+     "biome:bastion:nether_wastes",
+     "biome:fortress:nether_wastes",
+     "end_tower:caged:back"
+    ]
+   },
+   "category": "ANY",
+   "gameMode": "default",
+   "players": [
+    {
+     "uuid": "00000000000000000000000000000000",
+     "nickname": "SampleRunner",
+     "roleType": 3,
+     "eloRate": 2325,
+     "eloRank": 11,
+     "country": "pl"
+    },
+    {
+     "uuid": "00000003000000000000000000000000",
+     "nickname": "Player3",
+     "roleType": 0,
+     "eloRate": 2311,
+     "eloRank": 12,
+     "country": "pl"
+    }
+   ],
+   "spectators": [],
+   "result": {
+    "uuid": "00000000000000000000000000000000",
+    "time": 626790
+   },
+   "forfeited": false,
+   "decayed": false,
+   "rank": {
+    "season": null,
+    "allTime": null
+   },
+   "vod": [
+    {
+     "uuid": "00000000000000000000000000000000",
+     "url": "https://example.invalid/vod",
+     "startsAt": 1792869127
+    },
+    {
+     "uuid": "00000003000000000000000000000000",
+     "url": "https://example.invalid/vod",
+     "startsAt": 1792859871
+    }
+   ],
+   "changes": [
+    {
+     "uuid": "00000000000000000000000000000000",
+     "change": 16,
+     "eloRate": 2349
+    },
+    {
+     "uuid": "00000003000000000000000000000000",
+     "change": -16,
+     "eloRate": 2250
+    }
+   ],
+   "beginner": false,
+   "botSource": null,
+   "season": 12,
+   "date": 1792895610,
+   "replayExists": 1,
+   "seedType": "DESERT_TEMPLE",
+   "bastionType": "STABLES",
+   "tag": null
+  }
+ ]
+}

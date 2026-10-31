@@ -1,0 +1,23 @@
+[package]
+name = "bakeoff-gpui"
+version = "0.1.0"
+edition = "2024"
+publish = false
+
+[[bin]]
+name = "bakeoff-gpui"
+path = "src/main.rs"
+
+[dependencies]
+gpui = { git = "https://github.com/zed-industries/zed", rev = "fc9258b4632544c0819953c59e2c31b9e92ea362" }
+gpui_platform = { git = "https://github.com/zed-industries/zed", rev = "fc9258b4632544c0819953c59e2c31b9e92ea362", features = ["font-kit", "x11", "wayland", "runtime_shaders"] }
+anyhow = "1"
+png = "0.18"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+
+[profile.release]
+opt-level = 3
+lto = "fat"
+codegen-units = 1
+strip = true

@@ -1,0 +1,6 @@
+{
+  "ssg-only": [
+    "chunkcacher",
+    "setspawnmod"
+  ]
+}

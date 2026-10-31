@@ -1,0 +1,565 @@
+# Work log
+
+Co jest zrobione, co jest w toku, na co czekamy i co już zdecydowaliśmy. Aktualizuję ten plik w każdym
+commicie, który coś zmienia. Najnowsze wpisy dziennika są na górze.
+
+## Teraz
+
+- **Stan:** `launcher` i `main` to ten sam commit. Gotowe są M1, M2 i M3 (statystyki z prawdziwych danych, mapy
+  treningowe, logowanie Microsoft z ekranami), import ustawień z innych launcherów, jedna instancja 1.16.1 ze stroną
+  Mody, szlif UI i tekstów po ocenie ekranów oraz blokada grania offline w wersji z client ID. Szczegóły w dzienniku.
+- **W toku (noc z 28 na 29 października):** praca bez Piotra, jeden subagent naraz. Kolejność: blokada offline,
+  runy treningowe poza Statystykami, potem większa praca nad wyglądem z oceny ekranów (jeden system typografii
+  i przycisków). Wyniki w dzienniku.
+- **Logowanie Microsoft** jest wyłączone, dopóki Mojang nie zatwierdzi naszego client ID. Poradnik dla Piotra:
+  `launcher/docs/microsoft-login.md` (Azure i formularz Mojanga, po polsku). Bez client ID gra offline działa jak
+  dotąd, więc testy w czasie weryfikacji nie potrzebują konta.
+- **Czeka na Piotra:** test paczki na prawdziwym Windowsie 10/11 x64. Pobierz
+  <https://github.com/mlodygbelmondo/speedrunning-launcher/releases/download/launcher-latest/speedrunning-launcher-windows.zip>,
+  rozpakuj i uruchom `speedrunning-launcher.exe`. Przy pierwszym starcie wpisz nick i, jeśli masz MultiMC, Prism
+  albo MCSR Launcher, spróbuj „Importuj moje ustawienia”. Potem wybierz RSG i kliknij Pobierz: gra powinna dojść do
+  ekranu tytułowego z modami. Najważniejsze są Toolscreen, czyste zatrzymanie gry i import, bo tego nie da się
+  sprawdzić na Linuksie:
+  1. Import: launcher znajduje Twoje instancje (MultiMC, Prism, MCSR Launcher, `.minecraft`), a po imporcie gra ma
+     Twoje klawisze, czułość i paczki zasobów. Kopie zapasowe są w `import-backup-<czas>` w folderze instancji.
+  2. Narzędzia: Toolscreen po instalacji pokazuje 1.4.7, a w `%APPDATA%\SpeedrunningLauncher\data\tools\toolscreen\1.4.7\x64\`
+     są `Toolscreen.dll` i `liblogger_x64.dll`.
+  3. Graj w RSG: okienko Toolscreen pojawia się w lewym górnym rogu gry, Ctrl+I otwiera jego ustawienia, a Thin,
+     Wide i EyeZoom przełączają się od razu.
+  4. Plik `%USERPROFILE%\.config\toolscreen\logs\latest.log` istnieje i ma linie startu Toolscreen.
+  5. Windows Defender ani inny antywirus nie blokuje launchera przy wstrzykiwaniu DLL. Jeśli blokuje, zapisz, co
+     pokazał.
+  6. Ninjabrain Bot otwiera się z grą, bez okna konsoli, i zamyka się po wyjściu z gry. Jeśli uruchomisz go sam
+     wcześniej, launcher go zostawia.
+  7. Zatrzymaj grę z launchera: gra zamyka się jak po kliknięciu X, a jej log kończy się na `Stopping!`. Gra nie
+     może zostać zabita.
+  8. Po RSG zagraj w SSG albo FSG: to ta sama instancja (`instances\mcsr`), więc tryb dokłada tylko swoje mody,
+     a klawisze i światy zostają. Seed wpisany w Atum w SSG nie może się pojawić po powrocie do RSG (ani seed
+     z zaimportowanej instancji SSG). W Trybach przycisk Mody pozwala włączyć i wyłączyć mod, a „Dodaj własny
+     .jar…” otwiera okno wyboru pliku Windowsa; jar Fabric API launcher odrzuca.
+  9. Statystyki po kilku resetach pokazują te runy. Trening: zainstaluj jedną mapę (np. Bastion Trainer) i zagraj.
+  10. Ustawienia, potem Autorzy i licencje: w kolumnie Kod są Pandora Launcher i EasyInjectBundled.
+
+  W Ranked mod MCSR Ranked najpierw pokazuje ekran zgody na politykę prywatności i zasady. Akceptujesz go sam,
+  w grze.
+- **Czego jeszcze brakuje:**
+  - Nikt nie uruchomił paczki na pulpicie Windowsa. CI instaluje na Windowsie bez okna RSG, Ninjabrain Bota
+    i Toolscreen. Wstrzyknięcie Toolscreen było sprawdzone tylko pod wine (testowa DLL w notatniku), nigdy w grze.
+  - waywall nie był uruchomiony z grą, bo test E2E działa w Xvfb, a nie w sesji Wayland.
+  - Gra uruchomiona w poprzedniej sesji launchera nie jest pokazywana jako trwająca.
+  - Toolscreen nie jest jeszcze przygotowany dla Draftout (26.3 potrzebuje jego warstwy Vulkan).
+  - Gdy mcsr-meta nie ma legalnej wersji moda dla trybu, tryb daje błąd. Nie wraca do starszej legalnej wersji.
+  - Przerwana aktualizacja Javy bez sieci: launcher nie wraca jeszcze sam do poprzedniej wersji.
+  - Katalog danych na Windowsie: Roaming czy LocalAppData, do decyzji.
+  - Listę modów Draftout trzeba sprawdzać ręcznie przy każdej nowej wersji Draftout.
+  - Ekrany M3 bez pełnego przeglądu kodu (29.10 przejrzany był backend: wspólna instancja, import, trening, pod
+    kątem utraty danych i Windowsa; wyniki w dzienniku). Niesprawdzone końcówki: kod z telefonu i Anuluj
+    w logowaniu, ostrzeżenie „ważne do” w wierszu treningu, ponowienie po ponownym zalogowaniu, Aktualizuj
+    i Anuluj mapy, elo Draftout na prawdziwych danych.
+  - Wspólna instancja: niesprawdzona na Windowsie (jary kopiowane, nie linkowane), z prawdziwym oknem wyboru pliku
+    i w prawdziwym meczu Ranked.
+  - Z oceny ekranów zostały decyzje Piotra: Tryby względem Startu i własna grafika map (system przycisków
+    i typografii jest na gałęzi `design-system`, czeka na scalenie).
+
+## Plan
+
+### Etap 1: badania i bake-off (zrobione)
+
+- [x] Raporty w `research/`: stack, ekosystem MCSR, logowanie i rdzeń launchera, mapy treningowe, kierunki wizualne.
+- [x] Bake-off Tauri, Electron i GPUI z tą samą sceną i harnessem pomiarowym (Linux i Windows).
+- [x] Prototyp wszystkich ekranów (scene v2), EN i PL z przełącznikiem.
+- [x] Dwa przebiegi na Windowsie (`bakeoff/results/windows-*`).
+
+### Etap 2: redesign prototypu, scene v3 (wzór dla aplikacji)
+
+- [x] Shell: górna nawigacja zamiast bocznej szyny.
+- [x] Start, w 5 stanach trybów.
+- [x] Tryby.
+- [x] Trening.
+- [x] Własne rendery z Blendera, 11 obrazów, struktury z prawdziwego świata.
+- [x] Poprawka migania tła w GPUI.
+
+Pozostałe ekrany powstają od razu w prawdziwej aplikacji (etap 4), już tylko w GPUI.
+
+### Etap 3: decyzje (zrobione 2026-10-26, poza logowaniem)
+
+- [x] Prawdziwy launcher zamiast dalszego prototypu.
+- [x] Stack: GPUI.
+- [x] Strategia: własna aplikacja i moduły Pandory (MIT).
+- [ ] Logowanie Microsoft: na razie konto offline. Własny client ID u Mojang później.
+- [ ] Legalizacja launchera na Discordzie MCSR (speedrun.com, reguła A.1.1), gdy będzie działająca wersja.
+- [ ] Licencja kodu (przed publikacją).
+
+### Etap 4: prawdziwy launcher, gałąź `launcher`, katalog `launcher/`
+
+Architektura i zasady są w `launcher/README.md`.
+
+M1: wybierasz tryb, klikasz Graj i gra startuje. Strumienie pracy:
+
+- [x] Szkielet: workspace, wspólne typy w `srl-core` (ścieżki, tryby, postęp, konto offline, pobieranie
+  z weryfikacją hashy).
+- [x] `srl-game`: Minecraft, biblioteki, assety, Java, Fabric, start gry.
+- [x] `srl-mods`: legalne mody z mcsr-meta, sprawdzane z `legal-builds.csv`, zestawy dla trybów.
+- [x] `srl-app`: UI v3 przeniesione z prototypu, prawdziwe stany przycisku Graj.
+- [x] Integracja: Graj naprawdę instaluje i odpala grę, test od zera na Linuksie, CI z paczką na Windowsa.
+- [x] Przegląd kodu i poprawki.
+
+M2: narzędzia i reszta ekranów. Strumienie pracy:
+
+- [x] `srl-tools`: Ninjabrain Bot, Toolscreen (Windows) i waywall (Linux), z przypiętymi legalnymi wersjami, razem
+  z grą. `srl-game` zatrzymuje grę tak, żeby zapisała świat.
+- [x] Ekrany Ustawienia i Narzędzia, przetłumaczone błędy startu gry.
+- [x] Ekrany Nauka i Statystyki.
+- [x] Integracja: Narzędzia i Graj na prawdziwym `srl-tools`, nowe ustawienia w `srl-mods` i `srl-game`, test od
+  zera na Linuksie, CI instaluje narzędzia na Windowsie.
+- [x] Przegląd kodu M2 i poprawki.
+- [ ] Test na pulpicie Windowsa (Piotr, lista w „Teraz”).
+
+M3: statystyki z prawdziwych danych, mapy treningowe i logowanie Microsoft. Strumienie pracy:
+
+- [x] `srl-stats`: rekordy SpeedRunIGT (PB, splity, suma najlepszych odcinków, liczba runów na tryb), API MCSR Ranked
+  i API Draftout, z kopią na dysku na czas bez sieci.
+- [x] `srl-practice`: katalog 13 map do pobrania od autorów (sha512 przypięte), instancja treningowa, instalacja,
+  reset, aktualizacja i usuwanie map.
+- [x] `srl-auth`: logowanie Microsoft (przeglądarka z PKCE i kod z telefonu), tokeny w systemowym magazynie haseł.
+  Wyłączone bez client ID.
+- [x] Przegląd kodu M3 (rdzeń) i poprawki, scalenie do `launcher`.
+- [x] Ekrany: Statystyki, konto Microsoft w Ustawieniach i w Graj, Trening (`launcher/docs/m3-ui-plan.md`), 38c66c1.
+- [x] Granie offline w wersji z client ID dopiero po pierwszym zalogowaniu (decyzja Piotra).
+- [ ] Przegląd kodu ekranów M3 (pominięty, żeby oszczędzić limit).
+- [ ] Client ID od Mojanga (Piotr, `launcher/docs/microsoft-login.md`).
+
+Poza planem, na prośbę Piotra:
+
+- [x] Import ustawień z MultiMC, Prism, MCSR Launchera i `.minecraft` (f8733a3).
+- [x] Jedna instancja 1.16.1 dla Ranked, RSG, FSG i SSG oraz strona Mody (ccf3655).
+- [x] Ocena ekranów (wygląd 6,5, teksty EN 6, PL 5,5, „nie vibecoded” 5,5) i 14 szybkich poprawek (06aa624).
+- [x] Większa praca z oceny: system przycisków i typografii, przewijane listy, „O mapie” w Treningu, przełączniki
+  w Narzędziach (gałąź `design-system`).
+- [ ] Z oceny, do decyzji Piotra: Tryby względem Startu, własna grafika map i renderu Ranked.
+
+Potem:
+
+- [ ] Aktualizacje, instalator i podpis.
+
+## Decyzje
+
+- **2026-10-29**, Piotr: konta offline jak w Prism. Wersja z client ID pozwala grać offline dopiero po jednym
+  zalogowaniu kontem Microsoft z grą na tym komputerze (wylogowanie tego nie cofa); wcześniej Graj prosi
+  o zalogowanie. Wersja bez client ID gra offline jak dotąd, więc testy w czasie weryfikacji Mojanga działają bez
+  konta. Limit CPU dla agentów zostaje wyłączony.
+- 2026-10-26, Piotr: jedna instancja dla Ranked, RSG, FSG i SSG, a mody włączane i wyłączane jak w MultiMC (nie
+  osobna instancja na tryb). Wygląd launchera bez zmian: karta trybu to gotowy zestaw modów. Nielegalny zestaw:
+  ostrzeżenie, gra startuje. Na liście są wszystkie legalne mody i dodatki plus własne jary. Wybór seeda w SSG
+  na razie bez zmian.
+- **2026-10-26:** rdzeń M3 (statystyki, mapy treningowe, logowanie Microsoft) powstaje bez ekranów, równolegle
+  z końcówką M2. Agenci budujący pracują na wysiłku high, przeglądy na xhigh. Client ID Microsoftu nigdy nie trafia
+  do kodu: launcher czyta go z `SRL_MSA_CLIENT_ID`, a bez niego logowanie jest wyłączone.
+- **2026-10-26:** nowa nazwa to Speedrunning Launcher (wcześniej Speedrunluncher): repozytorium
+  `speedrunning-launcher`, plik `speedrunning-launcher.exe`, paczka `speedrunning-launcher-windows.zip`, dane
+  w `SpeedrunningLauncher`. Dane spod starej nazwy launcher przenosi sam przy pierwszym starcie. Crate'y zostają
+  z prefiksem `srl-`.
+- **2026-10-26:** narzędzie, które nie może ruszyć, nigdy nie blokuje gry. Launcher je pomija i mówi dlaczego na
+  ekranie Gry. waywall launcher tylko znajduje w systemie, nie instaluje go. Ninjabrain Bot nie startuje w Draftout,
+  bo jego zasady go zabraniają.
+- **2026-10-26:** M2 to narzędzia i reszta ekranów (Nauka, Narzędzia, Statystyki, pełne Ustawienia).
+  Opcjonalne dodatki Draftout (No Chat Restrictions, No Telemetry) są domyślnie wyłączone, z przełącznikiem
+  w Ustawieniach.
+- **2026-10-26:** w Draftout instalujemy tylko mody, które przepuszcza sam mod Draftout (jego lista z wersji
+  1.18.0). Planifolia i SpeedRunIGT są w mcsr-meta legalne dla 26.3, ale z nimi Draftout zatrzymuje start gry. Listę
+  trzeba sprawdzać przy każdej nowej wersji Draftout.
+- **2026-10-26:** okno i tryb bez okna (`speedrunluncher --install <tryb>`) używają tej samej ścieżki Graj. CI
+  instaluje nią RSG na Windowsie przy każdym pushu.
+- **2026-10-26:** przy starcie stan trybów bierze się z zapisu ostatniej instalacji i z plików na dysku, bez sieci.
+  Aktualizacje launcher sprawdza w tle. Symulowany backend zostaje tylko do zrzutów ekranu (`SRL_FAKE=1`).
+- **2026-10-26:** launcher nie akceptuje za gracza zgody MCSR Ranked, bo to decyzja gracza.
+- **2026-10-26:** paczkę `launcher-latest` podmieniamy tylko wtedy, gdy CI przejdzie na Linuksie i na Windowsie.
+- **2026-10-26:** budujemy prawdziwy launcher w GPUI: własna aplikacja z modułami Pandory (MIT). Na razie
+  bez logowania Microsoft, na koncie offline.
+- **2026-10-26:** agenci pracują w osobnych worktree, razem najwyżej na 8 z 16 wątków i 12 GB RAM (slice
+  `srl.slice`, polecenie `srl-cpu`), bo Piotr pracuje równolegle nad innym projektem.
+- **2026-10-26:** poprawka migania w GPUI bez wstępnego ładowania obrazów, bo to kosztowało około 45 MB pamięci.
+- **2026-10-25:** kierunek A („Plansza”) plus pasek z kierunku B. Własne rendery kluczowych obrazów, bez plików
+  Mojang.
+- **2026-10-25:** angielski domyślnie, polski jako drugi język, z przełącznikiem w Ustawieniach.
+- **2026-10-25:** launcher tylko przygotowuje i uruchamia grę. Kolejki i pokoje Ranked są w grze, więc nie ma
+  przycisku „szukaj meczu”.
+- **2026-10-24:** bake-off poszerzony o Electron i GPUI. Qt pominięty.
+- **2026-10-23:** styl A+D, czyli Violet Noir plus dane speedrunowe.
+
+## Dziennik
+
+### 2026-10-29
+
+- **Nowa grafika Ranked: wioska z 1.16.1** (subagent, gałąź `ranked-village` z `launcher` bb8bd65; wybór Piotra
+  po ocenie, że słupki z blokami rang wyglądają jak zaślepka). Prawdziwa wioska równinna z seeda 2026: start
+  (−816, 32), domy w x −892..−732, z −31..72, staw od zachodu, ciemny las z wielkimi grzybami w tle. Widok
+  z (−870, 84, 95) na północny wschód, złota godzina, słońce nisko na zachodzie, chmury w rozmiarze z gry.
+  Narzędzia: `mc/find_village.py` (siedem wiosek wokół spawnu, typ i elementy każdej; wybrane spośród trzech
+  równinnych), `gen.py` i `extract.py` dla pudełka x −1120..−510, z −280..340, `scene_village.py` (stare
+  `scene_ranked.py` zostaje). Jedna poprawka terenu: wylot jaskini przy stawie zasypany do wysokości łąki, bo
+  w tej skali był czarną dziurą. Nowe własne tekstury bloków wielkich grzybów (wcześniej udawały je ziemia
+  i czerwona wełna), doniczki z roślinami rysują się jako doniczki. Render 1920×1080: 254 s. `hero/ranked.jpg`
+  i `card/ranked.jpg` z `make-art.sh` (pozostałe pliki bez zmian), CREDITS i ekran Autorów (EN, PL) wspominają
+  wioskę. Zrzuty Startu przed i po, karta i Tryby w `~/.cache/srl-e2e/village/`. `cargo test --workspace`: 320.
+  Uwaga: `/tmp` czyści stare pliki, więc Blender i venv w `/tmp/srl/art` były uszkodzone; Blender pobrany na
+  nowo z blender.org, venv odtworzony, jar serwera 1.16.1 pobrany z Mojanga do `/tmp/srl/mcworld`.
+
+- **Tymczasowy przełącznik deweloperski** (Piotr): Ustawienia, sekcja „Deweloperskie (tymczasowe)”, „Ukryj taglines
+  i podtytuły”. Pole `dev_hide_taglines` w `settings.json`; `copy::is_tagline` wymienia ukrywane klucze (nadtytuły,
+  podtytuły stron, opisy trybów na Starcie, wstępy ekranów pełnookienkowych i strony Mody, opisy kart Narzędzi
+  i Nauki; treść okien dialogowych zostaje). Zrzuty przed i po w `~/.cache/srl-e2e/taglines/`. Do usunięcia, gdy
+  Piotr zdecyduje, które teksty zostają.
+
+- **Mój test po nocnych zmianach** (d463983, Xvfb, pusty katalog danych, `--launch --until-ready`): RSG od zera do
+  ekranu tytułowego w 27 s, potem SSG na tej samej `instances/mcsr` w 15 s (doszedł SetSpawn, zeszły WorldPreview
+  i LazyStronghold), potem znowu RSG: `mods/` identyczne jak za pierwszym razem. Ninjabrain Bot startował z grą,
+  Stop zamknął grę (kod 0) i narzędzia w 0,5 s. CI dla blokady offline i systemu przycisków przeszło (runy
+  40803322360, 40806685955). Stare katalogi kompilacji agentów w `~/.cache/srl-target` (ok. 240 GB) usunięte, bo
+  dysk był zajęty w 95%.
+
+- **Przegląd kodu przed testem na Windowsie** (subagent, gałąź `review-fixes` z `launcher` cd16051): wspólna
+  instancja 1.16.1 i strona Mody (ccf3655), import ustawień (ff80645, f8733a3) i backend M3 (statystyki, konto
+  przy Graj, trening), pod kątem utraty danych, Windowsa, współbieżności i złego zestawu modów. Znalezione
+  i naprawione, każde z testem, który przed poprawką padał (poza 5.):
+  1. Import wkładał ustawienia Atum ze źródła do wspólnej instancji. Z instancji SSG z seedem ten seed stawał się
+     ustawieniem RSG (przy świeżej instalacji pierwszy tryb przejmuje to, co leży w folderze), więc RSG resetował
+     na ustalony seed. Teraz `srl-import` ma `Target::keeping`, a wspólna instancja nie bierze z importu plików
+     Atum (`shared::PER_MODE_FILES`); trening je dostaje. Test `the_shared_instance_keeps_its_own_atum_settings`.
+  2. `srl_mods::install`: jar gracza w `mods/` o nazwie jara z zestawu (inny build, bez kopii w magazynie) był
+     nadpisywany przy podmianie, zamiast trafić do `mods-removed/`. Na Windowsie przy nazwie różniącej się tylko
+     wielkością liter pętla usuwania wyniosłaby świeżo zainstalowany jar (to tylko z rozumowania, Linux tego nie
+     pokaże). Teraz taki jar wychodzi przed podmianą, a nazwy porównuję jak system plików. Test
+     `a_foreign_jar_under_a_set_jars_name_is_kept_aside`.
+  3. „Dodaj własny .jar…” przyjmował Fabric API, który potem szedł do `mods/` każdego trybu, także Ranked (moduł
+     `choice` obiecuje, że zakazane mody nigdy nie wchodzą). Teraz jar z `id` zakazanym w każdym trybie jest
+     odrzucany z komunikatem. Test `a_players_jar_can_not_be_fabric_api`.
+  4. Własny jar o nazwie zajętej przez jar zestawu dostawał nazwę `custom:<hash>-….jar`. Dwukropek na NTFS
+     otwiera strumień danych, więc instalacja na Windowsie by padła. Teraz `custom-<hash>-….jar`. Test
+     `an_own_jar_with_a_taken_name_gets_a_windows_name`.
+  5. Backend przyjmował Graj trybu 1.16.1, gdy inny tryb tej instancji był między instalacją a startem gry
+     (chronił tylko przycisk, `sibling_busy`). Wtedy druga instalacja podmieniłaby mody i Atum pod startującą grą.
+     Teraz `RealBackend::play` odmawia, jeden Graj na folder gry. Bez testu, bo wymaga prawdziwego backendu.
+  Zostaje (niskie, bez poprawki): `shared::switch_to` nie jest odporny na awarię w połowie (padnięcie procesu
+  albo błąd I/O między przeniesieniem plików Atum a zapisem `state.json` może skasować zapisane ustawienia Atum
+  trybu albo zostawić seed SSG w RSG, okno rzędu milisekund). Migracja na Windowsie: jeśli zmiana nazwy
+  `instances\<tryb>` na `mcsr` się nie uda (otwarty plik), Graj tworzy nowy `mcsr`, a stare ustawienia trafiają
+  do `old-<tryb>` (nic nie ginie, dotyczy tylko aktualizacji ze starego układu, na Windowsie takich nie ma).
+  Niesprawdzone: czy Atum honoruje znacznik `config/mcsr/atum.global` (wspólna konfiguracja SpeedrunAPI w katalogu
+  domowym), bo wtedy seed byłby wspólny dla trybów mimo podmiany. Brak blokady jednej kopii launchera (dwa okna to
+  dwie osobne blokady instalacji, było tak od M1). Wynik importu nadal mówi „wszystko, co zaznaczyłeś” także
+  o wspólnej instancji, choć ustawienia Atum zostają w trybach. Nieprzejrzane: kod ekranów M3 (UI), wnętrze
+  `srl-auth`, `srl-practice` (rdzeń miał przegląd), `srl-game`, `srl-tools`. Sprawdzone: `cargo fmt --check`,
+  clippy z `-D warnings`, `cargo test --workspace` (320, 9 pominiętych).
+
+- **System przycisków i typografii** (subagent, gałąź `design-system`, jeszcze nie w `launcher`): większa praca
+  z oceny ekranów, bez zmiany wyglądu (fiolet, własne rendery, kwadratowe rogi, ząbkowany Graj). Wszystko
+  w `v3.rs`, opis w README `srl-app` („Buttons and labels”).
+  1. Przyciski: jeden główny na widok (`play_button` albo mały `primary` z tymi samymi ząbkami: „Zaloguj się
+     przez Microsoft”, „Gotowe”, „Jak to naprawić”), obrysowany `secondary` (Mody, Importuj…, Otwórz folder,
+     Dodaj własny .jar…, Zainstaluj i Graj w wierszu treningu, Zainstaluj i Aktualizuj na karcie narzędzia)
+     i tekstowy `tertiary` z cienką linią pod spodem (Anuluj, Wróć, Wyloguj, Resetuj mapę, linki autora).
+     Zniknęły białe prostokąty i gołe napisy wersalikami. W wierszu konta stan to cichy „wygasło” przy nazwie,
+     a obok jest jeden przycisk „Zaloguj się ponownie” (drugiego już nie było).
+  2. Typografia: rozstrzelone wersaliki tylko w górnym menu, na głównych przyciskach i w jednym eyebrow na
+     bohaterze (Start, ekran gry, prośba o nick, problem z folderem danych). Tryby, Mody i Nauka mają tę samą
+     linię zwykłymi literami (`kicker`). Nagłówki sekcji, etykiety, kolumny tabel, stany („gotowy do gry”,
+     „aktywne”, „wygasło”) i segmenty Ustawień są zwykłymi literami w Inter. Plex Mono tylko dla czasów,
+     liczb, wersji, rozmiarów i ścieżek (z Plexa wyszły: platformy i autorzy narzędzi, tagi modów, kroki
+     logowania, „konto offline” w menu, wiek danych w Statystykach). `upper()` nie robi już „V1.2.2” także
+     w „(v1.2.2)” i „„v1.2.2””, z testem. „Active”/„Aktywne” zmienione na „active”/„aktywne” także w kopii
+     `srl-auth` (test wymaga zgodności słowo w słowo).
+  3. Przewijanie: listy Treningu, Modów i Nauki znikają w tle przy krawędzi, za którą są ukryte wiersze
+     (`fade_above`, `fade_below`), więc przewinięty wiersz nie wchodzi już pod nagłówek listy (practice-link).
+     Ustawienia mają taki zanik przy dolnej krawędzi okna.
+  4. Trening: otwarty wiersz to światy, jeden rząd akcji (Resetuj mapę, Usuń, kreska, Strona autora, Film,
+     Ko-fi), jedna linia podziękowań i zwinięte „O mapie” (wymagania, licencja, notka o narzędziach), zamknięte
+     domyślnie. Nowy identyfikator ekranu `practice-about` pokazuje je otwarte.
+  5. Narzędzia: „Uruchamiaj z grą” to przełączniki w stylu zakładek Modów, z ptaszkiem i fioletowym tłem, gdy
+     są włączone; tryb zakazany jest przekreślony. „Draftout go zabrania” jest raz, pod przełącznikami tej karty.
+  Sprawdzone: zrzuty przed i po, wszystkie ekrany EN i PL (`~/.cache/srl-e2e/design/{before,after}/{en,pl}`,
+  pary w `~/.cache/srl-e2e/design/pairs/`), obejrzane ekrany, które się zmieniły; `cargo fmt --check`, clippy
+  z `-D warnings`, `cargo test --workspace` (316, 9 pominiętych). Pominięte, bo to decyzje Piotra: Tryby względem
+  Startu, nowa grafika map i renderu Ranked. Lista Treningu nadal jest niska (siatka kategorii zajmuje górę);
+  większa lista to zmiana układu, nie systemu. Wskazówka pod Graj („około 500 MB do pobrania”) zostaje w Plexie,
+  bo to część przycisku Graj.
+
+- **Blokada grania offline** (sam, w tym wątku): `srl-auth` zapamiętuje w `accounts.json`, że ktoś się tu raz
+  zalogował (`signed_in_once`, starsze pliki z kontem na liście liczą się tak samo), a `play_as` w `srl-app` ma nowy
+  stan `SignInFirst`: w wersji z client ID, bez aktywnego konta i bez wcześniejszego logowania Graj zatrzymuje się
+  z tekstem „Zaloguj się raz kontem Microsoft, żeby grać. Potem zagrasz też bez konta.” i głównym przyciskiem
+  „Zaloguj się”. Bez client ID nic się nie zmienia. Testy: polityka w `play_as`, przed logowaniem prośba, po
+  logowaniu konto Microsoft, po wylogowaniu offline (na mocku srl-auth), `signed_in_once` przeżywa wylogowanie.
+  Poradnik (część D) i README opisują tę zasadę. Nowy identyfikator ekranu `msa-sign-in-first`; zrzuty EN i PL
+  w `~/.cache/srl-e2e/offline-gate/`. Etykieta stanu to nadal „błąd”, choć to raczej prośba niż błąd.
+
+### 2026-10-26
+
+- **CI na Windowsie**: krok instalacji sprawdzał jeszcze `instances/rsg/mods`; od jednej instancji 1.16.1 to
+  `instances/mcsr/mods` (run 40402357770 padł tylko na tym, kod był w porządku).
+
+- **Szlif UI i tekstów** (gałąź `ui-polish` z `launcher`, subagent, tylko szybkie poprawki z przeglądu):
+  - Podpisy: bez podpisów, które powtarzają przycisk (Graj po instalacji, Zatrzymaj grę, Dalej, Importuj, Ponów
+    w Narzędziach), bez „z SpeedRunIGT” nad rekordami i źródła nad listą Nauki. Zdania z Plexa przeszły na Inter;
+    Plex został dla czasów, wersji, rozmiarów i ścieżek.
+  - Start i Tryby: plakietki tylko dla aktualizacji, błędu i działającej gry; bez „NOWE” na warstwach; rozmiar
+    pobrania pod Pobierz („około 500 MB”, z pomiaru na czystym katalogu: RSG 537 MB, Draftout 743 MB); tryb 1.16.1,
+    którego brat jest zainstalowany, pokazuje Graj („najpierw doda swoje mody”), a nie 500 MB do pobrania.
+  - Błędy: brak pamięci daje przycisk „Użyj 3 GB” (ustawia 3072 MB i gra od nowa), Draftout odrzucający mod daje
+    „Otwórz mody”, wygasłe logowanie daje „Zaloguj się” bez Ponów, konto dziecka ma „Jak to naprawić” jako główny
+    przycisk. Ścieżka logu w tekście zamieniona na przycisk „Otwórz log” (otwiera jego folder).
+  - Teksty EN i PL: „my” zamiast „launchera”, zdania bez „X: Y”, bez zapowiedzi („później”, „jeszcze nie w tej
+    wersji”), Sign in/Sign out, „…”, kroki logowania mówią, który odmówił. PL: Twierdza, Forteca, Bastion, Okiem
+    Kresu, cudzysłowy „…”, twarda spacja po w, i, z, a, o, u (narzędzie `copyedit.py` w `~/.cache/srl-dev/polish/tools`),
+    „twój” małą literą. Opisy modów na stronie Mody (`mods.desc.<id>`, z tekstem upstream jako zapasem).
+  - Statystyki: bilans sezonu tylko, gdy w sezonie są mecze, „9 runów, żaden ukończony” z liczbą mnogą, „Najlepszy
+    czas meczu”. Trening: jedna linia autorów (tylko gdy mówi więcej niż nazwiska), jedna linia Singleplayer, wersje
+    nie wielkimi literami. Import: okrągłe radia, bez „Brak w tej instancji” przed wyborem, lista trybów po nazwach.
+    Ustawienia: jeden wiersz pamięci dla Ranked · RSG · FSG · SSG i jeden dla Draftout, minimum podane raz.
+  - Pominięte: „Narzędzia treningowe w późniejszej wersji” zostaje (to prawdziwy brak), licencje treningu bez
+    rozwijania (tylko krótszy tekst), „Wróć do launchera” zostaje.
+  - Sprawdzone: `cargo fmt --check`, clippy z `-D warnings`, testy workspace (315 przechodzi, 9 pominiętych), zrzuty
+    wszystkich 63 ekranów po angielsku i po polsku w Xvfb.
+
+- **Jedna instancja 1.16.1 i strona Mody** (gałąź `shared-instance`, robione w tym wątku, bez subagentów):
+  - `srl-core`: `Instance::dir_id` (`mcsr` dla czterech trybów 1.16.1), moduł `shared`: przeniesienie starych
+    folderów (ostatnio grany staje się `instances/mcsr`, pozostałe oddają światy do wspólnych `saves/`, przy
+    kolizji nazwy z dopiskiem trybu, i zostają jako `instances/old-<tryb>`; nic nie jest usuwane), ustawienia Atum osobno dla każdego trybu
+    (`.srl-modes/<tryb>/`), zapis, który tryb był uruchomiony kiedy.
+  - `srl-mods`: blokada gry i instalacji na cały folder (gra RSG blokuje Graj w SSG), notatka zestawu każdego
+    trybu w `.srl-mods/`, więc zmiana trybu to nie aktualizacja; moduł `choice`: włącz, wyłącz (razem z modami,
+    które go potrzebują), własne jary z magazynu, `concerns` (inna kategoria, spoza listy, własny jar, brak moda
+    trybu, Draftout odmawia), `catalogue` dla strony. Fabric API i to, czego nie znosi jar Ranked, nigdy nie
+    wchodzi.
+  - `srl-stats`: świat ze wspólnych `saves/` liczy się dla trybu, który go stworzył.
+  - `srl-app`: strona Mody (zakładki trybów, przełączniki, „Dodaj własny .jar…”, „Przywróć zestaw”), linia pod
+    Graj „Nie liczy się w RSG: …”, Graj czeka, gdy inny tryb tej instancji działa; import raz do wspólnej
+    instancji.
+  - Sprawdzone: `cargo fmt`, clippy z `-D warnings`, testy workspace (wszystkie przechodzą). Na kopii starego
+    katalogu testowego (osobne ranked, rsg, fsg, ssg): migracja, potem `--launch rsg` i `--launch ssg` w Xvfb, obie
+    gry do ekranu tytułowego; SSG dostało SetSpawn bez WorldPreview i LazyStronghold, seed SSG w Atum wrócił, RSG
+    ma pusty. Prawdziwe okno w Xvfb: klik w przełącznik zapisuje wybór, drugi klik go cofa, ostrzeżenie widać na
+    stronie Mody i pod Graj. Zrzuty w `~/.cache/srl-e2e/mods/`.
+  - Nie sprawdzone: Windows (kopie jarów zamiast twardych linków przy każdej zmianie trybu), prawdziwy jar
+    dodany z okna wyboru pliku (test podawał ścieżkę zmienną `SRL_MODS_PICK`), mecz Ranked na wspólnej instancji.
+
+- **Import ustawień, ekran** (`srl-app`, gałąź `import-settings`):
+  - Jeden ekran: lista znalezionych instancji (najlepsza zaznaczona), „Wskaż folder…” (folder instancji albo gry),
+    cztery pola (ustawienia gry, modów i paczki włączone, światy nie) i jeden przycisk Importuj. Instancja z innej
+    wersji niż 1.16.1 daje tylko klawisze, czułość i FOV i ekran to mówi. Na dole jedna linia: Toolscreen i
+    Ninjabrain Bot już używają ustawień gracza.
+  - Pierwszy start: po wpisaniu nicku ekran importu pojawia się raz; Pomiń albo Importuj zapisuje
+    `import_offered` i więcej się nie pokazuje. Potem: Ustawienia, Ogólne, „Importuj…”.
+  - Import omija tryb, którego gra właśnie działa albo się instaluje, i mówi o tym. Draftout dalej dostaje
+    `onboardAccessibility:false`. Wynik mówi, gdzie są kopie zastąpionych plików.
+  - Do testów: `SRL_IMPORT_HOME` (sztuczny katalog domowy do wyszukiwania) i `SRL_IMPORT_PICK` (folder zamiast
+    okna wyboru); ekrany `import`, `import-scanning|none|other|importing|done` w `SRL_FAKE`.
+  - **Sprawdzenie:** test od zera w Xvfb ze sztucznym MultiMC na Pulpicie i Prismem: pierwszy start, nick, ekran
+    importu, Importuj ze światami; wszystkie tryby 1.16.1 mają klawisze, czułość, FOV, paczkę, `config/mcsr`,
+    SpeedRunIGT i świat, Draftout tylko 35 ustawień plus `onboardAccessibility:false`, link symboliczny do `~/.ssh`
+    pominięty. Drugi start bez oferty, Ustawienia, Importuj…, Wskaż folder, drugi import: nowe ustawienia, a stare
+    `options.txt` i `seedqueue.json` w `import-backup-<czas>/`; źródło bez zmian. fmt, clippy i 302 testy zielone.
+
+- **Import ustawień, rdzeń** (`srl-import`, gałąź `import-settings`):
+  - Wykrywanie: MultiMC (przenośny, więc szukany w katalogu domowym, na Pulpicie, w Dokumentach, Pobranych do dwóch
+    poziomów w dół i w `C:\MultiMC*`; `InstanceDir` z `multimc.cfg`), Prism i PolyMC (`%APPDATA%`,
+    `~/.local/share`, Flatpak), MCSR Launcher (z jego kodu: instalator kładzie go w
+    `%LOCALAPPDATA%\MCSRLauncher`, instancje są w `launcher\instances\<id>\instance.json`, gra w `.minecraft`),
+    oficjalny `.minecraft` i profile z własnym katalogiem gry z `launcher_profiles.json`. Nazwa z `instance.cfg`,
+    wersja z `mmc-pack.json`, a bez nich z numeru wersji danych w `options.txt` (2567 to 1.16.1).
+  - Ustawienia modów w 1.16.1 (sprawdzone w kodzie modów i w naszych instancjach): mody na SpeedrunAPI trzymają je
+    w `config/mcsr/<mod>.json` (StandardSettings, Atum, SeedQueue, Sodium, WorldPreview, SleepBackground), plik
+    `<mod>.global` tam oznacza wspólny `~/.config/mcsr/config/`. SpeedRunIGT ma `speedrunigt/options.txt` w katalogu
+    gry (albo wspólne, gdy jest `.useglobaloption`). Starsze wersje: `config/standardoptions.txt`,
+    `config/atum/atum.properties`, `config/sodium-options.json`. Import kopiuje cały `config/` i te dwa pliki
+    SpeedRunIGT.
+  - Klawisze wspólne dla 1.16.1 i 26.3: 33 klawisze vanilla, porównane na plikach `options.txt`, które obie wersje
+    zapisały w naszych testach. Czułość i FOV mają w obu tę samą skalę.
+  - Bezpieczeństwo: źródło jest tylko czytane, linki symboliczne są pomijane, pliki ponad limit (8 MB tekst, 512 MB
+    paczka albo plik świata) też. To, co import nadpisuje, trafia najpierw do `import-backup-<czas>/` w tej instancji.
+    Istniejące światy zostają.
+
+- **Rdzeń M3 scalony do `launcher`** (workflow `launcher-m3-core`: 3 strumienie, każdy zbudowany, sprawdzony
+  przez 2 recenzentów i poprawiony; gałąź `m3-core` 402e0c3).
+  - `srl-stats` (m3-stats 73ae9b6): 11 uwag z przeglądu poprawionych. Run z cheatami albo z otwartym LAN-em nie
+    zostaje PB; runy z innych launcherów o tej samej nazwie świata nie są doliczane do trybu; wynik w trwającym
+    Weekly Race bierze się z tablicy wyścigu.
+  - `srl-practice` (m3-practice e692904): 13 uwag poprawionych. Aktualizacja i reset nie kasują starego świata,
+    zanim nowy się rozpakuje; Portal Practice nie obiecuje importu, którego wersja 1.3.1 nie ma.
+  - `srl-auth` (m3-auth f23ab69): 9 uwag poprawionych. Błąd magazynu haseł przy logowaniu nie generuje po cichu
+    nowego klucza (to wylogowałoby inne konta).
+  - Konflikty przy scaleniu tylko tam, gdzie obie strony dopisały linie: lista crate'ów, `Cargo.lock` (wersje nowych
+    zależności takie same jak w `m3-core`), `THIRD_PARTY_NOTICES.md`, `Paths::tools()` i `Paths::practice_instance()`.
+  - **Moje sprawdzenie:** `cargo fmt --check`, `clippy -D warnings` i `cargo test --workspace` zielone po scaleniu.
+    Testy na żywo: API Ranked (profil, 20 meczów, Weekly Race #109, 1012 graczy online) i Draftout odpowiadają.
+    Wszystkie 13 map zainstalowało się od zera w 13 s z linków autorów, hashe zgodne, każdy świat ma DataVersion
+    2567 (1.16.1).
+
+- **Przegląd kodu M2 i poprawki** (wszystkie 17 uwag okazały się prawdziwe, wszystkie poprawione):
+  - **5dbe9f1, narzędzia:**
+    - waywall w trybie 1.16.1 pobiera teraz `legal-dlls.csv` także na Linuksie. Wcześniej każda gra z waywallem
+      ostrzegała, że GLFW nie jest legalne, nawet gdy było. Bez listy notatka mówi, że GLFW nie dało się
+      sprawdzić.
+    - Konfiguracja waywalla, która trzyma ścieżkę jara Ninjabrain Bota w zmiennej (np.
+      arjuncgore/waywall_generic_config), jest rozpoznawana. Wcześniej launcher uruchamiał drugi Ninjabrain obok
+      waywalla, a ten z konfiguracji się nie pojawiał.
+    - Ninjabrain Bot uruchomiony przez launcher ma plik `logs/tools/ninjabrain-bot.pid`. Gdy launcher się zamknie
+      albo padnie w trakcie gry, przy następnym starcie przejmuje Ninjabrain Bota i zamyka go po wyjściu z gry.
+      Wcześniej zostawał otwarty na zawsze i uchodził za uruchomionego przez gracza.
+    - Dwie gry naraz: wyjście z pierwszej nie zamyka Ninjabrain Bota, którego używa druga.
+    - `legal-dlls.csv`, który się nie parsuje, nie psuje instalacji Toolscreen: launcher bierze kopię z dysku.
+    - Windows: gdy `LoadLibraryW` w grze trwa dłużej niż 10 s, launcher nie zwalnia pamięci, którą wątek gry może
+      jeszcze czytać.
+  - **d5a74aa, ekrany:**
+    - Autorzy i licencje pokazują tekst dla gracza (`assets/credits.md`, `credits.pl.md`: grafiki, fonty z autorami,
+      ikony), a nie notatki deweloperskie. Kolumna Kod ma Pandora Launcher i EasyInjectBundled. Paczka na Windowsa
+      ma też licencję ikon Lucide.
+    - Nauka: dół listy przygasa, gdy poniżej są ukryte poradniki („Mierzenie oczu” ma 9). Dwie serie otwierają
+      playlisty, a MCSR Ranked Explanations ma 8 części, nie 6.
+    - Narzędzia: długa ścieżka waywalla jest skracana w środku. Błąd instalacji ma jedną linię szczegółów, więc
+      notatka na dole nie dotyka krawędzi okna. Ekran sprawdza narzędzia ponownie przy każdym otwarciu, więc
+      waywall zainstalowany przy otwartym launcherze od razu się pokazuje.
+    - Statystyki: karty źródeł mają pełną szerokość. Ustawienia: podpowiedź nicku wygląda jak inne podpowiedzi,
+      a opis dostępności mówi, że Extra Options działa w trybach 1.16.1.
+    - Polski: naturalniejsze zdania i odmiana nazw narzędzi („z Ninjabrain Botem”, „Toolscreena”).
+  - **358c6e5:** zrzuty zmienionych ekranów po angielsku i po polsku, Narzędzia z waywallem na długiej ścieżce
+    i RSG z Ninjabrain Botem z tego testu (`launcher/shots/m2/e2e-11-rsg-ninjabrain-fix.jpg`).
+  - **Sprawdzone** (Linux, Xvfb, wszystko przez `srl-cpu`):
+    - `cargo fmt --check`, `clippy -D warnings` (Linux i `x86_64-pc-windows-gnu`), `cargo test --workspace`.
+    - RSG od pustego `SRL_HOME` w oknie launchera: instalacja 12,5 s, ekran tytułowy 10,3 s po starcie procesu,
+      Ninjabrain Bot otwarty obok gry.
+    - Launcher zabity (`kill -9`) w trakcie gry: gra i Ninjabrain Bot działają dalej. Po ponownym starcie log
+      mówi „Ninjabrain Bot from an earlier session: Kept”. Wyjście z gry: Ninjabrain Bot zamknięty przez okno
+      po 1,6 s, plik pid usunięty. Ponowne Graj działa jak zwykle.
+    - `--launch rsg --tools waywall` (waywall na niby w PATH, bez sesji Wayland): `meta/tools/legal-dlls.csv`
+      pobrany na Linuksie, gra startuje bez waywalla z notatką.
+    - Narzędzia: zaślepka waywall wrzucona do PATH przy otwartym launcherze, potem Statystyki i z powrotem
+      Narzędzia: karta zmienia się z „nie zainstalowane” na „zainstalowane”.
+    - 0 klatek w spoczynku na learn, learn-eyes, tools, tools-failed, settings, settings-credits i stats. Wszystkie
+      60 linków z Nauki odpowiada, playlisty też przez oEmbed.
+  - **Moje sprawdzenie 358c6e5** (główny wątek, Xvfb, polski interfejs): `cargo test --workspace` zielone. RSG od
+    pustego katalogu w oknie launchera: instalacja 12,0 s, ekran tytułowy 10,3 s po starcie procesu, Ninjabrain Bot
+    1.5.2 otwarty obok gry. Zatrzymaj z launchera: gra wychodzi z kodem 0 po 0,5 s, w logu jest `Stopping!`,
+    Ninjabrain Bot zamknięty, żadna Java nie zostaje. Ekrany Narzędzia, Nauka i Ustawienia wyglądają dobrze.
+
+- **CI:** run 40319059891 jest zielony (Linux, Windows, publikacja), z commita 4080e70.
+  - Windows: instalacja RSG bez okna od pustego katalogu w 9,3 s. Ninjabrain Bot 1.5.2 i Toolscreen 1.4.7 (x64)
+    zainstalowane bez okna, trzy pliki sprawdzone `sha256sum`/`sha512sum` z hashami przypiętymi w `srl-tools`.
+  - Paczka `speedrunning-launcher-windows.zip` (11 MB) jest w `launcher-latest`. Stara paczka
+    `speedrunluncher-windows.zip` jest z tego wydania usunięta.
+- **e2a0474:** CI na Windowsie instaluje bez okna Ninjabrain Bota i Toolscreen do pustego katalogu. Każdy plik,
+  który launcher zgłosi, CI liczy jeszcze raz (`sha256sum`, `sha512sum`), a hash musi być przypięty w `srl-tools`.
+- **12eb960:** zrzuty M2 od nowa, już z nową nazwą: wszystkie nowe ekrany po angielsku i po polsku
+  (`launcher/shots/m2/en`, `pl`) i zrzuty z testu E2E (`launcher/shots/m2/e2e-*.jpg`). `idle-pages.sh` szuka
+  pliku i okna pod nową nazwą. Każdy nowy ekran w spoczynku rysuje 0 klatek, a 60 linków z Nauki odpowiada.
+- **Test od pustego `SRL_HOME`** (Linux, Xvfb, okno launchera, wszystko przez `srl-cpu`):
+  - RSG: instalacja 14,15 s razem z Ninjabrain Botem, ekran tytułowy 13,3 s po starcie procesu. Ninjabrain Bot
+    1.5.2 otwiera się obok gry, a ekran Gry pokazuje „Narzędzia: Ninjabrain Bot”.
+  - Quit Game w grze: launcher zamyka Ninjabrain Bota przez jego okno, gra kończy z kodem 0, RSG jest Gotowe.
+  - Ninjabrain Bot wyłączony dla RSG na ekranie Narzędzia (zapisane w `settings.json`): startuje sama gra (0,06 s od
+    Graj do procesu), ekran Gry pokazuje „brak”.
+  - Zatrzymaj grę z launchera: gra zamknięta w 0,2 s przez jej okno, kod 0, bez zabijania, w logu gry `Stopping!`.
+  - Dodatki Draftout włączone, pamięć Draftout 4 GB: instalacja 16,37 s, w `mods/` 8 jarów, w tym
+    `NoChatRestrictions-Fabric-MC26.3-v1.3.0.jar` i `no-telemetry-1.10.0.jar`, gra z `-Xmx4096m`. Zatrzymanie:
+    0,7 s, przez okno, w logu `Stopping!`.
+  - Aktualizacja na ekranie Narzędzia: podłożony Ninjabrain Bot 1.5.1 pokazuje „jest aktualizacja”, Aktualizuj
+    pobiera 1.5.2 w 0,8 s z poprawnym sha256 i usuwa 1.5.1.
+- **1151e3e:** Narzędzia i Graj na prawdziwym `srl-tools`.
+  - Ekran Narzędzia: stan z plików na dysku, prawdziwe instalacje i aktualizacje, przełączniki trybów zapisane
+    w `settings.json`. Przekreślony tryb mówi dlaczego (Draftout zabrania Ninjabrain Bota, Toolscreen nie jest
+    jeszcze gotowy dla Draftout). Dla waywall ekran mówi, że instaluje się go menedżerem pakietów.
+  - Graj: instaluje narzędzia trybu (`Stage::Tools`), startuje grę przez hook narzędzi, uruchamia Ninjabrain Bota
+    obok i zamyka go, gdy gra się kończy. Ekran Gry pokazuje, z jakimi narzędziami gra wystartowała, i notatki
+    o tych, które nie ruszyły.
+  - Mody opcjonalne z Ustawień trafiają do `srl-mods`, pamięć trybu do `srl-game`.
+  - CLI: `--tools`, `--install-tool <narzędzie>` (z hashami plików) i `--launch <tryb> --tools <lista|none>`.
+    `--launch` wypisuje, jak gra została zatrzymana.
+- **edce00b, a5b631b, e7d4856:** połączone strumienie M2:
+  - `tools-m2` (af42ba3, a4c50ab, 32bec35): `srl-tools`, hashe sha256 i katalog `tools/` w `srl-core`, zatrzymanie
+    gry z zapisem świata w `srl-game`;
+  - `screens-a-m2` (01f8d1d, 9f64834, 45ecbec, ee70675): Ustawienia, Narzędzia, przetłumaczone błędy startu gry;
+  - `screens-b-m2` (0ea0ab7, 070dc81, 95cda9f): Nauka i Statystyki.
+- **bae2d33, 6f27470:** nowa nazwa Speedrunning Launcher i README projektu z nową ikoną.
+- **Własny test M1 (poza workflow):** od pustego katalogu, w polskim UI. Wpisanie nicku, potem RSG i Pobierz:
+  489 MB w 30 s do menu gry, 33 mody Fabric. Wyjście z gry wraca do „gotowy do gry”, a ponowne Graj uruchamia
+  grę w 0,10 s.
+- **05fe514, ef3fc34, 7e4df5e, ba37d25, 8750872, 56c04fb:** poprawki po przeglądzie kodu M1.
+  - Rozwiązywanie zależności modów zawsze się kończy. Brak zależności drugiego poziomu zapętlał je bez końca.
+  - Tryb, który traci własny mod (np. FSG bez FSG Mod), daje błąd zamiast instalować się bez niego. Ranked zostaje
+    przy swoim jarze, bo ma Lithium w środku.
+  - Jary z `mods/`, których launcher nie ma u siebie, nie są kasowane. Trafiają do
+    `instances/<tryb>/mods-removed/<data>/`. Na Windowsie jary są kopiowane, nie linkowane.
+  - Listy (Mojang, Fabric, mcsr-meta): gdy jest kopia na dysku, jedna próba z limitem 4 s. Przy sieci, która nie
+    odpowiada, instalacja RSG trwa 8,1 s, a w przeglądzie trwała 97 s. Zła odpowiedź też wraca do kopii.
+  - Fabric: gdy wybranej wersji loadera nie da się pobrać, launcher bierze najnowszą zainstalowaną i ostrzega.
+  - Natywne biblioteki są sprawdzane plik po pliku, a brakujące wracają przy instalacji.
+  - Każda wersja Javy ma osobny katalog. Instalator Javy odrzuca pliki pod linkiem.
+  - Błąd Graj mówi, co się stało (brak sieci, instalacja albo start gry), i podaje ścieżkę logu z ostatnimi
+    liniami gry.
+  - Osobny ekran, gdy katalogu danych nie da się zapisać.
+  - Nick w Ustawieniach zapisuje się, gdy edycja się kończy: Enter, kliknięcie obok albo wyjście z Ustawień.
+    Pusty albo błędny nick wraca do zapisanego.
+  - Pamięć ma minimum dla trybu. Ekran Gry pokazuje nick i pamięć tej gry, nie bieżące ustawienia.
+  - Polska odmiana liczebników, stan „czekam”, gdy instaluje się inny tryb, i opisy trybów bez obietnic, których
+    launcher nie spełnia.
+- **Test po poprawkach** (Linux, Xvfb, okno launchera):
+  - RSG od pustego `SRL_HOME`: proces gry 14,4 s po kliknięciu, ekran tytułowy 19,6 s po starcie procesu, Fabric
+    ładuje 33 mody. Wyjście z gry wraca do Gotowe.
+  - Bez sieci: SSG pokazuje brak internetu i Ponów. RSG z dorzuconym jarem dla 26.3 pokazuje powód od Fabrica,
+    po polsku też.
+  - Bez okna: obcy jar przeniesiony do `mods-removed` z tym samym sha512; usunięty `liblwjgl.so` wrócił; Fabric
+    0.20.2 z listy bez sieci daje 0.20.1 z ostrzeżeniem; Ranked ma 23 jary z MCSR Ranked 6.0.4 i Lithium, FSG ma
+    23 jary z FSG Mod i Atum.
+  - `cargo test`, fmt i clippy (Linux i cel Windows) przechodzą.
+- **CI:** run 40288172742 jest zielony (Linux, Windows, publikacja). Na Windowsie instalacja RSG bez okna od
+  pustego katalogu: 7,8 s, 22 mody, 518 MB, Java w `java\java-runtime-delta-21.0.7`. Nowa paczka
+  `speedrunluncher-windows.zip` (10 MB) jest w `launcher-latest`.
+- **93ea21c, 2a78c86, c961d8b:** połączone strumienie `srl-game`, `srl-mods` i `srl-app`.
+- **88f52d6, 0b16b2b, dfdf2fe:** poprawki na styku crate'ów:
+  - postęp mówi, czy liczy bajty, czy pliki;
+  - znaczniki ekranu tytułowego w logu gry są wspólne dla launchera i testowego CLI;
+  - zestaw Draftout jest przycięty do listy modu Draftout.
+- **bd2ef24:** prawdziwy backend i tryb bez okna.
+  - Graj: listy modów, instalacja gry, instalacja modów, start na koncie offline, potem Gra i powrót do Gotowe.
+  - Gra, która padnie przy starcie, daje błąd z kodem wyjścia i ścieżką logu. Gdy Fabric zatrzyma start, launcher
+    zamyka grę i pokazuje powód.
+  - Ustawienia (nick, język, pamięć, ostatni tryb) są w `settings.json`.
+- **240ab86, 93eaf5d, 38ba6d6, a1c20ee, 492650f:** CI na Linuksie i Windowsie z paczką `launcher-latest`, opis
+  architektury w `launcher/README.md` i zrzuty `launcher/shots/m1/e2e-*.jpg`.
+- **Test od pustego `SRL_HOME`** (Linux, Xvfb, okno launchera):
+  - RSG: od kliknięcia Pobierz do procesu gry 9,8 s (pobieranie 489 MB). Ekran tytułowy 12,9 s później. Fabric
+    ładuje 33 mody, w tym 22 jary z zestawu. Wyjście z gry wraca do Gotowe.
+  - Ponowne Graj, wszystko już pobrane: 130–131 ms od kliknięcia do procesu gry (trzy pomiary), okno gry po 5,4–5,8 s.
+  - Ranked: 48 modów (23 jary, mcsrranked 6.0.4). Gra staje na ekranie zgody MCSR Ranked.
+  - FSG: 34 mody, ekran tytułowy. SSG: 33 mody, ekran tytułowy.
+  - Draftout (26.3, Java 25): 67 modów (6 jarów), ekran tytułowy.
+  - Wcześniejszy przebieg z dopisaną Planifolią w Draftout: błąd z powodem od Fabrica po około 2,5 s, a Ponów
+    działa. Bez sieci tryby są Gotowe od razu i gra startuje.
+- **CI:** run 40278499668 jest zielony.
+  - Linux: fmt, clippy, testy i build release.
+  - Windows: fmt, testy, build release i instalacja RSG bez okna od pustego katalogu: 8,4 s, 22 mody, 518 MB.
+  - Paczka `speedrunluncher-windows.zip` (10 MB) jest w prerelease `launcher-latest`.
+  - Pierwszy run padł na dwóch testach `srl-game`, które na Windowsie budowały linuksowe ścieżki z `\`. Poprawione
+    w a1c20ee.
+- **Gałąź `launcher`:** szkielet prawdziwej aplikacji (`launcher/`) i start workflow dla M1.
+- **747c3a5:** poprawka migania tła w GPUI. Miganie miało dwie przyczyny:
+  - przejścia między stronami rozjaśniały tło z 10 do 18,5 jasności;
+  - przy pierwszym wyborze trybu przez 1–2 klatki był widoczny pusty kadr.
+
+  Sprawdzone na nagraniach 60 fps. Zrzuty ekranu są identyczne co do piksela, a zużycie pamięci się nie zmieniło.
+- **36c2a9d, 24ce6a8:** dwa przebiegi na Windowsie.
+  - GPUI: około 320 ms ciepłego startu i 16–19 % CPU przy przewijaniu.
+  - Tauri: 385 ms i 45–50 %.
+  - Electron: około 1 s i 51–54 %.
+  - Pomiar wyświetlonych klatek przez PresentMon nie działa na trzech monitorach.
+- **a812897:** nowe rendery bastionu, RSG (sama wyspa) i SSG (wrak na plaży).
+
+### 2026-10-25
+
+- **b560e29:** scene v3, czyli shell, Start, Tryby, Trening i własne rendery.
+- **8944a04:** polska wersja z przełącznikiem.
+- **0896734:** klikalny prototyp wszystkich ekranów.
+
+### 2026-10-24
+
+- **04cf643, 90ebcae:** raporty z badań, bake-off i pierwsze wyniki z Linuksa.

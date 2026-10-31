@@ -1,0 +1,82 @@
+{
+  "_comment": "Polish overlay for demo.json: objects merge by key, arrays by index, null keeps the base value.",
+  "runs": {
+    "rsg": {
+      "pb_date": "24 paź"
+    },
+    "fsg": {
+      "pb_date": "22 paź"
+    }
+  },
+  "layers": {
+    "run": {
+      "mods": [
+        null,
+        null,
+        null,
+        null,
+        null,
+        [
+          null,
+          "najnowsza"
+        ]
+      ]
+    },
+    "ranked": {
+      "mods": [
+        [
+          null,
+          "aktualizuje się sam"
+        ]
+      ]
+    },
+    "fsg": {
+      "mods": [
+        [
+          null,
+          "najnowsza"
+        ]
+      ]
+    },
+    "perf26": {
+      "mods": [
+        [
+          null,
+          "najnowsza"
+        ],
+        [
+          null,
+          "najnowsza"
+        ],
+        [
+          null,
+          "najnowsza"
+        ],
+        [
+          null,
+          "najnowsza"
+        ],
+        [
+          null,
+          "najnowsza"
+        ],
+        [
+          null,
+          "najnowsza"
+        ],
+        [
+          null,
+          "najnowsza"
+        ]
+      ]
+    },
+    "draftout": {
+      "mods": [
+        [
+          null,
+          "najnowsza"
+        ]
+      ]
+    }
+  }
+}

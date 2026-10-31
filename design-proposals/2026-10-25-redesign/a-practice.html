@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="pl"><head><meta charset="utf-8">
+<link rel="stylesheet" href="fonts.css"><link rel="stylesheet" href="a-shell.css">
+<style>
+  :root { --bg: #0A0810; --text: #F1EEF8; --muted: rgba(241,238,248,.62); --faint: rgba(241,238,248,.38); --line: rgba(241,238,248,.08); --accent: #8B5CF6; --accent-2: #B79CFF; --ok: #4ADE80; }
+  body { background: var(--bg); color: var(--text); font: 400 14px/1.45 'Inter', sans-serif; position: relative; }
+  .glow { position: absolute; inset: 0 0 auto 0; height: 360px; background: url('art/masters/the-end.jpg') center 40% / cover; opacity: .22; filter: blur(30px) saturate(1.2); }
+  .glow::after { content: ''; position: absolute; inset: 0; background: linear-gradient(0deg, var(--bg), rgba(10,8,16,0)); }
+  main { position: absolute; left: 64px; right: 48px; top: 104px; z-index: 1; }
+  .head { display: flex; align-items: flex-end; justify-content: space-between; }
+  h1 { font: 800 56px/.9 'Archivo'; font-stretch: 112%; letter-spacing: -.025em; }
+  .head p { color: var(--muted); max-width: 420px; text-align: right; font-size: 14px; }
+  .cats { margin-top: 30px; display: grid; grid-template-columns: 1.5fr 1fr 1fr 1fr; grid-template-rows: 128px 128px; gap: 12px; }
+  .cat.tools i { background: #17131F; filter: none; box-shadow: inset 0 0 0 1px var(--line); }
+  .cat { position: relative; overflow: hidden; }
+  .cat i { position: absolute; inset: 0; background: #1a1424 var(--img) center / cover; filter: saturate(.8) brightness(.66); transition: none; }
+  .cat.on i { filter: none; }
+  .cat.on { outline: 2px solid var(--text); outline-offset: 3px; }
+  .cat::after { content: ''; position: absolute; inset: 0; background: linear-gradient(0deg, rgba(10,8,16,.9), rgba(10,8,16,0) 65%); }
+  .cat > div { position: absolute; left: 16px; bottom: 14px; z-index: 1; }
+  .cat .t { font: 700 20px/1 'Archivo'; font-stretch: 108%; }
+  .cat .s { margin-top: 6px; font: 500 11px/1 'Plex Mono'; color: var(--muted); }
+  .cat.big { grid-row: span 2; } .cat.big .t { font-size: 30px; }
+  .list { margin-top: 30px; }
+  .lh { display: flex; justify-content: space-between; font: 600 11px/1 'Archivo'; font-stretch: 110%; letter-spacing: .2em; color: var(--faint); padding-bottom: 12px; }
+  .r { display: flex; align-items: center; height: 58px; border-top: 1px solid var(--line); gap: 20px; }
+  .r .th { width: 84px; height: 46px; background: var(--img) center / cover; flex: none; }
+  .r .nm { width: 250px; } .r .nm b { display: block; font: 600 15px/1.2 'Inter'; } .r .nm span { font-size: 12px; color: var(--muted); }
+  .r .d { flex: 1; color: var(--muted); font-size: 13px; }
+  .r .v { width: 130px; font: 500 12px/1 'Plex Mono'; color: var(--faint); text-align: right; }
+  .r .a { width: 150px; white-space: nowrap; text-align: right; font: 700 12px/1 'Archivo'; font-stretch: 110%; letter-spacing: .16em; }
+  .r .a.ok { color: var(--ok); } .r .a.go { color: var(--accent-2); }
+</style></head>
+<body>
+  <div class="glow"></div>
+  <header class="top"><div class="brand"><svg viewBox="0 0 24 24" fill="currentColor" shape-rendering="crispEdges"><rect x="3" y="1.5" width="18" height="3"/><rect x="0" y="4.5" width="6" height="3"/><rect x="18" y="4.5" width="6" height="3"/><rect x="0" y="7.5" width="6" height="3"/><rect x="3" y="10.5" width="18" height="3"/><rect x="18" y="13.5" width="6" height="3"/><rect x="0" y="16.5" width="6" height="3"/><rect x="18" y="16.5" width="6" height="3"/><rect x="3" y="19.5" width="18" height="3"/></svg>SPEEDRUNLUNCHER</div><nav><a>GRAJ</a><a>TRYBY</a><a class="on">TRENING</a><a>NAUKA</a><a>NARZĘDZIA</a><a>STATYSTYKI</a></nav>
+    <div class="me"><svg
+  class="gear"
+  xmlns="http://www.w3.org/2000/svg"
+  width="24"
+  height="24"
+  viewBox="0 0 24 24"
+  fill="none"
+  stroke="currentColor"
+  stroke-width="2"
+  stroke-linecap="round"
+  stroke-linejoin="round"
+>
+  <path d="M9.671 4.136a2.34 2.34 0 0 1 4.659 0 2.34 2.34 0 0 0 3.319 1.915 2.34 2.34 0 0 1 2.33 4.033 2.34 2.34 0 0 0 0 3.831 2.34 2.34 0 0 1-2.33 4.033 2.34 2.34 0 0 0-3.319 1.915 2.34 2.34 0 0 1-4.659 0 2.34 2.34 0 0 0-3.32-1.915 2.34 2.34 0 0 1-2.33-4.033 2.34 2.34 0 0 0 0-3.831A2.34 2.34 0 0 1 6.35 6.051a2.34 2.34 0 0 0 3.319-1.915" />
+  <circle cx="12" cy="12" r="3" />
+</svg><div><div class="n">VioletRunner</div><div class="e"><i></i>1642 · Diament</div></div><img src="avatars/313.png"></div></header>
+  <main>
+    <div class="head"><h1>Trening</h1><p>Mapy instalują się w osobnej instancji treningowej, nigdy w tej do runów.</p></div>
+    <div class="cats">
+      <div class="cat big" style="--img:url('art/masters/nether-portal.jpg')"><i></i><div><div class="t">Wszystko w jednym</div><div class="s">The MCSR Practice Map · każdy split w jednym świecie</div></div></div>
+      <div class="cat" style="--img:url('art/masters/overworld.jpg')"><i></i><div><div class="t">Overworld</div><div class="s">5 map</div></div></div>
+      <div class="cat" style="--img:url('art/masters/bastion.jpg')"><i></i><div><div class="t">Bastion</div><div class="s">1 mapa</div></div></div>
+      <div class="cat" style="--img:url('art/masters/fortress.jpg')"><i></i><div><div class="t">Blaze</div><div class="s">2 mapy</div></div></div>
+      <div class="cat" style="--img:url('art/masters/stronghold.jpg')"><i></i><div><div class="t">Stronghold</div><div class="s">1 mapa</div></div></div>
+      <div class="cat on" style="--img:url('art/masters/the-end.jpg')"><i></i><div><div class="t">End</div><div class="s">3 mapy</div></div></div>
+      <div class="cat tools"><i></i><div><div class="t">Narzędzia</div><div class="s">MiniPracticeKit · peepoPractice · StrongholdTrainer</div></div></div>
+    </div>
+    <div class="list">
+      <div class="lh"><span>END · 3 MAPY</span><span>NAJPOPULARNIEJSZE</span></div>
+      <div class="r"><div class="th" style="--img:url('art/masters/the-end.jpg')"></div><div class="nm"><b>End Practice</b><span>Ryguy2k4</span></div><div class="d">Walka w Endzie: one-cycle, zero-cycle i ustawienia na wieżach.</div><div class="v">3.4.0 · 374k</div><div class="a ok">ZAINSTALOWANE</div></div>
+      <div class="r"><div class="th" style="--img:url('art/masters/the-end.jpg'); background-position: 15% 60%"></div><div class="nm"><b>Zero Practice</b><span>Mescht</span></div><div class="d">Ustawienia do zero-cycle na każdym filarze.</div><div class="v">1.2.2 · 117k</div><div class="a go">ZAINSTALUJ</div></div>
+      <div class="r"><div class="th" style="--img:url('art/masters/the-end.jpg'); background-position: 85% 30%"></div><div class="nm"><b>Zero Sorting Practice</b><span>Semperzz</span></div><div class="d">Układanie ekwipunku przed zero-cycle.</div><div class="v">1.5</div><div class="a go">ZAINSTALUJ</div></div>
+    </div>
+  </main>
+</body></html>

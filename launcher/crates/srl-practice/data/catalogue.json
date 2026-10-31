@@ -1,0 +1,574 @@
+{
+  "_comment": "What the launcher can install for practice. Ids match launcher/assets/practice.json (the cards the UI shows, with copy keys map.<id>). Every download is the author's own GitHub release asset, never a mirror (research/04 section 3), pinned by sha512 and size. tools/refresh_catalogue.py recomputes sha512, size, worlds and data_version and reports newer releases; moving to a new version is a reviewed edit. Entries with link_only instead of download open the author's page.",
+  "schema": 1,
+  "checked": "2026-10-26",
+  "maps": [
+    {
+      "id": "the-mcsr-practice-map-dibedy",
+      "name": "The MCSR Practice Map",
+      "authors": "Dibedy",
+      "category": "all-in-one",
+      "minecraft": "1.16.1",
+      "credit": "By Dibedy (hub, overworld practice, queue games). Bundles Mescht's portal, zero, search-crafting and fortress practice and LlamaPag's bastion practice.",
+      "source_page": "https://github.com/Dibedy/The-MCSR-Practice-Map",
+      "support": [
+        {
+          "label": "Ko-fi",
+          "url": "https://ko-fi.com/dibedy"
+        }
+      ],
+      "licence": {
+        "spdx": null,
+        "redistribution": "link-only",
+        "note": "No licence in the repo. A compilation: mirroring would need Dibedy, Mescht and LlamaPag. Downloaded from Dibedy's release only."
+      },
+      "requirements": [
+        {
+          "id": "carpet",
+          "kind": "mod",
+          "optional": true,
+          "provided": false,
+          "note": "The bundled bastion practice (LBP3) uses Carpet for saturation resetting and to speed up the wait before a run; without it it says \"Saturation resetting requires Carpet Mod\" and the rest works. Carpet is not in mcsr-meta, so the launcher does not install it."
+        }
+      ],
+      "carry_over": [],
+      "download": {
+        "version": "2.0.0",
+        "tag": "latest",
+        "released": "2026-01-12",
+        "repo": "Dibedy/The-MCSR-Practice-Map",
+        "asset_pattern": "^MCSR\\.Practice\\.v.*\\.zip$",
+        "url": "https://github.com/Dibedy/The-MCSR-Practice-Map/releases/download/latest/MCSR.Practice.v2.0.0.zip",
+        "sha512": "72b4bdecfa6b78d639bdbd9f318b8c799e569ce1700c979f7bba572ae20729327ed8f90171c5147b606f21b52a001daed12960516887c7b5c6c1cbaa8a477a16",
+        "size": 92483939,
+        "worlds": [
+          ""
+        ],
+        "data_version": 2567
+      }
+    },
+    {
+      "id": "llama-s-bastion-practice-llamapag",
+      "name": "Llama's Bastion Practice",
+      "authors": "LlamaPag",
+      "category": "bastion",
+      "minecraft": "1.16.1",
+      "credit": "By LlamaPag (Llama).",
+      "source_page": "https://github.com/LlamaPag/bastion",
+      "video": "https://youtu.be/jlA-jW7VGqw",
+      "support": [],
+      "licence": {
+        "spdx": null,
+        "redistribution": "link-only",
+        "note": "No licence in the repo. Downloaded from the author's release only."
+      },
+      "requirements": [
+        {
+          "id": "lbp-extensions",
+          "kind": "datapack",
+          "optional": true,
+          "provided": false,
+          "note": "LBP Extensions by awesome-03 adds save states and more. An optional add-on; the launcher does not install it."
+        },
+        {
+          "id": "carpet",
+          "kind": "mod",
+          "optional": true,
+          "provided": false,
+          "note": "The map uses Carpet for saturation resetting and to speed up the wait before a run; without it it says \"Saturation resetting requires Carpet Mod\" and the rest works. Carpet is not in mcsr-meta, so the launcher does not install it."
+        }
+      ],
+      "carry_over": [],
+      "download": {
+        "version": "3.15.0",
+        "tag": "3.15.0",
+        "released": "2026-06-18",
+        "repo": "LlamaPag/bastion",
+        "asset_pattern": "^LBP[._ ].*\\.zip$",
+        "url": "https://github.com/LlamaPag/bastion/releases/download/3.15.0/LBP.3.15.0.zip",
+        "sha512": "88a676dddc373cbca928a6f442f86909fe9c3f4027d9fc04247beb7721c3aa8bee7e9508e30e53ee45527aed85a109532ec95995daf9202373a499142ebe27ea",
+        "size": 26327558,
+        "worlds": [
+          "LBP 3.15.0"
+        ],
+        "data_version": 2567
+      }
+    },
+    {
+      "id": "end-practice-ryguy2k4",
+      "name": "End Practice",
+      "authors": "Ryguy2k4",
+      "category": "end",
+      "minecraft": "1.16.1",
+      "credit": "By ryguy2k4.",
+      "source_page": "https://github.com/ryguy2k4/ryguy2k4endpractice",
+      "video": "https://youtu.be/2IKzwVIvJdQ",
+      "support": [],
+      "licence": {
+        "spdx": null,
+        "redistribution": "link-only",
+        "note": "No licence in the repo. Downloaded from the author's release only."
+      },
+      "requirements": [],
+      "carry_over": [],
+      "download": {
+        "version": "3.4.0",
+        "tag": "v3.4.0",
+        "released": "2023-01-11",
+        "repo": "ryguy2k4/ryguy2k4endpractice",
+        "asset_pattern": "-1\\.16\\.1\\.zip$",
+        "url": "https://github.com/ryguy2k4/ryguy2k4endpractice/releases/download/v3.4.0/_Ryguy2k4_End_Practice_v3.4.0-1.16.1.zip",
+        "sha512": "33a598a258119a891f74df6091ddb2d0034625510784f3971ba823f7101e1090dd11c1c495044a9787ea7464f0d4a4eabcf6b4c50b00f269f97f7bff4d963291",
+        "size": 15571365,
+        "worlds": [
+          "_Ryguy2k4 End Practice v3.4.0-1.16.1"
+        ],
+        "data_version": 2567
+      }
+    },
+    {
+      "id": "zero-practice-mescht",
+      "name": "Zero Practice",
+      "authors": "Mescht",
+      "category": "end",
+      "minecraft": "1.16.1",
+      "credit": "By Mescht.",
+      "source_page": "https://github.com/Mescht/Zero-Practice",
+      "support": [
+        {
+          "label": "Ko-fi",
+          "url": "https://ko-fi.com/mescht"
+        }
+      ],
+      "licence": {
+        "spdx": null,
+        "redistribution": "link-only",
+        "note": "No licence in the repo. Downloaded from the author's release only."
+      },
+      "requirements": [],
+      "carry_over": [
+        {
+          "from": "data/command_storage_zero_practice_loadouts.dat",
+          "to": "data/command_storage_zero_practice_loadouts.dat",
+          "what": "loadouts"
+        }
+      ],
+      "download": {
+        "version": "1.2.2",
+        "tag": "v1.2.2",
+        "released": "2025-08-23",
+        "repo": "Mescht/Zero-Practice",
+        "asset_pattern": "^Zero\\.Practice\\.v.*\\.zip$",
+        "url": "https://github.com/Mescht/Zero-Practice/releases/download/v1.2.2/Zero.Practice.v1.2.2.zip",
+        "sha512": "61a58e33bd8a3d04aef4c5af70744addc9ce922f0d14b5edf306cc2792b4d043fa3ff1664e348258889c93eb372b101641b5d98d5791e8b21b502827a1205a99",
+        "size": 9079699,
+        "worlds": [
+          "Zero Practice v1.2.2"
+        ],
+        "data_version": 2567
+      }
+    },
+    {
+      "id": "portal-practice-v2-semperzz",
+      "name": "Portal Practice v2",
+      "authors": "Semperzz & ItzToxic",
+      "category": "overworld",
+      "minecraft": "1.16.1",
+      "credit": "By Semperzz and ItzToxic.",
+      "source_page": "https://github.com/Semperzz/Portal-Practice",
+      "video": "https://youtu.be/WUr4MMiQwhI",
+      "support": [],
+      "licence": {
+        "spdx": null,
+        "redistribution": "link-only",
+        "note": "No licence in the repo. Downloaded from the author's release only."
+      },
+      "requirements": [
+        {
+          "id": "render-distance-16",
+          "kind": "setting",
+          "optional": true,
+          "provided": false,
+          "note": "If the inventory doesn't load, raise the render distance; the author recommends 16."
+        }
+      ],
+      "carry_over": [],
+      "download": {
+        "version": "2.8",
+        "tag": "v2.8",
+        "released": "2023-02-11",
+        "repo": "Semperzz/Portal-Practice",
+        "asset_pattern": "^Portal\\.Practice\\.v2\\.zip$",
+        "url": "https://github.com/Semperzz/Portal-Practice/releases/download/v2.8/Portal.Practice.v2.zip",
+        "sha512": "f4d5eac5b8534b9ed0c8084d50f974e3fa451adee6635ac3d79de8323be502106dcc22e9d478dd769b1e697b1d46ce956658b8825c149d9ec1c625fc03465fd0",
+        "size": 27528302,
+        "worlds": [
+          "Portal Practice v2"
+        ],
+        "data_version": 2567
+      }
+    },
+    {
+      "id": "portal-practice-mescht",
+      "name": "Portal Practice",
+      "authors": "Mescht",
+      "category": "overworld",
+      "minecraft": "1.16.1",
+      "credit": "By Mescht.",
+      "source_page": "https://github.com/Mescht/Portal-Practice",
+      "support": [
+        {
+          "label": "Ko-fi",
+          "url": "https://ko-fi.com/mescht"
+        }
+      ],
+      "licence": {
+        "spdx": null,
+        "redistribution": "link-only",
+        "note": "No licence in the repo. Downloaded from the author's release only."
+      },
+      "requirements": [],
+      "carry_over": [
+        {
+          "from": "data/command_storage_portal.dat",
+          "to": "data/command_storage_portal.dat",
+          "what": "loadouts, PBs and level settings",
+          "same_version_only": true
+        }
+      ],
+      "download": {
+        "version": "1.3.1",
+        "tag": "v.1.3.1",
+        "released": "2025-01-18",
+        "repo": "Mescht/Portal-Practice",
+        "asset_pattern": "^Portal-Practice[._ ]v.*\\.zip$",
+        "url": "https://github.com/Mescht/Portal-Practice/releases/download/v.1.3.1/Portal-Practice.v1.3.1.zip",
+        "sha512": "026058dcc18339408b0977c2b4275d29b9538364869cd5fdd0064904d9a6c35a55edb96688f2d263072e65b9c78bd2a6eb92546a95fc8549c99fb935385a32cd",
+        "size": 3572280,
+        "worlds": [
+          "Portal-Practice v1.3.1"
+        ],
+        "data_version": 2567
+      }
+    },
+    {
+      "id": "ow-practice-7rowl",
+      "name": "OW Practice",
+      "authors": "7rowl",
+      "category": "overworld",
+      "minecraft": "1.16.1",
+      "credit": "By 7rowl. Command blocks and rooms: Semperzz. Crafting practice: Angelohasleft. Testing: GNG and Ravalle.",
+      "source_page": "https://github.com/7rowl/OWPractice",
+      "support": [],
+      "licence": {
+        "spdx": null,
+        "redistribution": "link-only",
+        "note": "No licence in the repo. Downloaded from the author's release only."
+      },
+      "requirements": [
+        {
+          "id": "autocraftable",
+          "kind": "mod",
+          "optional": true,
+          "provided": false,
+          "note": "The v2.0 release notes suggest AutoCraftable by RedLime, which closes the recipe book after each craft. It is not in mcsr-meta and not verifiable for runs, so the launcher does not install it; without it the map works and the book just stays open."
+        }
+      ],
+      "carry_over": [],
+      "download": {
+        "version": "2.0",
+        "tag": "v2.0",
+        "released": "2022-07-25",
+        "repo": "7rowl/OWPractice",
+        "asset_pattern": "^OW\\.Practice\\.v.*\\.zip$",
+        "url": "https://github.com/7rowl/OWPractice/releases/download/v2.0/OW.Practice.v2.0.zip",
+        "sha512": "7668897a6eab3c20c9a470f2a35e663e27452c008182c0cf68b9e6ed90106da57e4538abcfff4ecfd76afb95fadfa9ed3eba6e2ee7c99b06c92ed02349420696",
+        "size": 21267438,
+        "worlds": [
+          "OW Practice V2"
+        ],
+        "data_version": 2567
+      }
+    },
+    {
+      "id": "crafting-practice-v2-semperzz",
+      "name": "Crafting Practice v2",
+      "authors": "Semperzz",
+      "category": "overworld",
+      "minecraft": "1.16.1",
+      "credit": "By Semperzz, inspired by Fyroah's original crafting map, with ideas and feedback from Bugbu6.",
+      "source_page": "https://github.com/Semperzz/Crafting-Practice-v2",
+      "support": [],
+      "licence": {
+        "spdx": null,
+        "redistribution": "link-only",
+        "note": "No licence in the repo. Downloaded from the author's release only."
+      },
+      "requirements": [],
+      "carry_over": [],
+      "download": {
+        "version": "2.1",
+        "tag": "v2.1",
+        "released": "2023-01-04",
+        "repo": "Semperzz/Crafting-Practice-v2",
+        "asset_pattern": "^Crafting\\.Practice\\.v2\\.zip$",
+        "url": "https://github.com/Semperzz/Crafting-Practice-v2/releases/download/v2.1/Crafting.Practice.v2.zip",
+        "sha512": "445ea3f7e38917257afa02d796bdc41803e4f1137a5b25e22e62379c6a8c4a218c87119aa401c0be3ef9350a4dee6a04b18f5b06e42cb30b06a3bb50f869e54f",
+        "size": 6996894,
+        "worlds": [
+          "Crafting Practice v2"
+        ],
+        "data_version": 2567
+      }
+    },
+    {
+      "id": "bt-practice-mescht",
+      "name": "BT Practice",
+      "authors": "Mescht",
+      "category": "overworld",
+      "minecraft": "1.16.1",
+      "credit": "By Mescht.",
+      "source_page": "https://github.com/Mescht/BTPractice",
+      "video": "https://youtu.be/kI5G3Cwn0M4",
+      "support": [
+        {
+          "label": "Ko-fi",
+          "url": "https://ko-fi.com/mescht"
+        }
+      ],
+      "licence": {
+        "spdx": null,
+        "redistribution": "link-only",
+        "note": "No licence in the repo. Downloaded from the author's release only (the map zip; the release also has a datapack-only zip)."
+      },
+      "requirements": [
+        {
+          "id": "world-grows-large",
+          "kind": "note",
+          "optional": true,
+          "provided": true,
+          "note": "The world grows large as you practise. The author's fix is to delete the world's region folder, which keeps your records and settings. Reset map also gives you the small fresh world back, but clears the map's records and settings too."
+        }
+      ],
+      "carry_over": [],
+      "download": {
+        "version": "1.3",
+        "tag": "v1.3",
+        "released": "2023-05-19",
+        "repo": "Mescht/BTPractice",
+        "asset_pattern": "^BTPractice-Map_v.*\\.zip$",
+        "url": "https://github.com/Mescht/BTPractice/releases/download/v1.3/BTPractice-Map_v1.3.zip",
+        "sha512": "78b58bc58ce53ed9e7a79fb922997fe223ff93d914441dbc5782fe71091e73c5904121385dfa1af99896016b099c8cca5355a4fb049d8b15d728f7198ca3d9fc",
+        "size": 56314,
+        "worlds": [
+          "BT Practice v1.3"
+        ],
+        "data_version": 2567
+      }
+    },
+    {
+      "id": "blaze-practice-mescht",
+      "name": "Blaze Practice",
+      "authors": "Mescht",
+      "category": "blaze",
+      "minecraft": "1.16.1",
+      "credit": "By Mescht.",
+      "source_page": "https://github.com/Mescht/Blaze-Practice",
+      "support": [
+        {
+          "label": "Ko-fi",
+          "url": "https://ko-fi.com/mescht"
+        }
+      ],
+      "licence": {
+        "spdx": null,
+        "redistribution": "link-only",
+        "note": "No licence in the repo. Downloaded from the author's release only."
+      },
+      "requirements": [
+        {
+          "id": "spawning-potential-lag",
+          "kind": "setting",
+          "optional": true,
+          "provided": false,
+          "note": "The spawning-potential view can lag on weaker computers; turn it off in the map or lower the resolution setting."
+        }
+      ],
+      "carry_over": [
+        {
+          "from": "data/command_storage_inventory.dat",
+          "to": "data/command_storage_inventory.dat",
+          "what": "loadouts"
+        }
+      ],
+      "download": {
+        "version": "1.1.0",
+        "tag": "v1.1.0",
+        "released": "2026-05-21",
+        "repo": "Mescht/Blaze-Practice",
+        "asset_pattern": "^Blaze\\.Practice\\.v.*\\.zip$",
+        "url": "https://github.com/Mescht/Blaze-Practice/releases/download/v1.1.0/Blaze.Practice.v1.1.0.zip",
+        "sha512": "c4b53a1aeb283a161802e3ed0aa1e435f6b9757d4e6edfc30b763a21d4decfbf4bc6a83434aee626714a9f5b74ed9755fb3dc2c8db1aee46192dc8c391516d9e",
+        "size": 3742011,
+        "worlds": [
+          "Blaze Practice v1.1.0"
+        ],
+        "data_version": 2567
+      }
+    },
+    {
+      "id": "blaze-practice-semperzz",
+      "name": "Blaze Practice",
+      "authors": "Semperzz",
+      "category": "blaze",
+      "minecraft": "1.16.1",
+      "credit": "By Semperzz.",
+      "source_page": "https://github.com/Semperzz/Blaze-Practice",
+      "video": "https://youtu.be/CNqrnlgCRXk",
+      "support": [],
+      "licence": {
+        "spdx": null,
+        "redistribution": "link-only",
+        "note": "No licence in the repo. Downloaded from the author's release only."
+      },
+      "requirements": [],
+      "carry_over": [],
+      "download": {
+        "version": "1.3",
+        "tag": "v1.3",
+        "released": "2023-04-14",
+        "repo": "Semperzz/Blaze-Practice",
+        "asset_pattern": "^Blaze\\.Practice\\.zip$",
+        "url": "https://github.com/Semperzz/Blaze-Practice/releases/download/v1.3/Blaze.Practice.zip",
+        "sha512": "96c118541c942316b7d9ad9e40e41f05ff984e2443284cddd50df52d7ba59b2db52118001d975c1fa3e19d67c541c7afa970016ec492ceae4a90a198e6d0a7d3",
+        "size": 9187487,
+        "worlds": [
+          "Blaze Practice"
+        ],
+        "data_version": 2567
+      }
+    },
+    {
+      "id": "end-portal-fill-v2-cylorun",
+      "name": "End Portal Fill v2",
+      "authors": "cylorun",
+      "category": "stronghold",
+      "minecraft": "1.16.1",
+      "credit": "By cylorun.",
+      "source_page": "https://github.com/cylorun/End-Portal-Fill",
+      "support": [],
+      "licence": {
+        "spdx": null,
+        "redistribution": "link-only",
+        "note": "No licence and no README in the repo. Downloaded from the author's release only."
+      },
+      "requirements": [],
+      "carry_over": [],
+      "download": {
+        "version": "2.0",
+        "tag": "Minecraft",
+        "released": "2022-08-27",
+        "repo": "cylorun/End-Portal-Fill",
+        "asset_pattern": "^EndPortal\\.v.*\\.zip$",
+        "url": "https://github.com/cylorun/End-Portal-Fill/releases/download/Minecraft/EndPortal.v2.zip",
+        "sha512": "b2ab9bec4da84d589b54d08bafddab711a34073d7e43cc96c0e6f0d6b2a2de557209df366b9cdb13bda5db3a22c78cf1e34d63d994cd5e15ba0b703064f9b112",
+        "size": 5287854,
+        "worlds": [
+          "End Portal Practice"
+        ],
+        "data_version": 2567
+      }
+    },
+    {
+      "id": "zero-sorting-practice-semperzz",
+      "name": "Zero Sorting Practice",
+      "authors": "Semperzz",
+      "category": "end",
+      "minecraft": "1.16.1",
+      "credit": "By Semperzz. The optional hunger-reset mod is by RedLime.",
+      "source_page": "https://github.com/Semperzz/Zero-Sorting-Practice",
+      "support": [],
+      "licence": {
+        "spdx": null,
+        "redistribution": "link-only",
+        "note": "No licence in the repo. Downloaded from the author's release only."
+      },
+      "requirements": [
+        {
+          "id": "playerattribute",
+          "kind": "mod",
+          "optional": true,
+          "provided": false,
+          "note": "The release also has playerattribute-1.0.jar (by RedLime), which the map's hunger and health reset needs. It is not in mcsr-meta, so the launcher does not install it; without it the hunger and health reset does nothing, and the rest of the map works."
+        }
+      ],
+      "carry_over": [],
+      "download": {
+        "version": "1.5",
+        "tag": "v1.5",
+        "released": "2023-01-20",
+        "repo": "Semperzz/Zero-Sorting-Practice",
+        "asset_pattern": "^Zero\\.Sorting\\.zip$",
+        "url": "https://github.com/Semperzz/Zero-Sorting-Practice/releases/download/v1.5/Zero.Sorting.zip",
+        "sha512": "614a49317a22e4e01a915705a487dd355b8e325d237f450cad2ccaac7e5f7bb93bb098dd0250d95bb17e9c7c2193deb71ca4ede2985939ab0edcdd1346f1b91f",
+        "size": 13940341,
+        "worlds": [
+          "Zero Sorting"
+        ],
+        "data_version": 2567
+      }
+    },
+    {
+      "id": "vine-ssg-practice-bdamja",
+      "name": "Vine Seed SSG Practice",
+      "authors": "bdamja & r0hkx",
+      "category": "all-in-one",
+      "minecraft": "1.16.5",
+      "credit": "By bdamja and r0hkx.",
+      "source_page": "https://github.com/r0hkx/vine-ssg-practice",
+      "support": [],
+      "licence": {
+        "spdx": null,
+        "redistribution": "link-only",
+        "note": "No licence in the repo."
+      },
+      "requirements": [],
+      "carry_over": [],
+      "link_only": {
+        "version": "1.7.0",
+        "reason": "other-minecraft-version",
+        "note": "Made for Minecraft 1.16.5 (set seed), and the practice instance runs 1.16.1. The release is on GitHub, so it can become installable once there is a 1.16.5 practice instance."
+      }
+    },
+    {
+      "id": "llama-s-practice-map-llama",
+      "name": "Llama's Practice Map",
+      "authors": "Llama",
+      "category": "stronghold",
+      "minecraft": "1.16.1",
+      "credit": "By Lama (addlama), as the download names it: \"Lama's Practice Map\".",
+      "source_page": "https://www.mediafire.com/file/lzbecct99g8p22i/Lama%27s_Practice_Map.zip",
+      "support": [],
+      "licence": {
+        "spdx": null,
+        "redistribution": "link-only",
+        "note": "No licence stated."
+      },
+      "requirements": [
+        {
+          "id": "entity-distance-175",
+          "kind": "setting",
+          "optional": true,
+          "provided": false,
+          "note": "Preemptive navigation videos use 175% entity distance."
+        }
+      ],
+      "carry_over": [],
+      "link_only": {
+        "version": null,
+        "reason": "no-direct-download",
+        "note": "Only on a Mediafire page that needs a browser, with no stable direct URL to pin. Ask the author for a GitHub release."
+      }
+    }
+  ]
+}

@@ -1,0 +1,34 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "bakeoff-tauri",
+  "mainBinaryName": "bakeoff-tauri",
+  "version": "0.1.0",
+  "identifier": "dev.speedrunluncher.bakeoff.tauri",
+  "build": {
+    "frontendDist": "../../scene/dist"
+  },
+  "app": {
+    "withGlobalTauri": false,
+    "windows": [
+      {
+        "label": "main",
+        "title": "Speedrunluncher bake-off (tauri)",
+        "width": 1280,
+        "height": 800,
+        "resizable": true,
+        "decorations": true,
+        "backgroundColor": "#0A090E"
+      }
+    ],
+    "security": {
+      "csp": null
+    }
+  },
+  "bundle": {
+    "active": false,
+    "icon": [
+      "icons/icon.png",
+      "icons/icon.ico"
+    ]
+  }
+}

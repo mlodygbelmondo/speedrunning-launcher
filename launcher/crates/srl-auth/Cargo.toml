@@ -1,0 +1,42 @@
+[package]
+name = "srl-auth"
+description = "Microsoft login for Speedrunning Launcher: MSA (browser + device code), Xbox, XSTS, Minecraft services, token cache and OS keystore"
+version.workspace = true
+edition.workspace = true
+publish.workspace = true
+
+[dependencies]
+srl-core.workspace = true
+reqwest.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+sha2.workspace = true
+hex.workspace = true
+futures.workspace = true
+# `net` for the loopback listener; the workspace set has no use for it elsewhere.
+tokio = { workspace = true, features = ["net"] }
+uuid = { workspace = true, features = ["v4"] }
+
+base64 = "0.22"
+chacha20poly1305 = "0.10"
+chrono = { version = "0.4", default-features = false, features = ["std", "clock", "serde"] }
+getrandom = "0.3"
+httparse = "1"
+open = "5"
+qrcode = { version = "0.14", default-features = false }
+thiserror = "2"
+zeroize = "1"
+
+[target.'cfg(target_os = "linux")'.dependencies]
+# The same features as GPUI's own oo7 dependency: oo7 refuses to build with both `tokio` and
+# `async-std`, and the app links both crates. Its futures run fine on our tokio runtime.
+oo7 = { version = "0.6", default-features = false, features = ["async-std", "native_crypto"] }
+
+[target.'cfg(windows)'.dependencies]
+windows-sys = { workspace = true, features = ["Win32_Foundation", "Win32_Security_Credentials", "Win32_Security_Cryptography"] }
+
+[target.'cfg(target_os = "macos")'.dependencies]
+security-framework = "3"
+
+[dev-dependencies]
+tokio = { workspace = true, features = ["net", "macros", "rt-multi-thread"] }

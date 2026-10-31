@@ -1,0 +1,15 @@
+@font-face { font-family: 'Archivo'; src: url('fonts/archivo__Archivo[wdth,wght].ttf') format('truetype'); font-weight: 100 900; font-stretch: 62% 125%; }
+@font-face { font-family: 'Inter'; src: url('../../bakeoff/assets/fonts/Inter-Regular.ttf'); font-weight: 400; }
+@font-face { font-family: 'Inter'; src: url('../../bakeoff/assets/fonts/Inter-Medium.ttf'); font-weight: 500; }
+@font-face { font-family: 'Inter'; src: url('../../bakeoff/assets/fonts/Inter-SemiBold.ttf'); font-weight: 600; }
+@font-face { font-family: 'Inter'; src: url('../../bakeoff/assets/fonts/Inter-Bold.ttf'); font-weight: 700; }
+@font-face { font-family: 'Plex Mono'; src: url('fonts/ibmplexmono__IBMPlexMono-Regular.ttf'); font-weight: 400; }
+@font-face { font-family: 'Plex Mono'; src: url('fonts/ibmplexmono__IBMPlexMono-Medium.ttf'); font-weight: 500; }
+@font-face { font-family: 'Plex Mono'; src: url('fonts/ibmplexmono__IBMPlexMono-SemiBold.ttf'); font-weight: 600; }
+@font-face { font-family: 'Plex Cond'; src: url('fonts/ibmplexsanscondensed__IBMPlexSansCondensed-Regular.ttf'); font-weight: 400; }
+@font-face { font-family: 'Plex Cond'; src: url('fonts/ibmplexsanscondensed__IBMPlexSansCondensed-Medium.ttf'); font-weight: 500; }
+@font-face { font-family: 'Plex Cond'; src: url('fonts/ibmplexsanscondensed__IBMPlexSansCondensed-SemiBold.ttf'); font-weight: 600; }
+@font-face { font-family: 'Pixelify'; src: url('fonts/pixelifysans__PixelifySans[wght].ttf') format('truetype'); font-weight: 400 700; }
+@font-face { font-family: 'Silkscreen'; src: url('fonts/silkscreen__Silkscreen-Regular.ttf'); font-weight: 400; }
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { width: 1280px; height: 800px; overflow: hidden; }

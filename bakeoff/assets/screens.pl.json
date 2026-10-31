@@ -1,0 +1,380 @@
+{
+ "_comment": "Polish overrides for screens.json. Same shape; objects merge by key, arrays merge by index, null keeps the base value. Only text is translated; names, versions, credits and real video titles stay as they are.",
+ "accounts": {
+  "store": {
+   "windows": "Menedżerze poświadczeń Windows",
+   "linux": "systemowym pęku kluczy",
+   "macos": "pęku kluczy macOS"
+  },
+  "list": [
+   {
+    "ago": "2 godz. temu"
+   },
+   null
+  ]
+ },
+ "modes": [
+  {
+   "full": "Wyścigi 1v1 o elo",
+   "desc": "Wyścig z innym graczem na tym samym seedzie. Elo, sezony i prywatne pokoje."
+  },
+  {
+   "desc": "Klasyka: nowy losowy świat w każdym runie. Główna kategoria na speedrun.com."
+  },
+  {
+   "desc": "Losowe światy, filtrowane tak, żeby każdy seed miał szybki start.",
+   "leaderboard": "ranking FSG"
+  },
+  {
+   "desc": "Wybierasz znany seed i uczysz się jego trasy na pamięć."
+  },
+  {
+   "full": "Lockout z draftem",
+   "desc": "Lockout bingo 1v1 na najnowszym Minecrafcie, z fazą draftu na początku.",
+   "note": "Ninjabrain Bot jest tu wyłączony, bo Draftout go zakazuje."
+  }
+ ],
+ "layers": {
+  "perf": {
+   "name": "Wydajność"
+  },
+  "run": {
+   "name": "Narzędzia do runów",
+   "mods": [
+    null,
+    null,
+    null,
+    null,
+    null,
+    [
+     null,
+     "najnowsza"
+    ]
+   ]
+  },
+  "rsg": {
+   "name": "Losowy seed"
+  },
+  "ssg": {
+   "name": "Stały seed"
+  },
+  "ranked": {
+   "mods": [
+    [
+     null,
+     "aktualizuje się sam"
+    ]
+   ]
+  },
+  "fsg": {
+   "name": "Filtrowany seed",
+   "mods": [
+    [
+     null,
+     "najnowsza"
+    ]
+   ]
+  },
+  "perf26": {
+   "name": "Mody speedrunowe 26.3",
+   "mods": [
+    [
+     null,
+     "najnowsza"
+    ],
+    [
+     null,
+     "najnowsza"
+    ],
+    [
+     null,
+     "najnowsza"
+    ],
+    [
+     null,
+     "najnowsza"
+    ],
+    [
+     null,
+     "najnowsza"
+    ],
+    [
+     null,
+     "najnowsza"
+    ],
+    [
+     null,
+     "najnowsza"
+    ]
+   ]
+  },
+  "draftout": {
+   "mods": [
+    [
+     null,
+     "najnowsza"
+    ]
+   ]
+  }
+ },
+ "checks": [
+  null,
+  null,
+  null,
+  {
+   "args": {
+    "version": "aktualizuje się sam"
+   }
+  },
+  null,
+  null,
+  null
+ ],
+ "practice_categories": [
+  {
+   "name": "Wszystko w jednym"
+  },
+  null,
+  null,
+  null,
+  null,
+  null
+ ],
+ "maps": [
+  {
+   "desc": "Każdy split w jednym świecie, od overworldu po walkę ze smokiem."
+  },
+  {
+   "desc": "Wszystkie typy bastionów z typowymi trasami."
+  },
+  {
+   "desc": "Walka w Endzie: one-cycle, zero-cycle i ustawienia na wieżach."
+  },
+  {
+   "desc": "Ustawienia do zero-cycle na każdym filarze."
+  },
+  {
+   "desc": "Budowanie portalu do Netheru z jeziorek lawy i zrujnowanych portali."
+  },
+  {
+   "desc": "Pierwsza mapa do treningu budowania portalu."
+  },
+  {
+   "desc": "Starty w overworldzie i planowanie trasy."
+  },
+  {
+   "desc": "Szybki crafting i obsługa ekwipunku."
+  },
+  {
+   "desc": "Szukanie zakopanego skarbu bez mapy."
+  },
+  {
+   "desc": "Spawnery blaze'ów w różnych układach fortecy."
+  },
+  {
+   "desc": "Inne podejście do ustawień przy spawnerach blaze'ów."
+  },
+  {
+   "desc": "Szybkie wypełnianie ramy portalu do Endu."
+  },
+  {
+   "desc": "Układanie ekwipunku przed zero-cycle."
+  }
+ ],
+ "practice_tools": [
+  {
+   "desc": "Zestaw command blocków z presetami na każdy split. Działa też w instancji Ranked."
+  },
+  {
+   "desc": "Mod do treningu splitów z edytorem ekwipunku i własnymi kategoriami."
+  },
+  {
+   "authors": "mjtb49 i współtwórcy",
+   "desc": "Nawigacja w twierdzy z pomiarem czasu i podpowiedziami."
+  }
+ ],
+ "tutorial_groups": [
+  {
+   "title": "Zacznij tutaj",
+   "items": [
+    null,
+    {
+     "date": "maj 2026"
+    },
+    {
+     "length": "7 rozdziałów",
+     "date": "kwi 2026"
+    },
+    {
+     "length": "4 części"
+    }
+   ]
+  },
+  {
+   "title": "Bastiony",
+   "items": [
+    {
+     "date": "lut 2026"
+    },
+    {
+     "date": "mar 2026"
+    },
+    null,
+    {
+     "date": "sty 2026"
+    }
+   ]
+  },
+  {
+   "title": "Nether i forteca",
+   "items": [
+    {
+     "date": "lis 2024"
+    },
+    {
+     "date": "lip 2024"
+    },
+    {
+     "date": "lut 2026"
+    }
+   ]
+  },
+  {
+   "title": "Twierdza i rzuty okiem",
+   "items": [
+    {
+     "date": "sty 2026"
+    },
+    {
+     "date": "lip 2026"
+    },
+    {
+     "date": "sty 2026"
+    }
+   ]
+  },
+  {
+   "title": "End",
+   "items": [
+    {
+     "date": "gru 2025"
+    },
+    {
+     "date": "maj 2026"
+    },
+    {
+     "date": "lut 2026"
+    }
+   ]
+  },
+  {
+   "title": "Zgłaszanie i postępy",
+   "items": [
+    {
+     "date": "sty 2025"
+    },
+    {
+     "date": "mar 2026"
+    }
+   ]
+  }
+ ],
+ "tools": [
+  {
+   "desc": "Znajduje twierdzę na podstawie Twoich rzutów okiem."
+  },
+  {
+   "desc": "Natychmiastowa zmiana rozmiaru, zoom oka i nakładki w pełnym ekranie."
+  },
+  {
+   "version": "wersja testowa",
+   "desc": "Zmiana rozmiaru, zoom oka i nakładka z Ninjabrain na Waylandzie."
+  },
+  {
+   "authors": "zespół PaceMan",
+   "desc": "Pokazuje Twoje tempo na żywo na paceman.gg."
+  },
+  {
+   "desc": "Skróty klawiszowe, pluginy i pakowanie plików runu. Opcjonalnie."
+  },
+  {
+   "desc": "Nagrywa runy na speedrun.com. Instalowany osobno."
+  }
+ ],
+ "tools_checked_ago": "5 min temu",
+ "stats": {
+  "tiles": {
+   "runs_month_sub": "+38 względem września",
+   "finished_sub": "4% runów",
+   "avg_enter_sub": "-0:06 w tym tygodniu"
+  },
+  "runs": [
+   {
+    "date": "25 paź"
+   },
+   {
+    "date": "25 paź"
+   },
+   {
+    "date": "24 paź"
+   },
+   {
+    "date": "24 paź"
+   },
+   {
+    "date": "23 paź"
+   },
+   {
+    "date": "23 paź"
+   },
+   {
+    "date": "22 paź"
+   },
+   {
+    "date": "21 paź"
+   }
+  ]
+ },
+ "submit": {
+  "date": "24 paź 2026",
+  "files": [
+   [
+    "Zapis SpeedRunIGT",
+    null
+   ],
+   [
+    "Świat",
+    null
+   ],
+   [
+    "Archiwum Fairplay",
+    null
+   ]
+  ]
+ },
+ "settings": {
+  "keybinds": [
+   "Standardowy",
+   null,
+   "Własny"
+  ],
+  "channels": [
+   "Stabilny",
+   null
+  ]
+ },
+ "game": {
+  "started": "12 min temu"
+ },
+
+  "v3": {
+    "runs": {
+      "rsg": {
+        "pb_date": "24 paź"
+      },
+      "fsg": {
+        "pb_date": "22 paź"
+      }
+    }
+  }
+}

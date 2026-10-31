@@ -1,0 +1,50 @@
+[package]
+name = "srl-app"
+description = "The Speedrunning Launcher desktop app (GPUI)"
+version.workspace = true
+edition.workspace = true
+publish.workspace = true
+
+[[bin]]
+name = "speedrunning-launcher"
+path = "src/main.rs"
+
+[dependencies]
+srl-core.workspace = true
+srl-game.workspace = true
+srl-mods.workspace = true
+srl-tools.workspace = true
+srl-stats.workspace = true
+srl-auth.workspace = true
+srl-practice.workspace = true
+srl-import.workspace = true
+anyhow.workspace = true
+# Local dates and times on screen: the Stats page ("Oct 24", "today") and the account's "valid
+# until 18:40". Already in the build through gpui and srl-auth, with the same features.
+chrono = { version = "0.4", default-features = false, features = ["std", "clock"] }
+futures.workspace = true
+hex.workspace = true
+gpui.workspace = true
+gpui_platform.workspace = true
+png.workspace = true
+reqwest.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+sha2.workspace = true
+tokio.workspace = true
+uuid.workspace = true
+zip.workspace = true
+
+[target.'cfg(unix)'.dependencies]
+libc.workspace = true
+
+[target.'cfg(windows)'.dependencies]
+windows-sys = { workspace = true, features = ["Win32_Foundation", "Win32_System_Console", "Win32_System_Threading", "Win32_UI_WindowsAndMessaging"] }
+
+# srl-auth's mock of the Microsoft, Xbox and Minecraft services (tests/mock), shared by the account
+# glue tests.
+[dev-dependencies]
+tokio = { workspace = true, features = ["net", "macros", "rt-multi-thread"] }
+base64 = "0.22"
+httparse = "1"
+sha2.workspace = true

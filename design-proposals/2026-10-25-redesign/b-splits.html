@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="pl"><head><meta charset="utf-8">
+<link rel="stylesheet" href="fonts.css">
+<style>
+  :root { --bg: #0C0B0F; --side: #09080C; --text: #EEEDF2; --muted: rgba(238,237,242,.56); --faint: rgba(238,237,242,.32); --line: rgba(238,237,242,.08);
+    --accent: #8B5CF6; --gold: #D8AF1F; --ahead: #29CC54; --behind: #E0493B; --pb: #16A6FF; }
+  body { background: var(--bg); color: var(--text); font: 400 14px/1.4 'Plex Cond', sans-serif; display: flex; }
+  .num { font-family: 'Plex Mono'; font-variant-numeric: tabular-nums; }
+  aside { width: 208px; height: 800px; background: var(--side); border-right: 1px solid var(--line); padding: 30px 0 28px; display: flex; flex-direction: column; }
+  .brand { padding: 0 28px; display: flex; align-items: center; gap: 10px; font: 600 15px/1 'Plex Cond'; letter-spacing: .02em; }
+  .brand svg { flex: none; width: 18px; height: 18px; color: var(--accent); }
+  nav { margin-top: 44px; display: flex; flex-direction: column; }
+  nav a { position: relative; display: flex; align-items: baseline; gap: 14px; padding: 9px 28px; font: 500 15px/1.2 'Plex Cond'; color: var(--muted); }
+  nav a kbd { font: 500 11px/1 'Plex Mono'; color: var(--faint); width: 10px; }
+  nav a.on { color: var(--text); }
+  nav a.on::before { content: ''; position: absolute; left: 0; top: 6px; bottom: 6px; width: 2px; background: var(--accent); }
+  .foot { margin-top: auto; padding: 0 28px; display: flex; flex-direction: column; gap: 16px; }
+  .foot .acc { display: flex; align-items: center; gap: 10px; padding-top: 16px; border-top: 1px solid var(--line); }
+  .foot img { width: 28px; height: 28px; image-rendering: pixelated; }
+  .foot .n { font: 500 14px/1.1 'Plex Cond'; } .foot .e { font: 400 11px/1.2 'Plex Mono'; color: var(--faint); }
+  main { flex: 1; padding: 30px 48px 0; }
+  .bar { display: flex; align-items: center; height: 40px; }
+  .modes { display: flex; gap: 26px; font: 500 15px/1 'Plex Cond'; color: var(--muted); }
+  .modes span.on { color: var(--text); }
+  .modes span.on b { font-weight: 500; position: relative; }
+  .modes span.on b::after { content: ''; position: absolute; left: 0; right: 0; bottom: -12px; height: 2px; background: var(--accent); }
+  .modes .v { font: 400 11px/1 'Plex Mono'; color: var(--faint); margin-left: 4px; }
+  .play { margin-left: auto; display: flex; align-items: center; gap: 18px; height: 44px; padding: 0 20px 0 24px; background: var(--accent); color: #fff; font: 600 15px/1 'Plex Cond'; letter-spacing: .08em; }
+  .play kbd { font: 500 11px/1 'Plex Mono'; padding: 4px 6px; background: rgba(255,255,255,.16); letter-spacing: 0; }
+  .pb { margin-top: 44px; display: flex; align-items: flex-end; gap: 56px; }
+  .lbl { font: 500 11px/1 'Plex Mono'; letter-spacing: .12em; color: var(--faint); text-transform: uppercase; }
+  .big { margin-top: 12px; font: 500 112px/.8 'Plex Mono'; letter-spacing: -.05em; }
+  .big .ms { color: var(--muted); }
+  .side { display: grid; grid-template-columns: auto auto; gap: 12px 28px; padding-bottom: 6px; }
+  .side .k { font: 400 13px/1 'Plex Cond'; color: var(--muted); }
+  .side .v { font: 500 15px/1 'Plex Mono'; text-align: right; }
+  .gold { color: var(--gold); } .up { color: var(--ahead); } .down { color: var(--behind); }
+  .strip { margin-top: 46px; display: flex; gap: 3px; height: 96px; }
+  .seg { position: relative; overflow: hidden; background: #1a1622 var(--img) center / cover no-repeat; }
+  .seg::after { content: ''; position: absolute; inset: 0; background: linear-gradient(0deg, rgba(12,11,15,.92) 0%, rgba(12,11,15,.2) 70%); }
+  .seg div { position: absolute; left: 12px; right: 8px; bottom: 11px; z-index: 1; display: flex; flex-direction: column; gap: 6px; }
+  .seg .t { font: 600 12px/1 'Plex Cond'; letter-spacing: .1em; text-transform: uppercase; }
+  .seg .d { font: 500 13px/1 'Plex Mono'; }
+  .segs-info { display: flex; gap: 3px; margin-top: 10px; }
+  .segs-info > div { font: 400 12px/1.5 'Plex Mono'; color: var(--muted); padding-left: 12px; }
+  .segs-info b { font-weight: 500; color: var(--text); }
+  .segs-info b.gold { color: var(--gold); }
+  h2 { margin-top: 40px; display: flex; justify-content: space-between; }
+  table { width: 100%; border-collapse: collapse; margin-top: 12px; }
+  td { height: 38px; border-top: 1px solid var(--line); font: 400 13px/1 'Plex Mono'; color: var(--muted); }
+  td.m { font: 500 14px/1 'Plex Cond'; color: var(--text); width: 84px; }
+  td.r { color: var(--text); width: 170px; white-space: nowrap; }
+  td.r.gold { color: var(--gold); }
+  td.dt { width: 74px; }
+  td.s { text-align: right; width: 104px; }
+  td.s small { display: block; margin-top: 4px; font-size: 11px; }
+  .pbtag { font: 600 10px/1 'Plex Mono'; color: var(--gold); border: 1px solid var(--gold); padding: 2px 4px; margin-left: 8px; vertical-align: 2px; }
+  .tip { margin-top: 26px; display: flex; align-items: center; gap: 20px; height: 76px; border: 1px solid var(--line); padding-right: 16px; }
+  .ti { width: 132px; height: 74px; background: var(--img) center / cover; }
+  .tt { flex: 1; } .tx { margin-top: 8px; font: 500 16px/1.2 'Plex Cond'; }
+  .ta { text-align: right; } .tx2 { font: 500 14px/1.2 'Plex Cond'; margin-bottom: 6px; }
+  .tb { height: 36px; display: flex; align-items: center; padding: 0 16px; border: 1px solid rgba(238,237,242,.24); font: 600 13px/1 'Plex Cond'; letter-spacing: .1em; }
+</style></head>
+<body>
+  <aside>
+    <div class="brand"><svg viewBox="0 0 24 24" fill="currentColor" shape-rendering="crispEdges"><rect x="3" y="1.5" width="18" height="3"/><rect x="0" y="4.5" width="6" height="3"/><rect x="18" y="4.5" width="6" height="3"/><rect x="0" y="7.5" width="6" height="3"/><rect x="3" y="10.5" width="18" height="3"/><rect x="18" y="13.5" width="6" height="3"/><rect x="0" y="16.5" width="6" height="3"/><rect x="18" y="16.5" width="6" height="3"/><rect x="3" y="19.5" width="18" height="3"/></svg>Speedrunluncher</div>
+    <nav>
+      <a class="on"><kbd>1</kbd>Graj</a><a><kbd>2</kbd>Trening</a><a><kbd>3</kbd>Nauka</a><a><kbd>4</kbd>Narzędzia</a><a><kbd>5</kbd>Statystyki</a>
+    </nav>
+    <div class="foot">
+      <a style="font:500 14px 'Plex Cond';color:var(--muted)">Ustawienia</a>
+      <div class="acc"><img src="avatars/313.png"><div><div class="n">VioletRunner</div><div class="e">elo 1642</div></div></div>
+    </div>
+  </aside>
+  <main>
+    <div class="bar">
+      <div class="modes"><span class="on"><b>RSG</b><span class="v">1.16.1</span></span><span>FSG</span><span>SSG</span><span>Ranked</span><span>Draftout</span></div>
+      <div class="play">GRAJ RSG <kbd>Enter</kbd></div>
+    </div>
+    <div class="pb">
+      <div><div class="lbl">Rekord osobisty · 24 paź</div><div class="big num">14:32<span class="ms">.481</span></div></div>
+      <div class="side">
+        <span class="k">Suma najlepszych</span><span class="v gold">12:34.118</span>
+        <span class="k">Do zyskania</span><span class="v">1:58.4</span>
+        <span class="k">Runy w październiku</span><span class="v">214</span>
+        <span class="k">Śr. wejście do Netheru</span><span class="v">2:41 <span class="up">−0:06</span></span>
+      </div>
+    </div>
+    <div class="strip">
+      <div class="seg" style="flex:151;--img:url('art/masters/nether-portal.jpg')"><div><span class="t">Nether</span><span class="d num">2:31</span></div></div>
+      <div class="seg" style="flex:101;--img:url('art/masters/bastion.jpg')"><div><span class="t">Bastion</span><span class="d num">1:41</span></div></div>
+      <div class="seg" style="flex:148;--img:url('art/masters/fortress.jpg')"><div><span class="t">Fortress</span><span class="d num">2:28</span></div></div>
+      <div class="seg" style="flex:78;--img:url('art/masters/overworld.jpg')"><div><span class="t">Blind</span><span class="d num">1:18</span></div></div>
+      <div class="seg" style="flex:173;--img:url('art/masters/stronghold.jpg')"><div><span class="t">Stronghold</span><span class="d num">2:53</span></div></div>
+      <div class="seg" style="flex:221;--img:url('art/masters/the-end.jpg')"><div><span class="t">End</span><span class="d num">3:41</span></div></div>
+    </div>
+    <div class="segs-info">
+      <div style="flex:151">najlepszy <b class="gold">2:18</b></div><div style="flex:101">najlepszy <b class="gold">1:22</b></div><div style="flex:148">najlepszy <b class="gold">2:05</b></div>
+      <div style="flex:78"><b class="gold">1:06</b></div><div style="flex:173">najlepszy <b class="gold">2:31</b></div><div style="flex:221">najlepszy <b class="gold">3:12</b></div>
+    </div>
+    <h2><span class="lbl">Ostatnie runy</span><span class="lbl">Z zapisów SpeedRunIGT</span></h2>
+    <table>
+      <tr><td class="dt">25 paź</td><td class="m">Ranked</td><td class="r">15:48.210</td><td class="s">2:39<small class="down">+0:08</small></td><td class="s">4:30<small class="down">+0:18</small></td><td class="s">7:02<small class="down">+0:22</small></td><td class="s">8:35<small class="down">+0:37</small></td><td class="s">11:40<small class="down">+0:49</small></td><td class="s">15:48<small class="down">+1:16</small></td></tr>
+      <tr><td class="dt">25 paź</td><td class="m">RSG</td><td class="r" style="color:var(--muted)">reset · Bastion</td><td class="s">2:22<small class="up">−0:09</small></td><td class="s">4:51<small class="down">+0:39</small></td><td class="s"></td><td class="s"></td><td class="s"></td><td class="s"></td></tr>
+      <tr><td class="dt">24 paź</td><td class="m">RSG</td><td class="r gold">14:32.481<span class="pbtag">PB</span></td><td class="s">2:31</td><td class="s">4:12</td><td class="s">6:40</td><td class="s">7:58</td><td class="s">10:51</td><td class="s gold">14:32</td></tr>
+      <tr><td class="dt">23 paź</td><td class="m">RSG</td><td class="r" style="color:var(--muted)">reset · Stronghold</td><td class="s">2:18<small class="gold">−0:13</small></td><td class="s">3:57<small class="up">−0:15</small></td><td class="s">6:31<small class="up">−0:09</small></td><td class="s">7:49<small class="up">−0:09</small></td><td class="s"></td><td class="s"></td></tr>
+    </table>
+    <div class="tip">
+      <div class="ti" style="--img:url('art/masters/stronghold.jpg')"></div>
+      <div class="tt"><div class="lbl">Najwięcej tracisz na</div><div class="tx">Stronghold · średnio <span class="down">+0:22</span> do najlepszego segmentu</div></div>
+      <div class="ta"><div class="tx2">End Portal Fill v2</div><div class="lbl" style="letter-spacing:.04em;text-transform:none">mapa od cylorun · StrongholdTrainer</div></div>
+      <div class="tb">TRENUJ</div>
+    </div>
+  </main>
+</body></html>

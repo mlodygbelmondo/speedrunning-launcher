@@ -1,0 +1,15 @@
+node_modules/
+target/
+dist/
+out/
+.vite/
+*.log
+/bakeoff/results/raw/
+# big research binaries (small copies live in thumbs/ and sheets-small/)
+/research/visual/refs/
+/research/visual/sheet-*.png
+__pycache__/
+*.pyc
+
+# Agent worktrees (T3 Code / Claude Code)
+/.claude/worktrees/

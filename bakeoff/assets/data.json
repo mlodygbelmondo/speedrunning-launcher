@@ -1,0 +1,5110 @@
+{
+ "rows": [
+  {
+   "rank": 1,
+   "name": "Dyilepriffie",
+   "category": "AA",
+   "time": "13:54.274",
+   "delta": "+31.8",
+   "ahead": false,
+   "elo": 2210,
+   "avatar": "avatars/000.png"
+  },
+  {
+   "rank": 2,
+   "name": "Ninjarrdoog35",
+   "category": "RSG",
+   "time": "8:56.016",
+   "delta": "+29.7",
+   "ahead": false,
+   "elo": 1035,
+   "avatar": "avatars/001.png"
+  },
+  {
+   "rank": 3,
+   "name": "Dracored",
+   "category": "Ranked",
+   "time": "22:32.084",
+   "delta": "+4.2",
+   "ahead": false,
+   "elo": 1908,
+   "avatar": "avatars/002.png"
+  },
+  {
+   "rank": 4,
+   "name": "Marninjacour",
+   "category": "RSG",
+   "time": "15:48.095",
+   "delta": "+4.4",
+   "ahead": false,
+   "elo": 1352,
+   "avatar": "avatars/003.png"
+  },
+  {
+   "rank": 5,
+   "name": "Obbyryguyspec46",
+   "category": "Ranked",
+   "time": "21:58.159",
+   "delta": "+39.5",
+   "ahead": false,
+   "elo": 2137,
+   "avatar": "avatars/004.png"
+  },
+  {
+   "rank": 6,
+   "name": "Knawkred40",
+   "category": "AA",
+   "time": "22:22.901",
+   "delta": "-20.1",
+   "ahead": true,
+   "elo": 1065,
+   "avatar": "avatars/005.png"
+  },
+  {
+   "rank": 7,
+   "name": "Etherpriffiemar26",
+   "category": "Ranked",
+   "time": "13:08.700",
+   "delta": "+10.4",
+   "ahead": false,
+   "elo": 1499,
+   "avatar": "avatars/006.png"
+  },
+  {
+   "rank": 8,
+   "name": "Ryguydy",
+   "category": "AA",
+   "time": "21:54.308",
+   "delta": "-23.3",
+   "ahead": true,
+   "elo": 2339,
+   "avatar": "avatars/007.png"
+  },
+  {
+   "rank": 9,
+   "name": "Dypriffie",
+   "category": "FSG",
+   "time": "19:10.597",
+   "delta": "+43.0",
+   "ahead": false,
+   "elo": 1536,
+   "avatar": "avatars/008.png"
+  },
+  {
+   "rank": 10,
+   "name": "Dypriffie",
+   "category": "RSG",
+   "time": "13:30.140",
+   "delta": "-8.5",
+   "ahead": true,
+   "elo": 1223,
+   "avatar": "avatars/009.png"
+  },
+  {
+   "rank": 11,
+   "name": "Dibejojoellama",
+   "category": "AA",
+   "time": "24:30.854",
+   "delta": "-19.4",
+   "ahead": true,
+   "elo": 1435,
+   "avatar": "avatars/010.png"
+  },
+  {
+   "rank": 12,
+   "name": "Etherryguymescht24",
+   "category": "Ranked",
+   "time": "17:40.552",
+   "delta": "-3.8",
+   "ahead": true,
+   "elo": 1105,
+   "avatar": "avatars/011.png"
+  },
+  {
+   "rank": 13,
+   "name": "Rrreddy",
+   "category": "SSG",
+   "time": "10:52.361",
+   "delta": "-20.9",
+   "ahead": true,
+   "elo": 1381,
+   "avatar": "avatars/012.png"
+  },
+  {
+   "rank": 14,
+   "name": "Knawkzylenox46",
+   "category": "AA",
+   "time": "10:55.799",
+   "delta": "+21.5",
+   "ahead": false,
+   "elo": 2315,
+   "avatar": "avatars/013.png"
+  },
+  {
+   "rank": 15,
+   "name": "Naxnax29",
+   "category": "FSG",
+   "time": "19:12.342",
+   "delta": "-27.9",
+   "ahead": true,
+   "elo": 847,
+   "avatar": "avatars/014.png"
+  },
+  {
+   "rank": 16,
+   "name": "Wayllama",
+   "category": "AA",
+   "time": "10:56.656",
+   "delta": "-35.4",
+   "ahead": true,
+   "elo": 1815,
+   "avatar": "avatars/015.png"
+  },
+  {
+   "rank": 17,
+   "name": "Marnax",
+   "category": "AA",
+   "time": "12:29.502",
+   "delta": "+8.8",
+   "ahead": false,
+   "elo": 1218,
+   "avatar": "avatars/016.png"
+  },
+  {
+   "rank": 18,
+   "name": "Knawkdooglyon",
+   "category": "SSG",
+   "time": "16:16.582",
+   "delta": "-37.1",
+   "ahead": true,
+   "elo": 1566,
+   "avatar": "avatars/017.png"
+  },
+  {
+   "rank": 19,
+   "name": "Feinknawk",
+   "category": "SSG",
+   "time": "10:19.825",
+   "delta": "-40.0",
+   "ahead": true,
+   "elo": 822,
+   "avatar": "avatars/018.png"
+  },
+  {
+   "rank": 20,
+   "name": "Inky",
+   "category": "SSG",
+   "time": "23:42.815",
+   "delta": "-37.1",
+   "ahead": true,
+   "elo": 1205,
+   "avatar": "avatars/019.png"
+  },
+  {
+   "rank": 21,
+   "name": "Zylenoxcourin54",
+   "category": "SSG",
+   "time": "11:53.721",
+   "delta": "+31.8",
+   "ahead": false,
+   "elo": 1443,
+   "avatar": "avatars/020.png"
+  },
+  {
+   "rank": 22,
+   "name": "Zylenoxknawkzylenox",
+   "category": "SSG",
+   "time": "21:05.963",
+   "delta": "+32.8",
+   "ahead": false,
+   "elo": 1017,
+   "avatar": "avatars/021.png"
+  },
+  {
+   "rank": 23,
+   "name": "Limebrain99",
+   "category": "RSG",
+   "time": "16:56.059",
+   "delta": "+12.6",
+   "ahead": false,
+   "elo": 2066,
+   "avatar": "avatars/022.png"
+  },
+  {
+   "rank": 24,
+   "name": "Obbyin",
+   "category": "Ranked",
+   "time": "19:30.277",
+   "delta": "+42.2",
+   "ahead": false,
+   "elo": 2334,
+   "avatar": "avatars/023.png"
+  },
+  {
+   "rank": 25,
+   "name": "Inether",
+   "category": "Ranked",
+   "time": "10:05.972",
+   "delta": "-35.7",
+   "ahead": true,
+   "elo": 2150,
+   "avatar": "avatars/024.png"
+  },
+  {
+   "rank": 26,
+   "name": "Silverdyred",
+   "category": "AA",
+   "time": "11:35.679",
+   "delta": "+17.6",
+   "ahead": false,
+   "elo": 1995,
+   "avatar": "avatars/025.png"
+  },
+  {
+   "rank": 27,
+   "name": "Courpagred10",
+   "category": "FSG",
+   "time": "22:19.941",
+   "delta": "+41.8",
+   "ahead": false,
+   "elo": 1606,
+   "avatar": "avatars/026.png"
+  },
+  {
+   "rank": 28,
+   "name": "Dibeethernax",
+   "category": "RSG",
+   "time": "12:47.041",
+   "delta": "+44.0",
+   "ahead": false,
+   "elo": 959,
+   "avatar": "avatars/027.png"
+  },
+  {
+   "rank": 29,
+   "name": "Doogninjanr43",
+   "category": "AA",
+   "time": "8:21.136",
+   "delta": "+12.6",
+   "ahead": false,
+   "elo": 818,
+   "avatar": "avatars/028.png"
+  },
+  {
+   "rank": 30,
+   "name": "Meschtrr",
+   "category": "FSG",
+   "time": "14:02.160",
+   "delta": "+13.3",
+   "ahead": false,
+   "elo": 976,
+   "avatar": "avatars/029.png"
+  },
+  {
+   "rank": 31,
+   "name": "Priffieryguy",
+   "category": "AA",
+   "time": "16:48.041",
+   "delta": "+32.2",
+   "ahead": false,
+   "elo": 1260,
+   "avatar": "avatars/030.png"
+  },
+  {
+   "rank": 32,
+   "name": "Wayknawk",
+   "category": "FSG",
+   "time": "15:04.445",
+   "delta": "+31.2",
+   "ahead": false,
+   "elo": 1779,
+   "avatar": "avatars/031.png"
+  },
+  {
+   "rank": 33,
+   "name": "Limedy",
+   "category": "SSG",
+   "time": "10:25.255",
+   "delta": "+38.0",
+   "ahead": false,
+   "elo": 2239,
+   "avatar": "avatars/032.png"
+  },
+  {
+   "rank": 34,
+   "name": "Redzylenoxtow",
+   "category": "Ranked",
+   "time": "13:35.574",
+   "delta": "+32.2",
+   "ahead": false,
+   "elo": 1690,
+   "avatar": "avatars/033.png"
+  },
+  {
+   "rank": 35,
+   "name": "Nixether61",
+   "category": "RSG",
+   "time": "19:18.140",
+   "delta": "-31.0",
+   "ahead": true,
+   "elo": 1713,
+   "avatar": "avatars/034.png"
+  },
+  {
+   "rank": 36,
+   "name": "Etherdoogmar10",
+   "category": "Ranked",
+   "time": "11:07.169",
+   "delta": "+34.1",
+   "ahead": false,
+   "elo": 1498,
+   "avatar": "avatars/035.png"
+  },
+  {
+   "rank": 37,
+   "name": "Blynix35",
+   "category": "FSG",
+   "time": "16:27.521",
+   "delta": "+37.4",
+   "ahead": false,
+   "elo": 1533,
+   "avatar": "avatars/036.png"
+  },
+  {
+   "rank": 38,
+   "name": "Ilein",
+   "category": "FSG",
+   "time": "12:14.124",
+   "delta": "-8.7",
+   "ahead": true,
+   "elo": 1851,
+   "avatar": "avatars/037.png"
+  },
+  {
+   "rank": 39,
+   "name": "Naxpagaquacorde",
+   "category": "FSG",
+   "time": "11:16.181",
+   "delta": "+1.3",
+   "ahead": false,
+   "elo": 839,
+   "avatar": "avatars/038.png"
+  },
+  {
+   "rank": 40,
+   "name": "Towfeinred52",
+   "category": "AA",
+   "time": "12:44.428",
+   "delta": "-7.6",
+   "ahead": true,
+   "elo": 1620,
+   "avatar": "avatars/039.png"
+  },
+  {
+   "rank": 41,
+   "name": "Aquacordelyon",
+   "category": "SSG",
+   "time": "18:23.593",
+   "delta": "+1.6",
+   "ahead": false,
+   "elo": 1461,
+   "avatar": "avatars/040.png"
+  },
+  {
+   "rank": 42,
+   "name": "Naxetherred",
+   "category": "SSG",
+   "time": "16:03.119",
+   "delta": "+37.8",
+   "ahead": false,
+   "elo": 2215,
+   "avatar": "avatars/041.png"
+  },
+  {
+   "rank": 43,
+   "name": "Meschtdoognix",
+   "category": "AA",
+   "time": "11:42.108",
+   "delta": "-21.7",
+   "ahead": true,
+   "elo": 807,
+   "avatar": "avatars/042.png"
+  },
+  {
+   "rank": 44,
+   "name": "Rrway",
+   "category": "AA",
+   "time": "11:24.919",
+   "delta": "+33.0",
+   "ahead": false,
+   "elo": 1103,
+   "avatar": "avatars/043.png"
+  },
+  {
+   "rank": 45,
+   "name": "Llamadracozylenox",
+   "category": "SSG",
+   "time": "20:30.986",
+   "delta": "+32.1",
+   "ahead": false,
+   "elo": 1032,
+   "avatar": "avatars/044.png"
+  },
+  {
+   "rank": 46,
+   "name": "Naxdoog",
+   "category": "Ranked",
+   "time": "22:16.406",
+   "delta": "+35.6",
+   "ahead": false,
+   "elo": 2016,
+   "avatar": "avatars/045.png"
+  },
+  {
+   "rank": 47,
+   "name": "Obbynixdraco70",
+   "category": "SSG",
+   "time": "12:13.203",
+   "delta": "-0.3",
+   "ahead": true,
+   "elo": 1051,
+   "avatar": "avatars/046.png"
+  },
+  {
+   "rank": 48,
+   "name": "Limetow",
+   "category": "Ranked",
+   "time": "19:22.252",
+   "delta": "+5.1",
+   "ahead": false,
+   "elo": 1424,
+   "avatar": "avatars/047.png"
+  },
+  {
+   "rank": 49,
+   "name": "Dracoryguypag30",
+   "category": "Ranked",
+   "time": "17:15.700",
+   "delta": "+9.6",
+   "ahead": false,
+   "elo": 1701,
+   "avatar": "avatars/048.png"
+  },
+  {
+   "rank": 50,
+   "name": "Specblyway",
+   "category": "AA",
+   "time": "22:51.387",
+   "delta": "+12.9",
+   "ahead": false,
+   "elo": 811,
+   "avatar": "avatars/049.png"
+  },
+  {
+   "rank": 51,
+   "name": "Nrryguydoog",
+   "category": "FSG",
+   "time": "21:11.791",
+   "delta": "-16.1",
+   "ahead": true,
+   "elo": 986,
+   "avatar": "avatars/050.png"
+  },
+  {
+   "rank": 52,
+   "name": "Inile",
+   "category": "AA",
+   "time": "19:18.021",
+   "delta": "+12.2",
+   "ahead": false,
+   "elo": 2037,
+   "avatar": "avatars/051.png"
+  },
+  {
+   "rank": 53,
+   "name": "Meschtfein",
+   "category": "RSG",
+   "time": "23:18.016",
+   "delta": "-16.8",
+   "ahead": true,
+   "elo": 2090,
+   "avatar": "avatars/052.png"
+  },
+  {
+   "rank": 54,
+   "name": "Pearlzylenoxnax",
+   "category": "SSG",
+   "time": "21:45.493",
+   "delta": "+43.9",
+   "ahead": false,
+   "elo": 1143,
+   "avatar": "avatars/053.png"
+  },
+  {
+   "rank": 55,
+   "name": "Obbyjojoerr",
+   "category": "RSG",
+   "time": "8:34.515",
+   "delta": "+11.0",
+   "ahead": false,
+   "elo": 2045,
+   "avatar": "avatars/054.png"
+  },
+  {
+   "rank": 56,
+   "name": "Etherrr",
+   "category": "RSG",
+   "time": "18:25.046",
+   "delta": "-8.8",
+   "ahead": true,
+   "elo": 1478,
+   "avatar": "avatars/055.png"
+  },
+  {
+   "rank": 57,
+   "name": "Blyknawktow",
+   "category": "SSG",
+   "time": "15:22.109",
+   "delta": "+38.9",
+   "ahead": false,
+   "elo": 1170,
+   "avatar": "avatars/056.png"
+  },
+  {
+   "rank": 58,
+   "name": "Kybrain",
+   "category": "AA",
+   "time": "23:18.846",
+   "delta": "+43.5",
+   "ahead": false,
+   "elo": 1373,
+   "avatar": "avatars/057.png"
+  },
+  {
+   "rank": 59,
+   "name": "Naxway",
+   "category": "Ranked",
+   "time": "16:36.398",
+   "delta": "-32.8",
+   "ahead": true,
+   "elo": 2309,
+   "avatar": "avatars/058.png"
+  },
+  {
+   "rank": 60,
+   "name": "Pearlfein",
+   "category": "Ranked",
+   "time": "13:20.477",
+   "delta": "+12.2",
+   "ahead": false,
+   "elo": 1117,
+   "avatar": "avatars/059.png"
+  },
+  {
+   "rank": 61,
+   "name": "Knawkobby95",
+   "category": "SSG",
+   "time": "11:19.340",
+   "delta": "-23.0",
+   "ahead": true,
+   "elo": 2239,
+   "avatar": "avatars/060.png"
+  },
+  {
+   "rank": 62,
+   "name": "Pagspecether",
+   "category": "SSG",
+   "time": "12:42.762",
+   "delta": "-8.1",
+   "ahead": true,
+   "elo": 1313,
+   "avatar": "avatars/061.png"
+  },
+  {
+   "rank": 63,
+   "name": "Dydypearl",
+   "category": "RSG",
+   "time": "19:08.448",
+   "delta": "-39.8",
+   "ahead": true,
+   "elo": 2243,
+   "avatar": "avatars/062.png"
+  },
+  {
+   "rank": 64,
+   "name": "Obbyspeclime45",
+   "category": "SSG",
+   "time": "11:31.525",
+   "delta": "+42.5",
+   "ahead": false,
+   "elo": 1091,
+   "avatar": "avatars/063.png"
+  },
+  {
+   "rank": 65,
+   "name": "Limespec",
+   "category": "RSG",
+   "time": "8:56.994",
+   "delta": "+20.2",
+   "ahead": false,
+   "elo": 1634,
+   "avatar": "avatars/064.png"
+  },
+  {
+   "rank": 66,
+   "name": "Silverdoog",
+   "category": "Ranked",
+   "time": "23:23.648",
+   "delta": "-3.2",
+   "ahead": true,
+   "elo": 1245,
+   "avatar": "avatars/065.png"
+  },
+  {
+   "rank": 67,
+   "name": "Reddracoknawk",
+   "category": "RSG",
+   "time": "11:09.355",
+   "delta": "+42.7",
+   "ahead": false,
+   "elo": 1941,
+   "avatar": "avatars/066.png"
+  },
+  {
+   "rank": 68,
+   "name": "Kybraindy",
+   "category": "RSG",
+   "time": "7:20.958",
+   "delta": "-20.5",
+   "ahead": true,
+   "elo": 2167,
+   "avatar": "avatars/067.png"
+  },
+  {
+   "rank": 69,
+   "name": "Nrtowrr",
+   "category": "FSG",
+   "time": "14:29.058",
+   "delta": "-15.1",
+   "ahead": true,
+   "elo": 840,
+   "avatar": "avatars/068.png"
+  },
+  {
+   "rank": 70,
+   "name": "Marin",
+   "category": "SSG",
+   "time": "9:38.226",
+   "delta": "+28.5",
+   "ahead": false,
+   "elo": 1174,
+   "avatar": "avatars/069.png"
+  },
+  {
+   "rank": 71,
+   "name": "Specnix",
+   "category": "RSG",
+   "time": "9:43.720",
+   "delta": "+18.3",
+   "ahead": false,
+   "elo": 1391,
+   "avatar": "avatars/070.png"
+  },
+  {
+   "rank": 72,
+   "name": "Ileninjacour",
+   "category": "Ranked",
+   "time": "24:34.271",
+   "delta": "-36.3",
+   "ahead": true,
+   "elo": 1785,
+   "avatar": "avatars/071.png"
+  },
+  {
+   "rank": 73,
+   "name": "Ryguymescht",
+   "category": "FSG",
+   "time": "7:50.174",
+   "delta": "+4.1",
+   "ahead": false,
+   "elo": 931,
+   "avatar": "avatars/072.png"
+  },
+  {
+   "rank": 74,
+   "name": "Meschtpearl18",
+   "category": "Ranked",
+   "time": "9:26.248",
+   "delta": "-36.1",
+   "ahead": true,
+   "elo": 1421,
+   "avatar": "avatars/073.png"
+  },
+  {
+   "rank": 75,
+   "name": "Obbydoog",
+   "category": "FSG",
+   "time": "13:53.122",
+   "delta": "-6.3",
+   "ahead": true,
+   "elo": 1683,
+   "avatar": "avatars/074.png"
+  },
+  {
+   "rank": 76,
+   "name": "Redryguymescht29",
+   "category": "AA",
+   "time": "9:55.829",
+   "delta": "+15.7",
+   "ahead": false,
+   "elo": 865,
+   "avatar": "avatars/075.png"
+  },
+  {
+   "rank": 77,
+   "name": "Lyonnix",
+   "category": "RSG",
+   "time": "9:05.683",
+   "delta": "+2.8",
+   "ahead": false,
+   "elo": 1899,
+   "avatar": "avatars/076.png"
+  },
+  {
+   "rank": 78,
+   "name": "Jojoespec",
+   "category": "Ranked",
+   "time": "7:32.877",
+   "delta": "+31.7",
+   "ahead": false,
+   "elo": 1864,
+   "avatar": "avatars/077.png"
+  },
+  {
+   "rank": 79,
+   "name": "Naxllamafein32",
+   "category": "FSG",
+   "time": "11:44.216",
+   "delta": "+32.7",
+   "ahead": false,
+   "elo": 1791,
+   "avatar": "avatars/078.png"
+  },
+  {
+   "rank": 80,
+   "name": "Dykydy",
+   "category": "FSG",
+   "time": "21:41.244",
+   "delta": "+37.8",
+   "ahead": false,
+   "elo": 2065,
+   "avatar": "avatars/079.png"
+  },
+  {
+   "rank": 81,
+   "name": "Redetherway",
+   "category": "Ranked",
+   "time": "24:35.088",
+   "delta": "-43.0",
+   "ahead": true,
+   "elo": 1757,
+   "avatar": "avatars/080.png"
+  },
+  {
+   "rank": 82,
+   "name": "Pearlpagdibe",
+   "category": "RSG",
+   "time": "22:26.834",
+   "delta": "+22.2",
+   "ahead": false,
+   "elo": 820,
+   "avatar": "avatars/081.png"
+  },
+  {
+   "rank": 83,
+   "name": "Marbrainred",
+   "category": "FSG",
+   "time": "11:26.698",
+   "delta": "+17.2",
+   "ahead": false,
+   "elo": 2164,
+   "avatar": "avatars/082.png"
+  },
+  {
+   "rank": 84,
+   "name": "Llamatowpriffie93",
+   "category": "Ranked",
+   "time": "24:30.504",
+   "delta": "-21.3",
+   "ahead": true,
+   "elo": 2164,
+   "avatar": "avatars/083.png"
+  },
+  {
+   "rank": 85,
+   "name": "Priffieetherpriffie",
+   "category": "SSG",
+   "time": "7:21.210",
+   "delta": "-28.3",
+   "ahead": true,
+   "elo": 1432,
+   "avatar": "avatars/084.png"
+  },
+  {
+   "rank": 86,
+   "name": "Jojoeilenr",
+   "category": "SSG",
+   "time": "9:47.137",
+   "delta": "+42.5",
+   "ahead": false,
+   "elo": 1128,
+   "avatar": "avatars/085.png"
+  },
+  {
+   "rank": 87,
+   "name": "Lyonzylenoxspec",
+   "category": "SSG",
+   "time": "14:15.026",
+   "delta": "-4.5",
+   "ahead": true,
+   "elo": 1541,
+   "avatar": "avatars/086.png"
+  },
+  {
+   "rank": 88,
+   "name": "Silverryguyfein47",
+   "category": "RSG",
+   "time": "13:02.310",
+   "delta": "+11.4",
+   "ahead": false,
+   "elo": 1123,
+   "avatar": "avatars/087.png"
+  },
+  {
+   "rank": 89,
+   "name": "Brainin26",
+   "category": "SSG",
+   "time": "10:20.327",
+   "delta": "-43.8",
+   "ahead": true,
+   "elo": 1921,
+   "avatar": "avatars/088.png"
+  },
+  {
+   "rank": 90,
+   "name": "Courllama49",
+   "category": "AA",
+   "time": "15:12.345",
+   "delta": "-10.0",
+   "ahead": true,
+   "elo": 2143,
+   "avatar": "avatars/089.png"
+  },
+  {
+   "rank": 91,
+   "name": "Doogaquacorde",
+   "category": "RSG",
+   "time": "24:07.361",
+   "delta": "-8.2",
+   "ahead": true,
+   "elo": 1413,
+   "avatar": "avatars/090.png"
+  },
+  {
+   "rank": 92,
+   "name": "Priffieredway53",
+   "category": "FSG",
+   "time": "16:39.125",
+   "delta": "+37.9",
+   "ahead": false,
+   "elo": 1536,
+   "avatar": "avatars/091.png"
+  },
+  {
+   "rank": 93,
+   "name": "Lyonspecway",
+   "category": "FSG",
+   "time": "20:12.683",
+   "delta": "+42.8",
+   "ahead": false,
+   "elo": 1888,
+   "avatar": "avatars/092.png"
+  },
+  {
+   "rank": 94,
+   "name": "Waycourlime",
+   "category": "AA",
+   "time": "19:09.225",
+   "delta": "-3.3",
+   "ahead": true,
+   "elo": 1207,
+   "avatar": "avatars/093.png"
+  },
+  {
+   "rank": 95,
+   "name": "Kytow8",
+   "category": "Ranked",
+   "time": "22:58.879",
+   "delta": "-18.2",
+   "ahead": true,
+   "elo": 1089,
+   "avatar": "avatars/094.png"
+  },
+  {
+   "rank": 96,
+   "name": "Llamaindy37",
+   "category": "AA",
+   "time": "18:36.836",
+   "delta": "-28.1",
+   "ahead": true,
+   "elo": 1282,
+   "avatar": "avatars/095.png"
+  },
+  {
+   "rank": 97,
+   "name": "Zylenoxdibe91",
+   "category": "FSG",
+   "time": "8:44.505",
+   "delta": "+43.7",
+   "ahead": false,
+   "elo": 2043,
+   "avatar": "avatars/096.png"
+  },
+  {
+   "rank": 98,
+   "name": "Rrnr97",
+   "category": "AA",
+   "time": "11:35.011",
+   "delta": "+10.2",
+   "ahead": false,
+   "elo": 853,
+   "avatar": "avatars/097.png"
+  },
+  {
+   "rank": 99,
+   "name": "Dynixbly71",
+   "category": "SSG",
+   "time": "16:24.250",
+   "delta": "-10.0",
+   "ahead": true,
+   "elo": 1411,
+   "avatar": "avatars/098.png"
+  },
+  {
+   "rank": 100,
+   "name": "Lyonbrainobby",
+   "category": "FSG",
+   "time": "17:45.960",
+   "delta": "-35.4",
+   "ahead": true,
+   "elo": 1082,
+   "avatar": "avatars/099.png"
+  },
+  {
+   "rank": 101,
+   "name": "Llamaspecllama",
+   "category": "AA",
+   "time": "22:36.212",
+   "delta": "-22.8",
+   "ahead": true,
+   "elo": 990,
+   "avatar": "avatars/100.png"
+  },
+  {
+   "rank": 102,
+   "name": "Feinrr",
+   "category": "SSG",
+   "time": "18:17.341",
+   "delta": "+22.3",
+   "ahead": false,
+   "elo": 916,
+   "avatar": "avatars/101.png"
+  },
+  {
+   "rank": 103,
+   "name": "Specfein77",
+   "category": "Ranked",
+   "time": "20:40.423",
+   "delta": "+0.4",
+   "ahead": false,
+   "elo": 1541,
+   "avatar": "avatars/102.png"
+  },
+  {
+   "rank": 104,
+   "name": "Nrky",
+   "category": "FSG",
+   "time": "18:34.239",
+   "delta": "+36.6",
+   "ahead": false,
+   "elo": 1550,
+   "avatar": "avatars/103.png"
+  },
+  {
+   "rank": 105,
+   "name": "Rrmar",
+   "category": "SSG",
+   "time": "19:23.067",
+   "delta": "-35.4",
+   "ahead": true,
+   "elo": 1175,
+   "avatar": "avatars/104.png"
+  },
+  {
+   "rank": 106,
+   "name": "Waydracospec85",
+   "category": "AA",
+   "time": "15:35.297",
+   "delta": "+26.3",
+   "ahead": false,
+   "elo": 2149,
+   "avatar": "avatars/105.png"
+  },
+  {
+   "rank": 107,
+   "name": "Redbly",
+   "category": "FSG",
+   "time": "20:05.819",
+   "delta": "+9.4",
+   "ahead": false,
+   "elo": 1360,
+   "avatar": "avatars/106.png"
+  },
+  {
+   "rank": 108,
+   "name": "Obbynr",
+   "category": "Ranked",
+   "time": "17:13.073",
+   "delta": "-40.6",
+   "ahead": true,
+   "elo": 1742,
+   "avatar": "avatars/107.png"
+  },
+  {
+   "rank": 109,
+   "name": "Doogkyjojoe",
+   "category": "SSG",
+   "time": "21:42.761",
+   "delta": "-25.1",
+   "ahead": true,
+   "elo": 1662,
+   "avatar": "avatars/108.png"
+  },
+  {
+   "rank": 110,
+   "name": "Llamalime",
+   "category": "RSG",
+   "time": "14:58.308",
+   "delta": "+37.7",
+   "ahead": false,
+   "elo": 2009,
+   "avatar": "avatars/109.png"
+  },
+  {
+   "rank": 111,
+   "name": "Dracopagbrain97",
+   "category": "RSG",
+   "time": "10:57.363",
+   "delta": "+23.5",
+   "ahead": false,
+   "elo": 1492,
+   "avatar": "avatars/110.png"
+  },
+  {
+   "rank": 112,
+   "name": "Kyknawk",
+   "category": "Ranked",
+   "time": "12:57.757",
+   "delta": "+42.5",
+   "ahead": false,
+   "elo": 1217,
+   "avatar": "avatars/111.png"
+  },
+  {
+   "rank": 113,
+   "name": "Coursilver",
+   "category": "FSG",
+   "time": "18:05.883",
+   "delta": "+31.1",
+   "ahead": false,
+   "elo": 1446,
+   "avatar": "avatars/112.png"
+  },
+  {
+   "rank": 114,
+   "name": "Dyninja",
+   "category": "RSG",
+   "time": "20:52.289",
+   "delta": "-34.0",
+   "ahead": true,
+   "elo": 2338,
+   "avatar": "avatars/113.png"
+  },
+  {
+   "rank": 115,
+   "name": "Aquacordeobbymescht86",
+   "category": "AA",
+   "time": "17:42.732",
+   "delta": "+22.6",
+   "ahead": false,
+   "elo": 2396,
+   "avatar": "avatars/114.png"
+  },
+  {
+   "rank": 116,
+   "name": "Jojoemescht",
+   "category": "FSG",
+   "time": "7:30.593",
+   "delta": "-15.0",
+   "ahead": true,
+   "elo": 1944,
+   "avatar": "avatars/115.png"
+  },
+  {
+   "rank": 117,
+   "name": "Pagnaxobby",
+   "category": "SSG",
+   "time": "23:48.940",
+   "delta": "-24.0",
+   "ahead": true,
+   "elo": 2153,
+   "avatar": "avatars/116.png"
+  },
+  {
+   "rank": 118,
+   "name": "Pearlspec",
+   "category": "SSG",
+   "time": "20:00.047",
+   "delta": "+1.3",
+   "ahead": false,
+   "elo": 2240,
+   "avatar": "avatars/117.png"
+  },
+  {
+   "rank": 119,
+   "name": "Towzylenox",
+   "category": "RSG",
+   "time": "22:24.653",
+   "delta": "-40.6",
+   "ahead": true,
+   "elo": 856,
+   "avatar": "avatars/118.png"
+  },
+  {
+   "rank": 120,
+   "name": "Ninjaknawk97",
+   "category": "RSG",
+   "time": "22:59.919",
+   "delta": "-10.1",
+   "ahead": true,
+   "elo": 970,
+   "avatar": "avatars/119.png"
+  },
+  {
+   "rank": 121,
+   "name": "Dracojojoenr",
+   "category": "FSG",
+   "time": "9:48.521",
+   "delta": "-31.9",
+   "ahead": true,
+   "elo": 850,
+   "avatar": "avatars/120.png"
+  },
+  {
+   "rank": 122,
+   "name": "Dibeky",
+   "category": "Ranked",
+   "time": "10:18.262",
+   "delta": "+28.5",
+   "ahead": false,
+   "elo": 1460,
+   "avatar": "avatars/121.png"
+  },
+  {
+   "rank": 123,
+   "name": "Blydoogsilver",
+   "category": "AA",
+   "time": "24:17.301",
+   "delta": "+20.5",
+   "ahead": false,
+   "elo": 898,
+   "avatar": "avatars/122.png"
+  },
+  {
+   "rank": 124,
+   "name": "Limenr",
+   "category": "RSG",
+   "time": "24:32.542",
+   "delta": "-20.1",
+   "ahead": true,
+   "elo": 1739,
+   "avatar": "avatars/123.png"
+  },
+  {
+   "rank": 125,
+   "name": "Rrether82",
+   "category": "FSG",
+   "time": "8:19.665",
+   "delta": "-31.2",
+   "ahead": true,
+   "elo": 1298,
+   "avatar": "avatars/124.png"
+  },
+  {
+   "rank": 126,
+   "name": "Redllama",
+   "category": "Ranked",
+   "time": "24:08.955",
+   "delta": "-29.7",
+   "ahead": true,
+   "elo": 1189,
+   "avatar": "avatars/125.png"
+  },
+  {
+   "rank": 127,
+   "name": "Zylenoxaquacorde",
+   "category": "SSG",
+   "time": "16:08.108",
+   "delta": "+40.6",
+   "ahead": false,
+   "elo": 1122,
+   "avatar": "avatars/126.png"
+  },
+  {
+   "rank": 128,
+   "name": "Jojoered90",
+   "category": "RSG",
+   "time": "20:19.885",
+   "delta": "+17.1",
+   "ahead": false,
+   "elo": 2367,
+   "avatar": "avatars/127.png"
+  },
+  {
+   "rank": 129,
+   "name": "Nixtow70",
+   "category": "FSG",
+   "time": "16:48.907",
+   "delta": "+12.5",
+   "ahead": false,
+   "elo": 1526,
+   "avatar": "avatars/128.png"
+  },
+  {
+   "rank": 130,
+   "name": "Kyjojoeky",
+   "category": "FSG",
+   "time": "15:22.352",
+   "delta": "+10.4",
+   "ahead": false,
+   "elo": 841,
+   "avatar": "avatars/129.png"
+  },
+  {
+   "rank": 131,
+   "name": "Meschtzylenox",
+   "category": "SSG",
+   "time": "8:52.200",
+   "delta": "+37.2",
+   "ahead": false,
+   "elo": 1165,
+   "avatar": "avatars/130.png"
+  },
+  {
+   "rank": 132,
+   "name": "Llamadoognr",
+   "category": "FSG",
+   "time": "15:42.156",
+   "delta": "+27.9",
+   "ahead": false,
+   "elo": 856,
+   "avatar": "avatars/131.png"
+  },
+  {
+   "rank": 133,
+   "name": "Ninjallamaryguy34",
+   "category": "AA",
+   "time": "11:53.961",
+   "delta": "-20.5",
+   "ahead": true,
+   "elo": 1515,
+   "avatar": "avatars/132.png"
+  },
+  {
+   "rank": 134,
+   "name": "Nixnrdy",
+   "category": "AA",
+   "time": "13:28.491",
+   "delta": "-35.7",
+   "ahead": true,
+   "elo": 949,
+   "avatar": "avatars/133.png"
+  },
+  {
+   "rank": 135,
+   "name": "Doogetherether",
+   "category": "SSG",
+   "time": "9:38.747",
+   "delta": "-22.1",
+   "ahead": true,
+   "elo": 1576,
+   "avatar": "avatars/134.png"
+  },
+  {
+   "rank": 136,
+   "name": "Marjojoellama",
+   "category": "RSG",
+   "time": "16:16.599",
+   "delta": "-33.8",
+   "ahead": true,
+   "elo": 1794,
+   "avatar": "avatars/135.png"
+  },
+  {
+   "rank": 137,
+   "name": "Priffiepag",
+   "category": "SSG",
+   "time": "9:37.164",
+   "delta": "+2.4",
+   "ahead": false,
+   "elo": 805,
+   "avatar": "avatars/136.png"
+  },
+  {
+   "rank": 138,
+   "name": "Kyninjapearl40",
+   "category": "SSG",
+   "time": "11:52.447",
+   "delta": "-30.6",
+   "ahead": true,
+   "elo": 1942,
+   "avatar": "avatars/137.png"
+  },
+  {
+   "rank": 139,
+   "name": "Brainlimetow",
+   "category": "Ranked",
+   "time": "24:33.683",
+   "delta": "-23.5",
+   "ahead": true,
+   "elo": 2182,
+   "avatar": "avatars/138.png"
+  },
+  {
+   "rank": 140,
+   "name": "Obbyknawkpriffie",
+   "category": "RSG",
+   "time": "15:00.094",
+   "delta": "+29.7",
+   "ahead": false,
+   "elo": 1738,
+   "avatar": "avatars/139.png"
+  },
+  {
+   "rank": 141,
+   "name": "Limetowninja",
+   "category": "AA",
+   "time": "13:11.392",
+   "delta": "+21.3",
+   "ahead": false,
+   "elo": 1175,
+   "avatar": "avatars/140.png"
+  },
+  {
+   "rank": 142,
+   "name": "Nrdibeky",
+   "category": "Ranked",
+   "time": "21:49.106",
+   "delta": "+30.4",
+   "ahead": false,
+   "elo": 1447,
+   "avatar": "avatars/141.png"
+  },
+  {
+   "rank": 143,
+   "name": "Waynixin",
+   "category": "SSG",
+   "time": "13:07.963",
+   "delta": "+30.3",
+   "ahead": false,
+   "elo": 2273,
+   "avatar": "avatars/142.png"
+  },
+  {
+   "rank": 144,
+   "name": "Specknawk",
+   "category": "Ranked",
+   "time": "10:58.796",
+   "delta": "+9.1",
+   "ahead": false,
+   "elo": 969,
+   "avatar": "avatars/143.png"
+  },
+  {
+   "rank": 145,
+   "name": "Silverllama84",
+   "category": "AA",
+   "time": "12:12.991",
+   "delta": "+28.4",
+   "ahead": false,
+   "elo": 1210,
+   "avatar": "avatars/144.png"
+  },
+  {
+   "rank": 146,
+   "name": "Llamailedy",
+   "category": "AA",
+   "time": "9:09.874",
+   "delta": "+41.2",
+   "ahead": false,
+   "elo": 1436,
+   "avatar": "avatars/145.png"
+  },
+  {
+   "rank": 147,
+   "name": "Dyryguylime",
+   "category": "SSG",
+   "time": "12:28.232",
+   "delta": "-3.8",
+   "ahead": true,
+   "elo": 2227,
+   "avatar": "avatars/146.png"
+  },
+  {
+   "rank": 148,
+   "name": "Dracofeinsilver93",
+   "category": "Ranked",
+   "time": "10:49.480",
+   "delta": "+37.4",
+   "ahead": false,
+   "elo": 1163,
+   "avatar": "avatars/147.png"
+  },
+  {
+   "rank": 149,
+   "name": "Townix37",
+   "category": "SSG",
+   "time": "8:26.462",
+   "delta": "-44.4",
+   "ahead": true,
+   "elo": 1876,
+   "avatar": "avatars/148.png"
+  },
+  {
+   "rank": 150,
+   "name": "Silverzylenox",
+   "category": "AA",
+   "time": "18:40.640",
+   "delta": "+31.8",
+   "ahead": false,
+   "elo": 802,
+   "avatar": "avatars/149.png"
+  },
+  {
+   "rank": 151,
+   "name": "Specile",
+   "category": "RSG",
+   "time": "11:20.107",
+   "delta": "+29.1",
+   "ahead": false,
+   "elo": 2327,
+   "avatar": "avatars/150.png"
+  },
+  {
+   "rank": 152,
+   "name": "Pearldoog89",
+   "category": "SSG",
+   "time": "10:24.234",
+   "delta": "-16.7",
+   "ahead": true,
+   "elo": 1119,
+   "avatar": "avatars/151.png"
+  },
+  {
+   "rank": 153,
+   "name": "Jojoesilverdraco71",
+   "category": "Ranked",
+   "time": "11:38.925",
+   "delta": "-4.7",
+   "ahead": true,
+   "elo": 1599,
+   "avatar": "avatars/152.png"
+  },
+  {
+   "rank": 154,
+   "name": "Nixilemar15",
+   "category": "FSG",
+   "time": "20:21.995",
+   "delta": "-42.7",
+   "ahead": true,
+   "elo": 2331,
+   "avatar": "avatars/153.png"
+  },
+  {
+   "rank": 155,
+   "name": "Blyspeclime",
+   "category": "SSG",
+   "time": "18:40.451",
+   "delta": "-7.3",
+   "ahead": true,
+   "elo": 1439,
+   "avatar": "avatars/154.png"
+  },
+  {
+   "rank": 156,
+   "name": "Courbly",
+   "category": "RSG",
+   "time": "17:59.162",
+   "delta": "-17.1",
+   "ahead": true,
+   "elo": 863,
+   "avatar": "avatars/155.png"
+  },
+  {
+   "rank": 157,
+   "name": "Nixaquacordepearl35",
+   "category": "RSG",
+   "time": "22:59.763",
+   "delta": "+9.0",
+   "ahead": false,
+   "elo": 1722,
+   "avatar": "avatars/156.png"
+  },
+  {
+   "rank": 158,
+   "name": "Ryguyknawkky",
+   "category": "AA",
+   "time": "17:22.046",
+   "delta": "+35.8",
+   "ahead": false,
+   "elo": 1155,
+   "avatar": "avatars/157.png"
+  },
+  {
+   "rank": 159,
+   "name": "Draconaxmescht",
+   "category": "SSG",
+   "time": "13:17.352",
+   "delta": "-29.6",
+   "ahead": true,
+   "elo": 2384,
+   "avatar": "avatars/158.png"
+  },
+  {
+   "rank": 160,
+   "name": "Pagdiberyguy",
+   "category": "SSG",
+   "time": "9:27.953",
+   "delta": "+29.0",
+   "ahead": false,
+   "elo": 2110,
+   "avatar": "avatars/159.png"
+  },
+  {
+   "rank": 161,
+   "name": "Lyontow",
+   "category": "SSG",
+   "time": "16:18.712",
+   "delta": "+43.2",
+   "ahead": false,
+   "elo": 1400,
+   "avatar": "avatars/160.png"
+  },
+  {
+   "rank": 162,
+   "name": "Inaquacordeky",
+   "category": "RSG",
+   "time": "13:25.951",
+   "delta": "-13.8",
+   "ahead": true,
+   "elo": 912,
+   "avatar": "avatars/161.png"
+  },
+  {
+   "rank": 163,
+   "name": "Ethernrfein",
+   "category": "Ranked",
+   "time": "12:27.558",
+   "delta": "-9.1",
+   "ahead": true,
+   "elo": 1033,
+   "avatar": "avatars/162.png"
+  },
+  {
+   "rank": 164,
+   "name": "Ninjady",
+   "category": "AA",
+   "time": "15:38.347",
+   "delta": "-42.0",
+   "ahead": true,
+   "elo": 1534,
+   "avatar": "avatars/163.png"
+  },
+  {
+   "rank": 165,
+   "name": "Lyonbly",
+   "category": "SSG",
+   "time": "15:24.561",
+   "delta": "-43.0",
+   "ahead": true,
+   "elo": 1139,
+   "avatar": "avatars/164.png"
+  },
+  {
+   "rank": 166,
+   "name": "Priffiejojoeninja",
+   "category": "RSG",
+   "time": "12:28.347",
+   "delta": "+42.1",
+   "ahead": false,
+   "elo": 1799,
+   "avatar": "avatars/165.png"
+  },
+  {
+   "rank": 167,
+   "name": "Kyninjapag",
+   "category": "Ranked",
+   "time": "9:51.067",
+   "delta": "-4.0",
+   "ahead": true,
+   "elo": 2368,
+   "avatar": "avatars/166.png"
+  },
+  {
+   "rank": 168,
+   "name": "Towrrether30",
+   "category": "AA",
+   "time": "15:41.714",
+   "delta": "-17.0",
+   "ahead": true,
+   "elo": 1714,
+   "avatar": "avatars/167.png"
+  },
+  {
+   "rank": 169,
+   "name": "Brainllama61",
+   "category": "AA",
+   "time": "13:39.887",
+   "delta": "+9.7",
+   "ahead": false,
+   "elo": 1875,
+   "avatar": "avatars/168.png"
+  },
+  {
+   "rank": 170,
+   "name": "Silverryguy35",
+   "category": "RSG",
+   "time": "15:25.704",
+   "delta": "+42.3",
+   "ahead": false,
+   "elo": 2088,
+   "avatar": "avatars/169.png"
+  },
+  {
+   "rank": 171,
+   "name": "Towred40",
+   "category": "Ranked",
+   "time": "18:32.718",
+   "delta": "+5.7",
+   "ahead": false,
+   "elo": 1162,
+   "avatar": "avatars/170.png"
+  },
+  {
+   "rank": 172,
+   "name": "Obbynix13",
+   "category": "Ranked",
+   "time": "22:21.452",
+   "delta": "+6.8",
+   "ahead": false,
+   "elo": 2091,
+   "avatar": "avatars/171.png"
+  },
+  {
+   "rank": 173,
+   "name": "Dyilellama",
+   "category": "AA",
+   "time": "24:15.923",
+   "delta": "+40.3",
+   "ahead": false,
+   "elo": 2287,
+   "avatar": "avatars/172.png"
+  },
+  {
+   "rank": 174,
+   "name": "Silvercourtow",
+   "category": "Ranked",
+   "time": "17:42.337",
+   "delta": "-11.4",
+   "ahead": true,
+   "elo": 1815,
+   "avatar": "avatars/173.png"
+  },
+  {
+   "rank": 175,
+   "name": "Priffieredile",
+   "category": "SSG",
+   "time": "24:49.287",
+   "delta": "-43.9",
+   "ahead": true,
+   "elo": 1870,
+   "avatar": "avatars/174.png"
+  },
+  {
+   "rank": 176,
+   "name": "Nrdy",
+   "category": "RSG",
+   "time": "13:44.514",
+   "delta": "+6.3",
+   "ahead": false,
+   "elo": 1831,
+   "avatar": "avatars/175.png"
+  },
+  {
+   "rank": 177,
+   "name": "Towzylenoxpriffie",
+   "category": "Ranked",
+   "time": "7:34.259",
+   "delta": "-32.4",
+   "ahead": true,
+   "elo": 1499,
+   "avatar": "avatars/176.png"
+  },
+  {
+   "rank": 178,
+   "name": "Waynixin",
+   "category": "FSG",
+   "time": "8:04.524",
+   "delta": "+13.4",
+   "ahead": false,
+   "elo": 1454,
+   "avatar": "avatars/177.png"
+  },
+  {
+   "rank": 179,
+   "name": "Zylenoxnax",
+   "category": "SSG",
+   "time": "18:35.950",
+   "delta": "+26.3",
+   "ahead": false,
+   "elo": 1741,
+   "avatar": "avatars/178.png"
+  },
+  {
+   "rank": 180,
+   "name": "Innaxbly69",
+   "category": "SSG",
+   "time": "23:12.866",
+   "delta": "-5.9",
+   "ahead": true,
+   "elo": 1325,
+   "avatar": "avatars/179.png"
+  },
+  {
+   "rank": 181,
+   "name": "Kyobby",
+   "category": "FSG",
+   "time": "10:45.057",
+   "delta": "+34.4",
+   "ahead": false,
+   "elo": 1394,
+   "avatar": "avatars/180.png"
+  },
+  {
+   "rank": 182,
+   "name": "Feinpag48",
+   "category": "RSG",
+   "time": "23:56.445",
+   "delta": "+22.6",
+   "ahead": false,
+   "elo": 936,
+   "avatar": "avatars/181.png"
+  },
+  {
+   "rank": 183,
+   "name": "Townax",
+   "category": "Ranked",
+   "time": "16:46.155",
+   "delta": "+20.2",
+   "ahead": false,
+   "elo": 987,
+   "avatar": "avatars/182.png"
+  },
+  {
+   "rank": 184,
+   "name": "Marsilver",
+   "category": "Ranked",
+   "time": "9:04.848",
+   "delta": "-30.9",
+   "ahead": true,
+   "elo": 1521,
+   "avatar": "avatars/183.png"
+  },
+  {
+   "rank": 185,
+   "name": "Ryguymar",
+   "category": "Ranked",
+   "time": "18:07.461",
+   "delta": "+38.3",
+   "ahead": false,
+   "elo": 1832,
+   "avatar": "avatars/184.png"
+  },
+  {
+   "rank": 186,
+   "name": "Aquacordedracorr",
+   "category": "SSG",
+   "time": "19:53.119",
+   "delta": "-31.4",
+   "ahead": true,
+   "elo": 2135,
+   "avatar": "avatars/185.png"
+  },
+  {
+   "rank": 187,
+   "name": "Intow64",
+   "category": "AA",
+   "time": "24:29.707",
+   "delta": "-20.5",
+   "ahead": true,
+   "elo": 1538,
+   "avatar": "avatars/186.png"
+  },
+  {
+   "rank": 188,
+   "name": "Aquacordeobby",
+   "category": "FSG",
+   "time": "11:02.770",
+   "delta": "+20.4",
+   "ahead": false,
+   "elo": 1093,
+   "avatar": "avatars/187.png"
+  },
+  {
+   "rank": 189,
+   "name": "Braincour",
+   "category": "FSG",
+   "time": "23:59.498",
+   "delta": "+11.4",
+   "ahead": false,
+   "elo": 1273,
+   "avatar": "avatars/188.png"
+  },
+  {
+   "rank": 190,
+   "name": "Naxpearl",
+   "category": "RSG",
+   "time": "15:34.968",
+   "delta": "+33.7",
+   "ahead": false,
+   "elo": 1133,
+   "avatar": "avatars/189.png"
+  },
+  {
+   "rank": 191,
+   "name": "Cournix68",
+   "category": "AA",
+   "time": "7:08.167",
+   "delta": "+9.8",
+   "ahead": false,
+   "elo": 1279,
+   "avatar": "avatars/190.png"
+  },
+  {
+   "rank": 192,
+   "name": "Zylenoxryguysilver",
+   "category": "RSG",
+   "time": "21:07.835",
+   "delta": "+22.5",
+   "ahead": false,
+   "elo": 2026,
+   "avatar": "avatars/191.png"
+  },
+  {
+   "rank": 193,
+   "name": "Nixninjaether",
+   "category": "Ranked",
+   "time": "12:43.433",
+   "delta": "+26.5",
+   "ahead": false,
+   "elo": 1616,
+   "avatar": "avatars/192.png"
+  },
+  {
+   "rank": 194,
+   "name": "Pagbrain",
+   "category": "Ranked",
+   "time": "23:27.337",
+   "delta": "-40.9",
+   "ahead": true,
+   "elo": 1150,
+   "avatar": "avatars/193.png"
+  },
+  {
+   "rank": 195,
+   "name": "Knawkjojoe",
+   "category": "RSG",
+   "time": "17:44.885",
+   "delta": "+30.0",
+   "ahead": false,
+   "elo": 2222,
+   "avatar": "avatars/194.png"
+  },
+  {
+   "rank": 196,
+   "name": "Wayinky",
+   "category": "SSG",
+   "time": "9:17.860",
+   "delta": "-30.5",
+   "ahead": true,
+   "elo": 2231,
+   "avatar": "avatars/195.png"
+  },
+  {
+   "rank": 197,
+   "name": "Pearldibe",
+   "category": "FSG",
+   "time": "7:32.695",
+   "delta": "-27.9",
+   "ahead": true,
+   "elo": 2122,
+   "avatar": "avatars/196.png"
+  },
+  {
+   "rank": 198,
+   "name": "Redbrainbrain",
+   "category": "FSG",
+   "time": "24:16.991",
+   "delta": "+4.6",
+   "ahead": false,
+   "elo": 1775,
+   "avatar": "avatars/197.png"
+  },
+  {
+   "rank": 199,
+   "name": "Redredfein30",
+   "category": "Ranked",
+   "time": "22:06.790",
+   "delta": "+6.1",
+   "ahead": false,
+   "elo": 2191,
+   "avatar": "avatars/198.png"
+  },
+  {
+   "rank": 200,
+   "name": "Priffienaxether",
+   "category": "RSG",
+   "time": "18:27.321",
+   "delta": "-33.7",
+   "ahead": true,
+   "elo": 1858,
+   "avatar": "avatars/199.png"
+  },
+  {
+   "rank": 201,
+   "name": "Limefeinlyon",
+   "category": "RSG",
+   "time": "20:47.601",
+   "delta": "-14.9",
+   "ahead": true,
+   "elo": 1444,
+   "avatar": "avatars/200.png"
+  },
+  {
+   "rank": 202,
+   "name": "Ryguydraco",
+   "category": "RSG",
+   "time": "7:34.385",
+   "delta": "-9.2",
+   "ahead": true,
+   "elo": 1015,
+   "avatar": "avatars/201.png"
+  },
+  {
+   "rank": 203,
+   "name": "Ryguymescht30",
+   "category": "AA",
+   "time": "9:31.441",
+   "delta": "-12.3",
+   "ahead": true,
+   "elo": 1257,
+   "avatar": "avatars/202.png"
+  },
+  {
+   "rank": 204,
+   "name": "Meschtmarred",
+   "category": "SSG",
+   "time": "8:02.422",
+   "delta": "+26.0",
+   "ahead": false,
+   "elo": 1606,
+   "avatar": "avatars/203.png"
+  },
+  {
+   "rank": 205,
+   "name": "Redzylenoxfein72",
+   "category": "FSG",
+   "time": "8:52.170",
+   "delta": "-30.5",
+   "ahead": true,
+   "elo": 2120,
+   "avatar": "avatars/204.png"
+  },
+  {
+   "rank": 206,
+   "name": "Towryguy",
+   "category": "RSG",
+   "time": "7:11.783",
+   "delta": "+8.8",
+   "ahead": false,
+   "elo": 1831,
+   "avatar": "avatars/205.png"
+  },
+  {
+   "rank": 207,
+   "name": "Wayryguy",
+   "category": "RSG",
+   "time": "23:35.731",
+   "delta": "+23.9",
+   "ahead": false,
+   "elo": 1755,
+   "avatar": "avatars/206.png"
+  },
+  {
+   "rank": 208,
+   "name": "Aquacordebrain67",
+   "category": "SSG",
+   "time": "14:42.471",
+   "delta": "-42.5",
+   "ahead": true,
+   "elo": 1752,
+   "avatar": "avatars/207.png"
+  },
+  {
+   "rank": 209,
+   "name": "Zylenoxredbrain",
+   "category": "SSG",
+   "time": "12:25.669",
+   "delta": "-6.7",
+   "ahead": true,
+   "elo": 1494,
+   "avatar": "avatars/208.png"
+  },
+  {
+   "rank": 210,
+   "name": "Rednixdibe",
+   "category": "RSG",
+   "time": "11:29.313",
+   "delta": "+28.8",
+   "ahead": false,
+   "elo": 1978,
+   "avatar": "avatars/209.png"
+  },
+  {
+   "rank": 211,
+   "name": "Redsilverky",
+   "category": "FSG",
+   "time": "21:08.691",
+   "delta": "+25.0",
+   "ahead": false,
+   "elo": 2091,
+   "avatar": "avatars/210.png"
+  },
+  {
+   "rank": 212,
+   "name": "Marspecdy",
+   "category": "RSG",
+   "time": "24:43.289",
+   "delta": "-13.2",
+   "ahead": true,
+   "elo": 2256,
+   "avatar": "avatars/211.png"
+  },
+  {
+   "rank": 213,
+   "name": "Courninjaspec",
+   "category": "Ranked",
+   "time": "17:09.936",
+   "delta": "-20.5",
+   "ahead": true,
+   "elo": 2311,
+   "avatar": "avatars/212.png"
+  },
+  {
+   "rank": 214,
+   "name": "Doognax",
+   "category": "AA",
+   "time": "18:21.370",
+   "delta": "-5.6",
+   "ahead": true,
+   "elo": 1901,
+   "avatar": "avatars/213.png"
+  },
+  {
+   "rank": 215,
+   "name": "Pearlknawklyon",
+   "category": "SSG",
+   "time": "7:25.307",
+   "delta": "-20.9",
+   "ahead": true,
+   "elo": 1708,
+   "avatar": "avatars/214.png"
+  },
+  {
+   "rank": 216,
+   "name": "Dracodibemar3",
+   "category": "FSG",
+   "time": "9:14.133",
+   "delta": "-19.5",
+   "ahead": true,
+   "elo": 1279,
+   "avatar": "avatars/215.png"
+  },
+  {
+   "rank": 217,
+   "name": "Insilverbrain",
+   "category": "Ranked",
+   "time": "8:53.617",
+   "delta": "+30.9",
+   "ahead": false,
+   "elo": 1934,
+   "avatar": "avatars/216.png"
+  },
+  {
+   "rank": 218,
+   "name": "Llamaryguydoog",
+   "category": "Ranked",
+   "time": "9:14.474",
+   "delta": "+2.3",
+   "ahead": false,
+   "elo": 2082,
+   "avatar": "avatars/217.png"
+  },
+  {
+   "rank": 219,
+   "name": "Aquacordeinky",
+   "category": "FSG",
+   "time": "19:15.736",
+   "delta": "+22.4",
+   "ahead": false,
+   "elo": 2126,
+   "avatar": "avatars/218.png"
+  },
+  {
+   "rank": 220,
+   "name": "Ryguycourbly93",
+   "category": "SSG",
+   "time": "17:50.500",
+   "delta": "-13.4",
+   "ahead": true,
+   "elo": 1838,
+   "avatar": "avatars/219.png"
+  },
+  {
+   "rank": 221,
+   "name": "Priffiedy76",
+   "category": "FSG",
+   "time": "9:12.776",
+   "delta": "-11.3",
+   "ahead": true,
+   "elo": 1336,
+   "avatar": "avatars/220.png"
+  },
+  {
+   "rank": 222,
+   "name": "Towjojoepag35",
+   "category": "Ranked",
+   "time": "8:28.683",
+   "delta": "+3.8",
+   "ahead": false,
+   "elo": 2087,
+   "avatar": "avatars/221.png"
+  },
+  {
+   "rank": 223,
+   "name": "Ilenixnr96",
+   "category": "RSG",
+   "time": "17:53.828",
+   "delta": "+25.2",
+   "ahead": false,
+   "elo": 1552,
+   "avatar": "avatars/222.png"
+  },
+  {
+   "rank": 224,
+   "name": "Pearlllama",
+   "category": "RSG",
+   "time": "7:37.059",
+   "delta": "-21.5",
+   "ahead": true,
+   "elo": 1755,
+   "avatar": "avatars/223.png"
+  },
+  {
+   "rank": 225,
+   "name": "Ryguydraco",
+   "category": "SSG",
+   "time": "20:41.536",
+   "delta": "-2.3",
+   "ahead": true,
+   "elo": 2150,
+   "avatar": "avatars/224.png"
+  },
+  {
+   "rank": 226,
+   "name": "Ninjaether",
+   "category": "AA",
+   "time": "9:14.700",
+   "delta": "+40.2",
+   "ahead": false,
+   "elo": 1449,
+   "avatar": "avatars/225.png"
+  },
+  {
+   "rank": 227,
+   "name": "Aquacordepearl",
+   "category": "AA",
+   "time": "22:03.041",
+   "delta": "-34.6",
+   "ahead": true,
+   "elo": 2257,
+   "avatar": "avatars/226.png"
+  },
+  {
+   "rank": 228,
+   "name": "Etherrr74",
+   "category": "Ranked",
+   "time": "11:34.308",
+   "delta": "-30.9",
+   "ahead": true,
+   "elo": 1091,
+   "avatar": "avatars/227.png"
+  },
+  {
+   "rank": 229,
+   "name": "Dibepriffie",
+   "category": "SSG",
+   "time": "13:16.109",
+   "delta": "-32.6",
+   "ahead": true,
+   "elo": 2119,
+   "avatar": "avatars/228.png"
+  },
+  {
+   "rank": 230,
+   "name": "Dypag1",
+   "category": "FSG",
+   "time": "10:29.240",
+   "delta": "+5.4",
+   "ahead": false,
+   "elo": 2096,
+   "avatar": "avatars/229.png"
+  },
+  {
+   "rank": 231,
+   "name": "Silverway",
+   "category": "RSG",
+   "time": "14:51.037",
+   "delta": "-17.0",
+   "ahead": true,
+   "elo": 1320,
+   "avatar": "avatars/230.png"
+  },
+  {
+   "rank": 232,
+   "name": "Specin28",
+   "category": "AA",
+   "time": "17:43.395",
+   "delta": "+16.0",
+   "ahead": false,
+   "elo": 2290,
+   "avatar": "avatars/231.png"
+  },
+  {
+   "rank": 233,
+   "name": "Courdylyon48",
+   "category": "SSG",
+   "time": "12:51.075",
+   "delta": "+17.2",
+   "ahead": false,
+   "elo": 2161,
+   "avatar": "avatars/232.png"
+  },
+  {
+   "rank": 234,
+   "name": "Redryguy",
+   "category": "SSG",
+   "time": "12:43.213",
+   "delta": "+3.6",
+   "ahead": false,
+   "elo": 2295,
+   "avatar": "avatars/233.png"
+  },
+  {
+   "rank": 235,
+   "name": "Ethernix",
+   "category": "RSG",
+   "time": "16:13.452",
+   "delta": "-7.2",
+   "ahead": true,
+   "elo": 1704,
+   "avatar": "avatars/234.png"
+  },
+  {
+   "rank": 236,
+   "name": "Pearlnr",
+   "category": "RSG",
+   "time": "10:29.305",
+   "delta": "-12.5",
+   "ahead": true,
+   "elo": 1145,
+   "avatar": "avatars/235.png"
+  },
+  {
+   "rank": 237,
+   "name": "Draconax",
+   "category": "RSG",
+   "time": "17:13.163",
+   "delta": "+30.3",
+   "ahead": false,
+   "elo": 1800,
+   "avatar": "avatars/236.png"
+  },
+  {
+   "rank": 238,
+   "name": "Knawkdibe",
+   "category": "FSG",
+   "time": "7:07.199",
+   "delta": "-11.8",
+   "ahead": true,
+   "elo": 1065,
+   "avatar": "avatars/237.png"
+  },
+  {
+   "rank": 239,
+   "name": "Silverryguyether",
+   "category": "RSG",
+   "time": "9:47.703",
+   "delta": "+11.2",
+   "ahead": false,
+   "elo": 1412,
+   "avatar": "avatars/238.png"
+  },
+  {
+   "rank": 240,
+   "name": "Jojoelimenr61",
+   "category": "FSG",
+   "time": "18:54.056",
+   "delta": "-39.8",
+   "ahead": true,
+   "elo": 2199,
+   "avatar": "avatars/239.png"
+  },
+  {
+   "rank": 241,
+   "name": "Ninjatow",
+   "category": "Ranked",
+   "time": "18:07.684",
+   "delta": "-39.2",
+   "ahead": true,
+   "elo": 823,
+   "avatar": "avatars/240.png"
+  },
+  {
+   "rank": 242,
+   "name": "Lyonnaxcour",
+   "category": "FSG",
+   "time": "17:00.651",
+   "delta": "-37.8",
+   "ahead": true,
+   "elo": 800,
+   "avatar": "avatars/241.png"
+  },
+  {
+   "rank": 243,
+   "name": "Doognixlyon8",
+   "category": "SSG",
+   "time": "14:12.693",
+   "delta": "-21.7",
+   "ahead": true,
+   "elo": 1139,
+   "avatar": "avatars/242.png"
+  },
+  {
+   "rank": 244,
+   "name": "Dibelyon",
+   "category": "SSG",
+   "time": "13:18.998",
+   "delta": "+11.7",
+   "ahead": false,
+   "elo": 1548,
+   "avatar": "avatars/243.png"
+  },
+  {
+   "rank": 245,
+   "name": "Naxway21",
+   "category": "Ranked",
+   "time": "13:06.946",
+   "delta": "+13.9",
+   "ahead": false,
+   "elo": 1813,
+   "avatar": "avatars/244.png"
+  },
+  {
+   "rank": 246,
+   "name": "Lyondraco",
+   "category": "RSG",
+   "time": "9:24.241",
+   "delta": "-24.4",
+   "ahead": true,
+   "elo": 1164,
+   "avatar": "avatars/245.png"
+  },
+  {
+   "rank": 247,
+   "name": "Pagpagky",
+   "category": "AA",
+   "time": "21:30.858",
+   "delta": "-36.2",
+   "ahead": true,
+   "elo": 2380,
+   "avatar": "avatars/246.png"
+  },
+  {
+   "rank": 248,
+   "name": "Jojoellama5",
+   "category": "SSG",
+   "time": "17:00.004",
+   "delta": "+22.4",
+   "ahead": false,
+   "elo": 1562,
+   "avatar": "avatars/247.png"
+  },
+  {
+   "rank": 249,
+   "name": "Llamalyon",
+   "category": "Ranked",
+   "time": "16:11.300",
+   "delta": "-44.7",
+   "ahead": true,
+   "elo": 2276,
+   "avatar": "avatars/248.png"
+  },
+  {
+   "rank": 250,
+   "name": "Pagspecsilver",
+   "category": "Ranked",
+   "time": "23:51.446",
+   "delta": "-18.2",
+   "ahead": true,
+   "elo": 1136,
+   "avatar": "avatars/249.png"
+  },
+  {
+   "rank": 251,
+   "name": "Pagrr",
+   "category": "RSG",
+   "time": "24:06.025",
+   "delta": "-31.7",
+   "ahead": true,
+   "elo": 1280,
+   "avatar": "avatars/250.png"
+  },
+  {
+   "rank": 252,
+   "name": "Blyspec",
+   "category": "FSG",
+   "time": "11:16.888",
+   "delta": "-40.5",
+   "ahead": true,
+   "elo": 2238,
+   "avatar": "avatars/251.png"
+  },
+  {
+   "rank": 253,
+   "name": "Ilespecfein",
+   "category": "FSG",
+   "time": "12:27.376",
+   "delta": "+32.0",
+   "ahead": false,
+   "elo": 1805,
+   "avatar": "avatars/252.png"
+  },
+  {
+   "rank": 254,
+   "name": "Blyaquacordedy",
+   "category": "SSG",
+   "time": "13:30.574",
+   "delta": "-31.0",
+   "ahead": true,
+   "elo": 1430,
+   "avatar": "avatars/253.png"
+  },
+  {
+   "rank": 255,
+   "name": "Specrr",
+   "category": "AA",
+   "time": "21:27.887",
+   "delta": "+0.9",
+   "ahead": false,
+   "elo": 1133,
+   "avatar": "avatars/254.png"
+  },
+  {
+   "rank": 256,
+   "name": "Blytow",
+   "category": "SSG",
+   "time": "7:30.284",
+   "delta": "+30.1",
+   "ahead": false,
+   "elo": 1353,
+   "avatar": "avatars/255.png"
+  },
+  {
+   "rank": 257,
+   "name": "Specnaxdibe44",
+   "category": "RSG",
+   "time": "20:04.665",
+   "delta": "-2.4",
+   "ahead": true,
+   "elo": 1343,
+   "avatar": "avatars/256.png"
+  },
+  {
+   "rank": 258,
+   "name": "Kykyway",
+   "category": "Ranked",
+   "time": "17:27.778",
+   "delta": "-21.7",
+   "ahead": true,
+   "elo": 2391,
+   "avatar": "avatars/257.png"
+  },
+  {
+   "rank": 259,
+   "name": "Pearlky",
+   "category": "SSG",
+   "time": "13:22.050",
+   "delta": "+10.3",
+   "ahead": false,
+   "elo": 1991,
+   "avatar": "avatars/258.png"
+  },
+  {
+   "rank": 260,
+   "name": "Kyryguy",
+   "category": "SSG",
+   "time": "8:18.047",
+   "delta": "+41.8",
+   "ahead": false,
+   "elo": 1141,
+   "avatar": "avatars/259.png"
+  },
+  {
+   "rank": 261,
+   "name": "Naxsilver",
+   "category": "Ranked",
+   "time": "12:02.010",
+   "delta": "+27.7",
+   "ahead": false,
+   "elo": 1689,
+   "avatar": "avatars/260.png"
+  },
+  {
+   "rank": 262,
+   "name": "Courspeclime38",
+   "category": "AA",
+   "time": "17:02.293",
+   "delta": "-3.3",
+   "ahead": true,
+   "elo": 1863,
+   "avatar": "avatars/261.png"
+  },
+  {
+   "rank": 263,
+   "name": "Ryguyinnix",
+   "category": "Ranked",
+   "time": "9:25.282",
+   "delta": "-15.7",
+   "ahead": true,
+   "elo": 925,
+   "avatar": "avatars/262.png"
+  },
+  {
+   "rank": 264,
+   "name": "Zylenoxspec88",
+   "category": "RSG",
+   "time": "12:18.050",
+   "delta": "+14.3",
+   "ahead": false,
+   "elo": 1379,
+   "avatar": "avatars/263.png"
+  },
+  {
+   "rank": 265,
+   "name": "Blyaquacordeaquacorde",
+   "category": "AA",
+   "time": "20:16.972",
+   "delta": "-1.6",
+   "ahead": true,
+   "elo": 1379,
+   "avatar": "avatars/264.png"
+  },
+  {
+   "rank": 266,
+   "name": "Marobbydy",
+   "category": "Ranked",
+   "time": "12:15.886",
+   "delta": "+12.5",
+   "ahead": false,
+   "elo": 1300,
+   "avatar": "avatars/265.png"
+  },
+  {
+   "rank": 267,
+   "name": "Doogspecpearl54",
+   "category": "SSG",
+   "time": "18:14.581",
+   "delta": "-34.5",
+   "ahead": true,
+   "elo": 2085,
+   "avatar": "avatars/266.png"
+  },
+  {
+   "rank": 268,
+   "name": "Doogzylenox",
+   "category": "SSG",
+   "time": "21:43.152",
+   "delta": "+22.2",
+   "ahead": false,
+   "elo": 1179,
+   "avatar": "avatars/267.png"
+  },
+  {
+   "rank": 269,
+   "name": "Doognax20",
+   "category": "Ranked",
+   "time": "24:19.289",
+   "delta": "-28.0",
+   "ahead": true,
+   "elo": 1149,
+   "avatar": "avatars/268.png"
+  },
+  {
+   "rank": 270,
+   "name": "Obbyspec",
+   "category": "FSG",
+   "time": "21:27.987",
+   "delta": "+19.1",
+   "ahead": false,
+   "elo": 1308,
+   "avatar": "avatars/269.png"
+  },
+  {
+   "rank": 271,
+   "name": "Rednrfein52",
+   "category": "SSG",
+   "time": "13:39.623",
+   "delta": "+19.6",
+   "ahead": false,
+   "elo": 2141,
+   "avatar": "avatars/270.png"
+  },
+  {
+   "rank": 272,
+   "name": "Llamapriffie",
+   "category": "RSG",
+   "time": "16:21.522",
+   "delta": "+33.2",
+   "ahead": false,
+   "elo": 1382,
+   "avatar": "avatars/271.png"
+  },
+  {
+   "rank": 273,
+   "name": "Ryguyzylenoxlime",
+   "category": "RSG",
+   "time": "12:43.211",
+   "delta": "+17.7",
+   "ahead": false,
+   "elo": 1690,
+   "avatar": "avatars/272.png"
+  },
+  {
+   "rank": 274,
+   "name": "Courlime",
+   "category": "RSG",
+   "time": "8:46.313",
+   "delta": "+1.4",
+   "ahead": false,
+   "elo": 2140,
+   "avatar": "avatars/273.png"
+  },
+  {
+   "rank": 275,
+   "name": "Ilebrainnix",
+   "category": "RSG",
+   "time": "19:08.276",
+   "delta": "+25.6",
+   "ahead": false,
+   "elo": 2022,
+   "avatar": "avatars/274.png"
+  },
+  {
+   "rank": 276,
+   "name": "Knawkbrainmescht",
+   "category": "RSG",
+   "time": "23:20.963",
+   "delta": "-26.8",
+   "ahead": true,
+   "elo": 1687,
+   "avatar": "avatars/275.png"
+  },
+  {
+   "rank": 277,
+   "name": "Obbytow",
+   "category": "SSG",
+   "time": "17:07.923",
+   "delta": "+1.0",
+   "ahead": false,
+   "elo": 1864,
+   "avatar": "avatars/276.png"
+  },
+  {
+   "rank": 278,
+   "name": "Brainlyonmar",
+   "category": "FSG",
+   "time": "19:23.468",
+   "delta": "+41.0",
+   "ahead": false,
+   "elo": 1805,
+   "avatar": "avatars/277.png"
+  },
+  {
+   "rank": 279,
+   "name": "Rednaxdraco",
+   "category": "RSG",
+   "time": "22:22.625",
+   "delta": "-27.8",
+   "ahead": true,
+   "elo": 2023,
+   "avatar": "avatars/278.png"
+  },
+  {
+   "rank": 280,
+   "name": "Marway",
+   "category": "FSG",
+   "time": "16:01.102",
+   "delta": "+4.7",
+   "ahead": false,
+   "elo": 1909,
+   "avatar": "avatars/279.png"
+  },
+  {
+   "rank": 281,
+   "name": "Lyonether",
+   "category": "RSG",
+   "time": "16:53.160",
+   "delta": "+38.7",
+   "ahead": false,
+   "elo": 1299,
+   "avatar": "avatars/280.png"
+  },
+  {
+   "rank": 282,
+   "name": "Meschtetherrr42",
+   "category": "Ranked",
+   "time": "23:27.987",
+   "delta": "+3.1",
+   "ahead": false,
+   "elo": 1612,
+   "avatar": "avatars/281.png"
+  },
+  {
+   "rank": 283,
+   "name": "Knawkpearlryguy",
+   "category": "RSG",
+   "time": "24:24.629",
+   "delta": "-0.9",
+   "ahead": true,
+   "elo": 1636,
+   "avatar": "avatars/282.png"
+  },
+  {
+   "rank": 284,
+   "name": "Dyblyryguy42",
+   "category": "AA",
+   "time": "7:09.576",
+   "delta": "-30.5",
+   "ahead": true,
+   "elo": 1050,
+   "avatar": "avatars/283.png"
+  },
+  {
+   "rank": 285,
+   "name": "Llamanix",
+   "category": "AA",
+   "time": "11:04.789",
+   "delta": "+41.6",
+   "ahead": false,
+   "elo": 1092,
+   "avatar": "avatars/284.png"
+  },
+  {
+   "rank": 286,
+   "name": "Meschtwaybly",
+   "category": "AA",
+   "time": "16:00.900",
+   "delta": "+43.1",
+   "ahead": false,
+   "elo": 2206,
+   "avatar": "avatars/285.png"
+  },
+  {
+   "rank": 287,
+   "name": "Knawktowpearl92",
+   "category": "AA",
+   "time": "21:45.137",
+   "delta": "+7.4",
+   "ahead": false,
+   "elo": 2333,
+   "avatar": "avatars/286.png"
+  },
+  {
+   "rank": 288,
+   "name": "Etherinway",
+   "category": "SSG",
+   "time": "19:38.969",
+   "delta": "-39.3",
+   "ahead": true,
+   "elo": 1424,
+   "avatar": "avatars/287.png"
+  },
+  {
+   "rank": 289,
+   "name": "Obbywayrr28",
+   "category": "FSG",
+   "time": "9:15.768",
+   "delta": "+32.0",
+   "ahead": false,
+   "elo": 1168,
+   "avatar": "avatars/288.png"
+  },
+  {
+   "rank": 290,
+   "name": "Zylenoxdraco",
+   "category": "AA",
+   "time": "20:27.036",
+   "delta": "+23.1",
+   "ahead": false,
+   "elo": 1897,
+   "avatar": "avatars/289.png"
+  },
+  {
+   "rank": 291,
+   "name": "Pearlaquacorde96",
+   "category": "FSG",
+   "time": "22:10.921",
+   "delta": "+6.9",
+   "ahead": false,
+   "elo": 1604,
+   "avatar": "avatars/290.png"
+  },
+  {
+   "rank": 292,
+   "name": "Townrmescht",
+   "category": "Ranked",
+   "time": "8:04.405",
+   "delta": "+6.7",
+   "ahead": false,
+   "elo": 2004,
+   "avatar": "avatars/291.png"
+  },
+  {
+   "rank": 293,
+   "name": "Inknawk",
+   "category": "Ranked",
+   "time": "18:49.775",
+   "delta": "+19.4",
+   "ahead": false,
+   "elo": 916,
+   "avatar": "avatars/292.png"
+  },
+  {
+   "rank": 294,
+   "name": "Dracolimemescht",
+   "category": "RSG",
+   "time": "19:33.055",
+   "delta": "+20.2",
+   "ahead": false,
+   "elo": 1066,
+   "avatar": "avatars/293.png"
+  },
+  {
+   "rank": 295,
+   "name": "Brainllama30",
+   "category": "Ranked",
+   "time": "7:43.299",
+   "delta": "+8.5",
+   "ahead": false,
+   "elo": 1237,
+   "avatar": "avatars/294.png"
+  },
+  {
+   "rank": 296,
+   "name": "Dracoway",
+   "category": "SSG",
+   "time": "8:50.451",
+   "delta": "+40.9",
+   "ahead": false,
+   "elo": 1332,
+   "avatar": "avatars/295.png"
+  },
+  {
+   "rank": 297,
+   "name": "Zylenoxspec",
+   "category": "SSG",
+   "time": "12:39.019",
+   "delta": "+25.5",
+   "ahead": false,
+   "elo": 1275,
+   "avatar": "avatars/296.png"
+  },
+  {
+   "rank": 298,
+   "name": "Knawkryguymar",
+   "category": "FSG",
+   "time": "21:27.762",
+   "delta": "-7.8",
+   "ahead": true,
+   "elo": 2087,
+   "avatar": "avatars/297.png"
+  },
+  {
+   "rank": 299,
+   "name": "Naxdoogryguy",
+   "category": "SSG",
+   "time": "16:05.033",
+   "delta": "+22.4",
+   "ahead": false,
+   "elo": 2199,
+   "avatar": "avatars/298.png"
+  },
+  {
+   "rank": 300,
+   "name": "Aquacordeether",
+   "category": "AA",
+   "time": "14:29.822",
+   "delta": "+38.2",
+   "ahead": false,
+   "elo": 905,
+   "avatar": "avatars/299.png"
+  },
+  {
+   "rank": 301,
+   "name": "Priffienax58",
+   "category": "FSG",
+   "time": "15:14.934",
+   "delta": "-31.5",
+   "ahead": true,
+   "elo": 1803,
+   "avatar": "avatars/300.png"
+  },
+  {
+   "rank": 302,
+   "name": "Blymescht24",
+   "category": "RSG",
+   "time": "15:27.865",
+   "delta": "+34.6",
+   "ahead": false,
+   "elo": 1689,
+   "avatar": "avatars/301.png"
+  },
+  {
+   "rank": 303,
+   "name": "Braindracoobby52",
+   "category": "SSG",
+   "time": "20:37.061",
+   "delta": "+6.9",
+   "ahead": false,
+   "elo": 2365,
+   "avatar": "avatars/302.png"
+  },
+  {
+   "rank": 304,
+   "name": "Redfein12",
+   "category": "AA",
+   "time": "17:09.529",
+   "delta": "-11.3",
+   "ahead": true,
+   "elo": 868,
+   "avatar": "avatars/303.png"
+  },
+  {
+   "rank": 305,
+   "name": "Ileilenax15",
+   "category": "AA",
+   "time": "20:07.156",
+   "delta": "-1.4",
+   "ahead": true,
+   "elo": 1968,
+   "avatar": "avatars/304.png"
+  },
+  {
+   "rank": 306,
+   "name": "Brainbrainway",
+   "category": "Ranked",
+   "time": "12:32.648",
+   "delta": "+21.6",
+   "ahead": false,
+   "elo": 1141,
+   "avatar": "avatars/305.png"
+  },
+  {
+   "rank": 307,
+   "name": "Nixmar",
+   "category": "FSG",
+   "time": "19:58.628",
+   "delta": "+43.4",
+   "ahead": false,
+   "elo": 1268,
+   "avatar": "avatars/306.png"
+  },
+  {
+   "rank": 308,
+   "name": "Wayether",
+   "category": "FSG",
+   "time": "23:20.672",
+   "delta": "-40.6",
+   "ahead": true,
+   "elo": 1608,
+   "avatar": "avatars/307.png"
+  },
+  {
+   "rank": 309,
+   "name": "Aquacordeinknawk69",
+   "category": "SSG",
+   "time": "7:50.822",
+   "delta": "+12.6",
+   "ahead": false,
+   "elo": 1277,
+   "avatar": "avatars/308.png"
+  },
+  {
+   "rank": 310,
+   "name": "Kypriffiein",
+   "category": "Ranked",
+   "time": "19:20.134",
+   "delta": "+27.3",
+   "ahead": false,
+   "elo": 1422,
+   "avatar": "avatars/309.png"
+  },
+  {
+   "rank": 311,
+   "name": "Feinlime19",
+   "category": "SSG",
+   "time": "21:35.338",
+   "delta": "-1.5",
+   "ahead": true,
+   "elo": 973,
+   "avatar": "avatars/310.png"
+  },
+  {
+   "rank": 312,
+   "name": "Aquacordelyon19",
+   "category": "Ranked",
+   "time": "17:43.271",
+   "delta": "+29.3",
+   "ahead": false,
+   "elo": 2099,
+   "avatar": "avatars/311.png"
+  },
+  {
+   "rank": 313,
+   "name": "Mardracozylenox",
+   "category": "RSG",
+   "time": "13:30.778",
+   "delta": "+10.5",
+   "ahead": false,
+   "elo": 1891,
+   "avatar": "avatars/312.png"
+  },
+  {
+   "rank": 314,
+   "name": "Dracopearlether61",
+   "category": "Ranked",
+   "time": "19:06.044",
+   "delta": "+35.4",
+   "ahead": false,
+   "elo": 1423,
+   "avatar": "avatars/313.png"
+  },
+  {
+   "rank": 315,
+   "name": "Pagtowninja",
+   "category": "RSG",
+   "time": "12:22.368",
+   "delta": "-2.9",
+   "ahead": true,
+   "elo": 2252,
+   "avatar": "avatars/314.png"
+  },
+  {
+   "rank": 316,
+   "name": "Redtow",
+   "category": "AA",
+   "time": "17:37.209",
+   "delta": "+12.5",
+   "ahead": false,
+   "elo": 1904,
+   "avatar": "avatars/315.png"
+  },
+  {
+   "rank": 317,
+   "name": "Lyondraco",
+   "category": "SSG",
+   "time": "16:04.808",
+   "delta": "+31.2",
+   "ahead": false,
+   "elo": 819,
+   "avatar": "avatars/316.png"
+  },
+  {
+   "rank": 318,
+   "name": "Knawkether",
+   "category": "Ranked",
+   "time": "11:28.818",
+   "delta": "+6.8",
+   "ahead": false,
+   "elo": 1512,
+   "avatar": "avatars/317.png"
+  },
+  {
+   "rank": 319,
+   "name": "Kypag",
+   "category": "AA",
+   "time": "24:26.749",
+   "delta": "+29.5",
+   "ahead": false,
+   "elo": 971,
+   "avatar": "avatars/318.png"
+  },
+  {
+   "rank": 320,
+   "name": "Rrblyzylenox",
+   "category": "SSG",
+   "time": "19:50.871",
+   "delta": "-14.6",
+   "ahead": true,
+   "elo": 2245,
+   "avatar": "avatars/319.png"
+  },
+  {
+   "rank": 321,
+   "name": "Rrnrbly",
+   "category": "SSG",
+   "time": "9:27.656",
+   "delta": "+6.2",
+   "ahead": false,
+   "elo": 1285,
+   "avatar": "avatars/320.png"
+  },
+  {
+   "rank": 322,
+   "name": "Ninjakyether",
+   "category": "RSG",
+   "time": "10:51.681",
+   "delta": "-8.1",
+   "ahead": true,
+   "elo": 2281,
+   "avatar": "avatars/321.png"
+  },
+  {
+   "rank": 323,
+   "name": "Speclimebrain",
+   "category": "RSG",
+   "time": "18:41.814",
+   "delta": "+17.7",
+   "ahead": false,
+   "elo": 2342,
+   "avatar": "avatars/322.png"
+  },
+  {
+   "rank": 324,
+   "name": "Pearlilebly",
+   "category": "Ranked",
+   "time": "9:08.959",
+   "delta": "+21.4",
+   "ahead": false,
+   "elo": 1859,
+   "avatar": "avatars/323.png"
+  },
+  {
+   "rank": 325,
+   "name": "Lyonindraco",
+   "category": "Ranked",
+   "time": "13:56.986",
+   "delta": "+30.9",
+   "ahead": false,
+   "elo": 1762,
+   "avatar": "avatars/324.png"
+  },
+  {
+   "rank": 326,
+   "name": "Dycour",
+   "category": "AA",
+   "time": "21:00.356",
+   "delta": "+9.2",
+   "ahead": false,
+   "elo": 826,
+   "avatar": "avatars/325.png"
+  },
+  {
+   "rank": 327,
+   "name": "Zylenoxninja",
+   "category": "AA",
+   "time": "10:00.380",
+   "delta": "+16.0",
+   "ahead": false,
+   "elo": 942,
+   "avatar": "avatars/326.png"
+  },
+  {
+   "rank": 328,
+   "name": "Waypriffie",
+   "category": "AA",
+   "time": "21:01.177",
+   "delta": "+22.2",
+   "ahead": false,
+   "elo": 1759,
+   "avatar": "avatars/327.png"
+  },
+  {
+   "rank": 329,
+   "name": "Jojoesilver",
+   "category": "SSG",
+   "time": "17:30.024",
+   "delta": "+21.3",
+   "ahead": false,
+   "elo": 1834,
+   "avatar": "avatars/328.png"
+  },
+  {
+   "rank": 330,
+   "name": "Zylenoxred11",
+   "category": "FSG",
+   "time": "9:18.362",
+   "delta": "-16.7",
+   "ahead": true,
+   "elo": 2121,
+   "avatar": "avatars/329.png"
+  },
+  {
+   "rank": 331,
+   "name": "Townixllama",
+   "category": "AA",
+   "time": "21:00.666",
+   "delta": "-43.0",
+   "ahead": true,
+   "elo": 1066,
+   "avatar": "avatars/330.png"
+  },
+  {
+   "rank": 332,
+   "name": "Rrtowspec",
+   "category": "Ranked",
+   "time": "12:54.524",
+   "delta": "+16.3",
+   "ahead": false,
+   "elo": 2306,
+   "avatar": "avatars/331.png"
+  },
+  {
+   "rank": 333,
+   "name": "Specobby",
+   "category": "SSG",
+   "time": "17:45.653",
+   "delta": "+22.7",
+   "ahead": false,
+   "elo": 2255,
+   "avatar": "avatars/332.png"
+  },
+  {
+   "rank": 334,
+   "name": "Rrether95",
+   "category": "AA",
+   "time": "20:46.115",
+   "delta": "-41.1",
+   "ahead": true,
+   "elo": 1178,
+   "avatar": "avatars/333.png"
+  },
+  {
+   "rank": 335,
+   "name": "Feinzylenoxile",
+   "category": "AA",
+   "time": "12:41.842",
+   "delta": "+26.0",
+   "ahead": false,
+   "elo": 1457,
+   "avatar": "avatars/334.png"
+  },
+  {
+   "rank": 336,
+   "name": "Courjojoe45",
+   "category": "AA",
+   "time": "8:18.115",
+   "delta": "+42.6",
+   "ahead": false,
+   "elo": 1573,
+   "avatar": "avatars/335.png"
+  },
+  {
+   "rank": 337,
+   "name": "Nixcoursilver",
+   "category": "AA",
+   "time": "12:36.173",
+   "delta": "-30.5",
+   "ahead": true,
+   "elo": 1384,
+   "avatar": "avatars/336.png"
+  },
+  {
+   "rank": 338,
+   "name": "Dracoredlime",
+   "category": "AA",
+   "time": "19:31.916",
+   "delta": "-37.7",
+   "ahead": true,
+   "elo": 1236,
+   "avatar": "avatars/337.png"
+  },
+  {
+   "rank": 339,
+   "name": "Nraquacorde98",
+   "category": "RSG",
+   "time": "11:51.868",
+   "delta": "-9.1",
+   "ahead": true,
+   "elo": 1496,
+   "avatar": "avatars/338.png"
+  },
+  {
+   "rank": 340,
+   "name": "Nixryguy94",
+   "category": "FSG",
+   "time": "8:05.913",
+   "delta": "+32.8",
+   "ahead": false,
+   "elo": 2116,
+   "avatar": "avatars/339.png"
+  },
+  {
+   "rank": 341,
+   "name": "Feinredile85",
+   "category": "SSG",
+   "time": "17:03.817",
+   "delta": "+29.0",
+   "ahead": false,
+   "elo": 1918,
+   "avatar": "avatars/340.png"
+  },
+  {
+   "rank": 342,
+   "name": "Aquacordeky34",
+   "category": "SSG",
+   "time": "20:10.127",
+   "delta": "+25.3",
+   "ahead": false,
+   "elo": 1337,
+   "avatar": "avatars/341.png"
+  },
+  {
+   "rank": 343,
+   "name": "Marmar",
+   "category": "RSG",
+   "time": "17:11.551",
+   "delta": "+40.1",
+   "ahead": false,
+   "elo": 1662,
+   "avatar": "avatars/342.png"
+  },
+  {
+   "rank": 344,
+   "name": "Feinblydy",
+   "category": "SSG",
+   "time": "20:05.266",
+   "delta": "-28.4",
+   "ahead": true,
+   "elo": 994,
+   "avatar": "avatars/343.png"
+  },
+  {
+   "rank": 345,
+   "name": "Feinjojoe",
+   "category": "SSG",
+   "time": "23:17.210",
+   "delta": "+26.0",
+   "ahead": false,
+   "elo": 1655,
+   "avatar": "avatars/344.png"
+  },
+  {
+   "rank": 346,
+   "name": "Feinninja86",
+   "category": "SSG",
+   "time": "15:12.223",
+   "delta": "-17.3",
+   "ahead": true,
+   "elo": 2007,
+   "avatar": "avatars/345.png"
+  },
+  {
+   "rank": 347,
+   "name": "Ninjaknawk",
+   "category": "FSG",
+   "time": "23:39.363",
+   "delta": "-31.2",
+   "ahead": true,
+   "elo": 1437,
+   "avatar": "avatars/346.png"
+  },
+  {
+   "rank": 348,
+   "name": "Redpearllime56",
+   "category": "AA",
+   "time": "17:27.831",
+   "delta": "-11.2",
+   "ahead": true,
+   "elo": 2076,
+   "avatar": "avatars/347.png"
+  },
+  {
+   "rank": 349,
+   "name": "Redcour",
+   "category": "AA",
+   "time": "22:46.754",
+   "delta": "-40.8",
+   "ahead": true,
+   "elo": 1693,
+   "avatar": "avatars/348.png"
+  },
+  {
+   "rank": 350,
+   "name": "Meschtdy",
+   "category": "AA",
+   "time": "24:54.308",
+   "delta": "-17.3",
+   "ahead": true,
+   "elo": 1706,
+   "avatar": "avatars/349.png"
+  },
+  {
+   "rank": 351,
+   "name": "Courspec",
+   "category": "AA",
+   "time": "20:57.183",
+   "delta": "-10.9",
+   "ahead": true,
+   "elo": 1497,
+   "avatar": "avatars/350.png"
+  },
+  {
+   "rank": 352,
+   "name": "Cournaxky",
+   "category": "Ranked",
+   "time": "15:40.907",
+   "delta": "+0.9",
+   "ahead": false,
+   "elo": 2391,
+   "avatar": "avatars/351.png"
+  },
+  {
+   "rank": 353,
+   "name": "Llamady",
+   "category": "SSG",
+   "time": "20:18.115",
+   "delta": "-39.1",
+   "ahead": true,
+   "elo": 1046,
+   "avatar": "avatars/352.png"
+  },
+  {
+   "rank": 354,
+   "name": "Llamadracoin",
+   "category": "FSG",
+   "time": "13:22.999",
+   "delta": "+13.3",
+   "ahead": false,
+   "elo": 1889,
+   "avatar": "avatars/353.png"
+  },
+  {
+   "rank": 355,
+   "name": "Iledy",
+   "category": "Ranked",
+   "time": "12:58.122",
+   "delta": "-35.0",
+   "ahead": true,
+   "elo": 1502,
+   "avatar": "avatars/354.png"
+  },
+  {
+   "rank": 356,
+   "name": "Innrdy55",
+   "category": "SSG",
+   "time": "10:36.655",
+   "delta": "+44.5",
+   "ahead": false,
+   "elo": 800,
+   "avatar": "avatars/355.png"
+  },
+  {
+   "rank": 357,
+   "name": "Silverobbyile",
+   "category": "RSG",
+   "time": "21:30.997",
+   "delta": "-35.1",
+   "ahead": true,
+   "elo": 1131,
+   "avatar": "avatars/356.png"
+  },
+  {
+   "rank": 358,
+   "name": "Aquacordeaquacordejojoe",
+   "category": "FSG",
+   "time": "22:11.177",
+   "delta": "-0.1",
+   "ahead": true,
+   "elo": 1589,
+   "avatar": "avatars/357.png"
+  },
+  {
+   "rank": 359,
+   "name": "Towobbyspec",
+   "category": "FSG",
+   "time": "21:06.180",
+   "delta": "-4.8",
+   "ahead": true,
+   "elo": 1369,
+   "avatar": "avatars/358.png"
+  },
+  {
+   "rank": 360,
+   "name": "Dibellama",
+   "category": "AA",
+   "time": "18:43.853",
+   "delta": "-6.7",
+   "ahead": true,
+   "elo": 2108,
+   "avatar": "avatars/359.png"
+  },
+  {
+   "rank": 361,
+   "name": "Dracocour46",
+   "category": "SSG",
+   "time": "10:11.876",
+   "delta": "+31.4",
+   "ahead": false,
+   "elo": 2282,
+   "avatar": "avatars/360.png"
+  },
+  {
+   "rank": 362,
+   "name": "Aquacordedydy5",
+   "category": "FSG",
+   "time": "22:03.310",
+   "delta": "+2.8",
+   "ahead": false,
+   "elo": 1319,
+   "avatar": "avatars/361.png"
+  },
+  {
+   "rank": 363,
+   "name": "Nixtow",
+   "category": "SSG",
+   "time": "15:12.995",
+   "delta": "-36.2",
+   "ahead": true,
+   "elo": 1401,
+   "avatar": "avatars/362.png"
+  },
+  {
+   "rank": 364,
+   "name": "Paglimeobby42",
+   "category": "AA",
+   "time": "24:28.062",
+   "delta": "-2.8",
+   "ahead": true,
+   "elo": 2150,
+   "avatar": "avatars/363.png"
+  },
+  {
+   "rank": 365,
+   "name": "Limeile92",
+   "category": "SSG",
+   "time": "24:07.162",
+   "delta": "-18.7",
+   "ahead": true,
+   "elo": 810,
+   "avatar": "avatars/364.png"
+  },
+  {
+   "rank": 366,
+   "name": "Zylenoxmarllama59",
+   "category": "RSG",
+   "time": "20:13.753",
+   "delta": "-5.1",
+   "ahead": true,
+   "elo": 1924,
+   "avatar": "avatars/365.png"
+  },
+  {
+   "rank": 367,
+   "name": "Silverlime",
+   "category": "AA",
+   "time": "14:11.317",
+   "delta": "-44.4",
+   "ahead": true,
+   "elo": 1748,
+   "avatar": "avatars/366.png"
+  },
+  {
+   "rank": 368,
+   "name": "Etherdoog",
+   "category": "FSG",
+   "time": "10:48.398",
+   "delta": "-20.3",
+   "ahead": true,
+   "elo": 2079,
+   "avatar": "avatars/367.png"
+  },
+  {
+   "rank": 369,
+   "name": "Naxpriffie",
+   "category": "Ranked",
+   "time": "17:21.616",
+   "delta": "-8.1",
+   "ahead": true,
+   "elo": 936,
+   "avatar": "avatars/368.png"
+  },
+  {
+   "rank": 370,
+   "name": "Courninja",
+   "category": "FSG",
+   "time": "23:11.080",
+   "delta": "-23.1",
+   "ahead": true,
+   "elo": 1225,
+   "avatar": "avatars/369.png"
+  },
+  {
+   "rank": 371,
+   "name": "Zylenoxredaquacorde",
+   "category": "FSG",
+   "time": "10:39.552",
+   "delta": "+31.3",
+   "ahead": false,
+   "elo": 1766,
+   "avatar": "avatars/370.png"
+  },
+  {
+   "rank": 372,
+   "name": "Kymarnr",
+   "category": "Ranked",
+   "time": "18:05.503",
+   "delta": "+31.9",
+   "ahead": false,
+   "elo": 1566,
+   "avatar": "avatars/371.png"
+  },
+  {
+   "rank": 373,
+   "name": "Meschtspec",
+   "category": "Ranked",
+   "time": "9:50.187",
+   "delta": "-44.5",
+   "ahead": true,
+   "elo": 1492,
+   "avatar": "avatars/372.png"
+  },
+  {
+   "rank": 374,
+   "name": "Etherjojoesilver",
+   "category": "SSG",
+   "time": "10:30.506",
+   "delta": "+20.9",
+   "ahead": false,
+   "elo": 1821,
+   "avatar": "avatars/373.png"
+  },
+  {
+   "rank": 375,
+   "name": "Aquacordekyobby",
+   "category": "Ranked",
+   "time": "23:22.902",
+   "delta": "-36.6",
+   "ahead": true,
+   "elo": 2298,
+   "avatar": "avatars/374.png"
+  },
+  {
+   "rank": 376,
+   "name": "Ethersilver26",
+   "category": "SSG",
+   "time": "16:15.448",
+   "delta": "+14.0",
+   "ahead": false,
+   "elo": 2024,
+   "avatar": "avatars/375.png"
+  },
+  {
+   "rank": 377,
+   "name": "Pagdy",
+   "category": "SSG",
+   "time": "23:18.788",
+   "delta": "-17.7",
+   "ahead": true,
+   "elo": 1651,
+   "avatar": "avatars/376.png"
+  },
+  {
+   "rank": 378,
+   "name": "Priffieblyninja51",
+   "category": "Ranked",
+   "time": "12:42.363",
+   "delta": "+11.9",
+   "ahead": false,
+   "elo": 1965,
+   "avatar": "avatars/377.png"
+  },
+  {
+   "rank": 379,
+   "name": "Ileinsilver",
+   "category": "RSG",
+   "time": "12:57.159",
+   "delta": "-41.0",
+   "ahead": true,
+   "elo": 1065,
+   "avatar": "avatars/378.png"
+  },
+  {
+   "rank": 380,
+   "name": "Feindoogaquacorde",
+   "category": "FSG",
+   "time": "21:45.375",
+   "delta": "+40.0",
+   "ahead": false,
+   "elo": 850,
+   "avatar": "avatars/379.png"
+  },
+  {
+   "rank": 381,
+   "name": "Naxin",
+   "category": "FSG",
+   "time": "18:03.577",
+   "delta": "+11.4",
+   "ahead": false,
+   "elo": 1087,
+   "avatar": "avatars/380.png"
+  },
+  {
+   "rank": 382,
+   "name": "Zylenoxbly31",
+   "category": "AA",
+   "time": "23:05.018",
+   "delta": "-6.5",
+   "ahead": true,
+   "elo": 1709,
+   "avatar": "avatars/381.png"
+  },
+  {
+   "rank": 383,
+   "name": "Waypagky",
+   "category": "FSG",
+   "time": "7:59.819",
+   "delta": "-3.5",
+   "ahead": true,
+   "elo": 2126,
+   "avatar": "avatars/382.png"
+  },
+  {
+   "rank": 384,
+   "name": "Kysilverspec",
+   "category": "FSG",
+   "time": "16:57.168",
+   "delta": "-25.3",
+   "ahead": true,
+   "elo": 2133,
+   "avatar": "avatars/383.png"
+  },
+  {
+   "rank": 385,
+   "name": "Zylenoxdoogile",
+   "category": "Ranked",
+   "time": "10:16.664",
+   "delta": "-36.3",
+   "ahead": true,
+   "elo": 2063,
+   "avatar": "avatars/384.png"
+  },
+  {
+   "rank": 386,
+   "name": "Ileryguy13",
+   "category": "RSG",
+   "time": "21:39.371",
+   "delta": "+19.7",
+   "ahead": false,
+   "elo": 2340,
+   "avatar": "avatars/385.png"
+  },
+  {
+   "rank": 387,
+   "name": "Blyknawkpriffie32",
+   "category": "FSG",
+   "time": "18:29.406",
+   "delta": "+21.8",
+   "ahead": false,
+   "elo": 1854,
+   "avatar": "avatars/386.png"
+  },
+  {
+   "rank": 388,
+   "name": "Ryguyfeinpag",
+   "category": "SSG",
+   "time": "20:01.491",
+   "delta": "-11.7",
+   "ahead": true,
+   "elo": 954,
+   "avatar": "avatars/387.png"
+  },
+  {
+   "rank": 389,
+   "name": "Kyspec",
+   "category": "Ranked",
+   "time": "10:08.084",
+   "delta": "-6.7",
+   "ahead": true,
+   "elo": 902,
+   "avatar": "avatars/388.png"
+  },
+  {
+   "rank": 390,
+   "name": "Courway",
+   "category": "RSG",
+   "time": "19:06.561",
+   "delta": "+5.7",
+   "ahead": false,
+   "elo": 2130,
+   "avatar": "avatars/389.png"
+  },
+  {
+   "rank": 391,
+   "name": "Blydibeobby",
+   "category": "FSG",
+   "time": "13:58.154",
+   "delta": "+27.0",
+   "ahead": false,
+   "elo": 1508,
+   "avatar": "avatars/390.png"
+  },
+  {
+   "rank": 392,
+   "name": "Specbrain",
+   "category": "Ranked",
+   "time": "24:27.899",
+   "delta": "-21.8",
+   "ahead": true,
+   "elo": 1611,
+   "avatar": "avatars/391.png"
+  },
+  {
+   "rank": 393,
+   "name": "Jojoelimetow",
+   "category": "AA",
+   "time": "10:09.148",
+   "delta": "-40.2",
+   "ahead": true,
+   "elo": 2168,
+   "avatar": "avatars/392.png"
+  },
+  {
+   "rank": 394,
+   "name": "Dracoaquacorde",
+   "category": "FSG",
+   "time": "14:45.942",
+   "delta": "+20.3",
+   "ahead": false,
+   "elo": 2218,
+   "avatar": "avatars/393.png"
+  },
+  {
+   "rank": 395,
+   "name": "Meschtcourlime",
+   "category": "Ranked",
+   "time": "9:29.355",
+   "delta": "-19.0",
+   "ahead": true,
+   "elo": 1092,
+   "avatar": "avatars/394.png"
+  },
+  {
+   "rank": 396,
+   "name": "Townr",
+   "category": "AA",
+   "time": "18:34.502",
+   "delta": "-38.8",
+   "ahead": true,
+   "elo": 2246,
+   "avatar": "avatars/395.png"
+  },
+  {
+   "rank": 397,
+   "name": "Ryguyredin",
+   "category": "FSG",
+   "time": "9:18.974",
+   "delta": "-42.6",
+   "ahead": true,
+   "elo": 2371,
+   "avatar": "avatars/396.png"
+  },
+  {
+   "rank": 398,
+   "name": "Pearlknawk",
+   "category": "Ranked",
+   "time": "21:14.082",
+   "delta": "+0.3",
+   "ahead": false,
+   "elo": 1540,
+   "avatar": "avatars/397.png"
+  },
+  {
+   "rank": 399,
+   "name": "Wayred",
+   "category": "FSG",
+   "time": "8:03.218",
+   "delta": "-38.7",
+   "ahead": true,
+   "elo": 1127,
+   "avatar": "avatars/398.png"
+  },
+  {
+   "rank": 400,
+   "name": "Meschtpriffie99",
+   "category": "Ranked",
+   "time": "22:10.485",
+   "delta": "+41.7",
+   "ahead": false,
+   "elo": 1835,
+   "avatar": "avatars/399.png"
+  },
+  {
+   "rank": 401,
+   "name": "Aquacordebraindoog",
+   "category": "AA",
+   "time": "24:52.251",
+   "delta": "-29.6",
+   "ahead": true,
+   "elo": 1364,
+   "avatar": "avatars/400.png"
+  },
+  {
+   "rank": 402,
+   "name": "Dracoryguyjojoe",
+   "category": "Ranked",
+   "time": "24:02.532",
+   "delta": "-3.8",
+   "ahead": true,
+   "elo": 1130,
+   "avatar": "avatars/401.png"
+  },
+  {
+   "rank": 403,
+   "name": "Wayjojoepriffie16",
+   "category": "AA",
+   "time": "24:55.463",
+   "delta": "+42.7",
+   "ahead": false,
+   "elo": 2236,
+   "avatar": "avatars/402.png"
+  },
+  {
+   "rank": 404,
+   "name": "Zylenoxryguymescht82",
+   "category": "SSG",
+   "time": "16:44.667",
+   "delta": "-5.0",
+   "ahead": true,
+   "elo": 852,
+   "avatar": "avatars/403.png"
+  },
+  {
+   "rank": 405,
+   "name": "Llamaincour",
+   "category": "SSG",
+   "time": "12:01.423",
+   "delta": "-0.2",
+   "ahead": true,
+   "elo": 1907,
+   "avatar": "avatars/404.png"
+  },
+  {
+   "rank": 406,
+   "name": "Reddibe63",
+   "category": "SSG",
+   "time": "15:34.558",
+   "delta": "-20.7",
+   "ahead": true,
+   "elo": 1381,
+   "avatar": "avatars/405.png"
+  },
+  {
+   "rank": 407,
+   "name": "Courdoogdoog",
+   "category": "RSG",
+   "time": "7:07.646",
+   "delta": "-8.3",
+   "ahead": true,
+   "elo": 1283,
+   "avatar": "avatars/406.png"
+  },
+  {
+   "rank": 408,
+   "name": "Dybrainfein",
+   "category": "Ranked",
+   "time": "23:36.726",
+   "delta": "-28.8",
+   "ahead": true,
+   "elo": 2297,
+   "avatar": "avatars/407.png"
+  },
+  {
+   "rank": 409,
+   "name": "Mardytow9",
+   "category": "FSG",
+   "time": "14:17.805",
+   "delta": "-40.0",
+   "ahead": true,
+   "elo": 1787,
+   "avatar": "avatars/408.png"
+  },
+  {
+   "rank": 410,
+   "name": "Naxnr",
+   "category": "Ranked",
+   "time": "20:01.357",
+   "delta": "+12.5",
+   "ahead": false,
+   "elo": 808,
+   "avatar": "avatars/409.png"
+  },
+  {
+   "rank": 411,
+   "name": "Ninjaspec",
+   "category": "FSG",
+   "time": "14:26.641",
+   "delta": "+34.7",
+   "ahead": false,
+   "elo": 2139,
+   "avatar": "avatars/410.png"
+  },
+  {
+   "rank": 412,
+   "name": "Doogzylenoxlyon",
+   "category": "RSG",
+   "time": "9:44.310",
+   "delta": "+42.6",
+   "ahead": false,
+   "elo": 1793,
+   "avatar": "avatars/411.png"
+  },
+  {
+   "rank": 413,
+   "name": "Knawkpriffie41",
+   "category": "Ranked",
+   "time": "13:10.715",
+   "delta": "+25.5",
+   "ahead": false,
+   "elo": 1613,
+   "avatar": "avatars/412.png"
+  },
+  {
+   "rank": 414,
+   "name": "Specryguyryguy80",
+   "category": "SSG",
+   "time": "21:34.416",
+   "delta": "-1.1",
+   "ahead": true,
+   "elo": 2363,
+   "avatar": "avatars/413.png"
+  },
+  {
+   "rank": 415,
+   "name": "Ryguyrrspec",
+   "category": "Ranked",
+   "time": "21:34.081",
+   "delta": "-14.1",
+   "ahead": true,
+   "elo": 1809,
+   "avatar": "avatars/414.png"
+  },
+  {
+   "rank": 416,
+   "name": "Dypearldibe20",
+   "category": "AA",
+   "time": "9:48.770",
+   "delta": "-15.2",
+   "ahead": true,
+   "elo": 1745,
+   "avatar": "avatars/415.png"
+  },
+  {
+   "rank": 417,
+   "name": "Redwayrr80",
+   "category": "FSG",
+   "time": "17:15.934",
+   "delta": "+36.8",
+   "ahead": false,
+   "elo": 2280,
+   "avatar": "avatars/416.png"
+  },
+  {
+   "rank": 418,
+   "name": "Brainile60",
+   "category": "Ranked",
+   "time": "14:14.954",
+   "delta": "+27.7",
+   "ahead": false,
+   "elo": 1846,
+   "avatar": "avatars/417.png"
+  },
+  {
+   "rank": 419,
+   "name": "Obbypagway59",
+   "category": "RSG",
+   "time": "24:01.381",
+   "delta": "+30.1",
+   "ahead": false,
+   "elo": 1486,
+   "avatar": "avatars/418.png"
+  },
+  {
+   "rank": 420,
+   "name": "Ilespec11",
+   "category": "FSG",
+   "time": "7:35.216",
+   "delta": "+10.1",
+   "ahead": false,
+   "elo": 1332,
+   "avatar": "avatars/419.png"
+  },
+  {
+   "rank": 421,
+   "name": "Marnaxile",
+   "category": "RSG",
+   "time": "21:23.450",
+   "delta": "+15.4",
+   "ahead": false,
+   "elo": 1079,
+   "avatar": "avatars/420.png"
+  },
+  {
+   "rank": 422,
+   "name": "Limesilverryguy6",
+   "category": "SSG",
+   "time": "20:23.843",
+   "delta": "-7.9",
+   "ahead": true,
+   "elo": 2331,
+   "avatar": "avatars/421.png"
+  },
+  {
+   "rank": 423,
+   "name": "Doogdoog",
+   "category": "AA",
+   "time": "18:23.825",
+   "delta": "+18.6",
+   "ahead": false,
+   "elo": 1898,
+   "avatar": "avatars/422.png"
+  },
+  {
+   "rank": 424,
+   "name": "Obbycour",
+   "category": "AA",
+   "time": "13:17.681",
+   "delta": "+4.5",
+   "ahead": false,
+   "elo": 2016,
+   "avatar": "avatars/423.png"
+  },
+  {
+   "rank": 425,
+   "name": "Marwayzylenox",
+   "category": "RSG",
+   "time": "18:00.383",
+   "delta": "+8.4",
+   "ahead": false,
+   "elo": 1553,
+   "avatar": "avatars/424.png"
+  },
+  {
+   "rank": 426,
+   "name": "Indibespec",
+   "category": "AA",
+   "time": "7:14.054",
+   "delta": "-36.8",
+   "ahead": true,
+   "elo": 2233,
+   "avatar": "avatars/425.png"
+  },
+  {
+   "rank": 427,
+   "name": "Aquacordelime",
+   "category": "RSG",
+   "time": "8:29.618",
+   "delta": "-39.9",
+   "ahead": true,
+   "elo": 1593,
+   "avatar": "avatars/426.png"
+  },
+  {
+   "rank": 428,
+   "name": "Knawkwayfein",
+   "category": "RSG",
+   "time": "18:44.233",
+   "delta": "-22.8",
+   "ahead": true,
+   "elo": 1219,
+   "avatar": "avatars/427.png"
+  },
+  {
+   "rank": 429,
+   "name": "Feinobbyobby",
+   "category": "AA",
+   "time": "20:18.266",
+   "delta": "+17.2",
+   "ahead": false,
+   "elo": 812,
+   "avatar": "avatars/428.png"
+  },
+  {
+   "rank": 430,
+   "name": "Nrile",
+   "category": "Ranked",
+   "time": "10:28.761",
+   "delta": "-37.0",
+   "ahead": true,
+   "elo": 1924,
+   "avatar": "avatars/429.png"
+  },
+  {
+   "rank": 431,
+   "name": "Lyonrrninja",
+   "category": "Ranked",
+   "time": "9:13.832",
+   "delta": "-1.6",
+   "ahead": true,
+   "elo": 2283,
+   "avatar": "avatars/430.png"
+  },
+  {
+   "rank": 432,
+   "name": "Ninjaaquacorde53",
+   "category": "FSG",
+   "time": "7:38.027",
+   "delta": "-23.8",
+   "ahead": true,
+   "elo": 1535,
+   "avatar": "avatars/431.png"
+  },
+  {
+   "rank": 433,
+   "name": "Waynixky",
+   "category": "RSG",
+   "time": "7:38.021",
+   "delta": "-6.1",
+   "ahead": true,
+   "elo": 2005,
+   "avatar": "avatars/432.png"
+  },
+  {
+   "rank": 434,
+   "name": "Nixjojoe10",
+   "category": "RSG",
+   "time": "19:35.088",
+   "delta": "-8.3",
+   "ahead": true,
+   "elo": 1465,
+   "avatar": "avatars/433.png"
+  },
+  {
+   "rank": 435,
+   "name": "Feinblypriffie",
+   "category": "Ranked",
+   "time": "23:29.912",
+   "delta": "+20.6",
+   "ahead": false,
+   "elo": 1286,
+   "avatar": "avatars/434.png"
+  },
+  {
+   "rank": 436,
+   "name": "Specdy",
+   "category": "RSG",
+   "time": "14:12.058",
+   "delta": "-15.0",
+   "ahead": true,
+   "elo": 1968,
+   "avatar": "avatars/435.png"
+  },
+  {
+   "rank": 437,
+   "name": "Silvermar",
+   "category": "RSG",
+   "time": "16:35.659",
+   "delta": "+22.5",
+   "ahead": false,
+   "elo": 1676,
+   "avatar": "avatars/436.png"
+  },
+  {
+   "rank": 438,
+   "name": "Zylenoxbrain",
+   "category": "SSG",
+   "time": "19:57.901",
+   "delta": "+16.7",
+   "ahead": false,
+   "elo": 1783,
+   "avatar": "avatars/437.png"
+  },
+  {
+   "rank": 439,
+   "name": "Waydibe",
+   "category": "SSG",
+   "time": "23:22.187",
+   "delta": "-33.7",
+   "ahead": true,
+   "elo": 871,
+   "avatar": "avatars/438.png"
+  },
+  {
+   "rank": 440,
+   "name": "Aquacordelyonknawk",
+   "category": "SSG",
+   "time": "20:02.551",
+   "delta": "-2.6",
+   "ahead": true,
+   "elo": 2021,
+   "avatar": "avatars/439.png"
+  },
+  {
+   "rank": 441,
+   "name": "Meschtdibeknawk",
+   "category": "AA",
+   "time": "9:55.693",
+   "delta": "+11.6",
+   "ahead": false,
+   "elo": 2339,
+   "avatar": "avatars/440.png"
+  },
+  {
+   "rank": 442,
+   "name": "Nrryguytow4",
+   "category": "SSG",
+   "time": "22:11.639",
+   "delta": "+34.4",
+   "ahead": false,
+   "elo": 2102,
+   "avatar": "avatars/441.png"
+  },
+  {
+   "rank": 443,
+   "name": "Nrdibe",
+   "category": "RSG",
+   "time": "19:43.328",
+   "delta": "-35.6",
+   "ahead": true,
+   "elo": 1525,
+   "avatar": "avatars/442.png"
+  },
+  {
+   "rank": 444,
+   "name": "Specdoog",
+   "category": "AA",
+   "time": "22:20.882",
+   "delta": "-39.8",
+   "ahead": true,
+   "elo": 2308,
+   "avatar": "avatars/443.png"
+  },
+  {
+   "rank": 445,
+   "name": "Towpriffiedraco",
+   "category": "RSG",
+   "time": "13:07.561",
+   "delta": "+26.7",
+   "ahead": false,
+   "elo": 1681,
+   "avatar": "avatars/444.png"
+  },
+  {
+   "rank": 446,
+   "name": "Kybly93",
+   "category": "RSG",
+   "time": "23:55.108",
+   "delta": "+18.2",
+   "ahead": false,
+   "elo": 1936,
+   "avatar": "avatars/445.png"
+  },
+  {
+   "rank": 447,
+   "name": "Ninjanax",
+   "category": "RSG",
+   "time": "22:26.006",
+   "delta": "+19.1",
+   "ahead": false,
+   "elo": 2272,
+   "avatar": "avatars/446.png"
+  },
+  {
+   "rank": 448,
+   "name": "Paglyonnix",
+   "category": "SSG",
+   "time": "21:26.434",
+   "delta": "+21.9",
+   "ahead": false,
+   "elo": 1707,
+   "avatar": "avatars/447.png"
+  },
+  {
+   "rank": 449,
+   "name": "Silverjojoepriffie",
+   "category": "AA",
+   "time": "18:38.853",
+   "delta": "-27.7",
+   "ahead": true,
+   "elo": 1794,
+   "avatar": "avatars/448.png"
+  },
+  {
+   "rank": 450,
+   "name": "Dibejojoe74",
+   "category": "SSG",
+   "time": "24:48.109",
+   "delta": "+17.6",
+   "ahead": false,
+   "elo": 1943,
+   "avatar": "avatars/449.png"
+  },
+  {
+   "rank": 451,
+   "name": "Blylyonninja1",
+   "category": "AA",
+   "time": "23:27.547",
+   "delta": "+23.5",
+   "ahead": false,
+   "elo": 2327,
+   "avatar": "avatars/450.png"
+  },
+  {
+   "rank": 452,
+   "name": "Kyway28",
+   "category": "RSG",
+   "time": "17:05.713",
+   "delta": "-43.3",
+   "ahead": true,
+   "elo": 1010,
+   "avatar": "avatars/451.png"
+  },
+  {
+   "rank": 453,
+   "name": "Ileether77",
+   "category": "SSG",
+   "time": "12:55.984",
+   "delta": "+0.3",
+   "ahead": false,
+   "elo": 1947,
+   "avatar": "avatars/452.png"
+  },
+  {
+   "rank": 454,
+   "name": "Brainzylenox",
+   "category": "AA",
+   "time": "11:26.601",
+   "delta": "+19.9",
+   "ahead": false,
+   "elo": 921,
+   "avatar": "avatars/453.png"
+  },
+  {
+   "rank": 455,
+   "name": "Marobby31",
+   "category": "AA",
+   "time": "13:17.626",
+   "delta": "+20.3",
+   "ahead": false,
+   "elo": 1770,
+   "avatar": "avatars/454.png"
+  },
+  {
+   "rank": 456,
+   "name": "Ryguyred",
+   "category": "RSG",
+   "time": "20:54.448",
+   "delta": "+0.9",
+   "ahead": false,
+   "elo": 1573,
+   "avatar": "avatars/455.png"
+  },
+  {
+   "rank": 457,
+   "name": "Dracomescht",
+   "category": "SSG",
+   "time": "21:49.591",
+   "delta": "-5.6",
+   "ahead": true,
+   "elo": 1549,
+   "avatar": "avatars/456.png"
+  },
+  {
+   "rank": 458,
+   "name": "Limerednax",
+   "category": "Ranked",
+   "time": "14:53.354",
+   "delta": "-35.6",
+   "ahead": true,
+   "elo": 1289,
+   "avatar": "avatars/457.png"
+  },
+  {
+   "rank": 459,
+   "name": "Specether",
+   "category": "FSG",
+   "time": "14:06.856",
+   "delta": "+17.5",
+   "ahead": false,
+   "elo": 2384,
+   "avatar": "avatars/458.png"
+  },
+  {
+   "rank": 460,
+   "name": "Aquacordenrnr",
+   "category": "FSG",
+   "time": "22:42.068",
+   "delta": "-20.5",
+   "ahead": true,
+   "elo": 2200,
+   "avatar": "avatars/459.png"
+  },
+  {
+   "rank": 461,
+   "name": "Zylenoxin",
+   "category": "Ranked",
+   "time": "21:53.441",
+   "delta": "+23.5",
+   "ahead": false,
+   "elo": 1541,
+   "avatar": "avatars/460.png"
+  },
+  {
+   "rank": 462,
+   "name": "Obbybly33",
+   "category": "SSG",
+   "time": "10:35.284",
+   "delta": "+29.8",
+   "ahead": false,
+   "elo": 2060,
+   "avatar": "avatars/461.png"
+  },
+  {
+   "rank": 463,
+   "name": "Priffieredllama74",
+   "category": "Ranked",
+   "time": "21:19.997",
+   "delta": "-28.4",
+   "ahead": true,
+   "elo": 1883,
+   "avatar": "avatars/462.png"
+  },
+  {
+   "rank": 464,
+   "name": "Silverlimeobby",
+   "category": "Ranked",
+   "time": "16:28.103",
+   "delta": "-3.9",
+   "ahead": true,
+   "elo": 850,
+   "avatar": "avatars/463.png"
+  },
+  {
+   "rank": 465,
+   "name": "Priffieblytow",
+   "category": "SSG",
+   "time": "11:37.383",
+   "delta": "+25.8",
+   "ahead": false,
+   "elo": 1814,
+   "avatar": "avatars/464.png"
+  },
+  {
+   "rank": 466,
+   "name": "Meschttowcour",
+   "category": "Ranked",
+   "time": "14:27.838",
+   "delta": "+37.3",
+   "ahead": false,
+   "elo": 2194,
+   "avatar": "avatars/465.png"
+  },
+  {
+   "rank": 467,
+   "name": "Ryguyfeinbrain",
+   "category": "RSG",
+   "time": "18:32.757",
+   "delta": "+23.3",
+   "ahead": false,
+   "elo": 2312,
+   "avatar": "avatars/466.png"
+  },
+  {
+   "rank": 468,
+   "name": "Limellamaaquacorde",
+   "category": "RSG",
+   "time": "15:09.211",
+   "delta": "-26.6",
+   "ahead": true,
+   "elo": 1266,
+   "avatar": "avatars/467.png"
+  },
+  {
+   "rank": 469,
+   "name": "Innrryguy",
+   "category": "FSG",
+   "time": "22:02.773",
+   "delta": "+34.2",
+   "ahead": false,
+   "elo": 1337,
+   "avatar": "avatars/468.png"
+  },
+  {
+   "rank": 470,
+   "name": "Obbyaquacordepearl37",
+   "category": "RSG",
+   "time": "24:57.407",
+   "delta": "-25.8",
+   "ahead": true,
+   "elo": 1572,
+   "avatar": "avatars/469.png"
+  },
+  {
+   "rank": 471,
+   "name": "Dracoknawkpearl",
+   "category": "RSG",
+   "time": "11:44.051",
+   "delta": "-33.7",
+   "ahead": true,
+   "elo": 1698,
+   "avatar": "avatars/470.png"
+  },
+  {
+   "rank": 472,
+   "name": "Towmeschtnr37",
+   "category": "SSG",
+   "time": "12:34.922",
+   "delta": "+14.9",
+   "ahead": false,
+   "elo": 1685,
+   "avatar": "avatars/471.png"
+  },
+  {
+   "rank": 473,
+   "name": "Brainlyonobby",
+   "category": "SSG",
+   "time": "21:56.287",
+   "delta": "-17.0",
+   "ahead": true,
+   "elo": 1516,
+   "avatar": "avatars/472.png"
+  },
+  {
+   "rank": 474,
+   "name": "Nrdibemar",
+   "category": "AA",
+   "time": "12:39.264",
+   "delta": "-13.0",
+   "ahead": true,
+   "elo": 2328,
+   "avatar": "avatars/473.png"
+  },
+  {
+   "rank": 475,
+   "name": "Marrrpriffie",
+   "category": "RSG",
+   "time": "24:52.735",
+   "delta": "+2.1",
+   "ahead": false,
+   "elo": 2073,
+   "avatar": "avatars/474.png"
+  },
+  {
+   "rank": 476,
+   "name": "Pearlin29",
+   "category": "AA",
+   "time": "21:27.488",
+   "delta": "+32.1",
+   "ahead": false,
+   "elo": 1492,
+   "avatar": "avatars/475.png"
+  },
+  {
+   "rank": 477,
+   "name": "Llamajojoe",
+   "category": "RSG",
+   "time": "24:44.163",
+   "delta": "+9.4",
+   "ahead": false,
+   "elo": 1388,
+   "avatar": "avatars/476.png"
+  },
+  {
+   "rank": 478,
+   "name": "Brainrrryguy",
+   "category": "FSG",
+   "time": "14:14.158",
+   "delta": "+30.5",
+   "ahead": false,
+   "elo": 1892,
+   "avatar": "avatars/477.png"
+  },
+  {
+   "rank": 479,
+   "name": "Rrwaydoog51",
+   "category": "AA",
+   "time": "20:41.118",
+   "delta": "+29.2",
+   "ahead": false,
+   "elo": 2387,
+   "avatar": "avatars/478.png"
+  },
+  {
+   "rank": 480,
+   "name": "Wayfein",
+   "category": "RSG",
+   "time": "24:28.254",
+   "delta": "+26.2",
+   "ahead": false,
+   "elo": 1175,
+   "avatar": "avatars/479.png"
+  },
+  {
+   "rank": 481,
+   "name": "Blynr",
+   "category": "Ranked",
+   "time": "19:46.907",
+   "delta": "-3.2",
+   "ahead": true,
+   "elo": 2324,
+   "avatar": "avatars/480.png"
+  },
+  {
+   "rank": 482,
+   "name": "Llamaaquacordedraco",
+   "category": "RSG",
+   "time": "9:18.151",
+   "delta": "-34.9",
+   "ahead": true,
+   "elo": 1869,
+   "avatar": "avatars/481.png"
+  },
+  {
+   "rank": 483,
+   "name": "Nrnrway",
+   "category": "RSG",
+   "time": "15:57.434",
+   "delta": "+15.4",
+   "ahead": false,
+   "elo": 2183,
+   "avatar": "avatars/482.png"
+  },
+  {
+   "rank": 484,
+   "name": "Limedracoknawk",
+   "category": "Ranked",
+   "time": "24:06.375",
+   "delta": "-41.2",
+   "ahead": true,
+   "elo": 1560,
+   "avatar": "avatars/483.png"
+  },
+  {
+   "rank": 485,
+   "name": "Pearltowred",
+   "category": "SSG",
+   "time": "10:10.386",
+   "delta": "-26.8",
+   "ahead": true,
+   "elo": 1572,
+   "avatar": "avatars/484.png"
+  },
+  {
+   "rank": 486,
+   "name": "Ryguyether",
+   "category": "RSG",
+   "time": "14:32.229",
+   "delta": "-10.5",
+   "ahead": true,
+   "elo": 2162,
+   "avatar": "avatars/485.png"
+  },
+  {
+   "rank": 487,
+   "name": "Pagninja",
+   "category": "Ranked",
+   "time": "16:14.268",
+   "delta": "+20.4",
+   "ahead": false,
+   "elo": 1255,
+   "avatar": "avatars/486.png"
+  },
+  {
+   "rank": 488,
+   "name": "Inbly",
+   "category": "FSG",
+   "time": "14:35.662",
+   "delta": "-12.9",
+   "ahead": true,
+   "elo": 1895,
+   "avatar": "avatars/487.png"
+  },
+  {
+   "rank": 489,
+   "name": "Jojoecour",
+   "category": "FSG",
+   "time": "23:33.387",
+   "delta": "-25.4",
+   "ahead": true,
+   "elo": 2332,
+   "avatar": "avatars/488.png"
+  },
+  {
+   "rank": 490,
+   "name": "Courpearlaquacorde88",
+   "category": "SSG",
+   "time": "13:23.284",
+   "delta": "-26.8",
+   "ahead": true,
+   "elo": 1880,
+   "avatar": "avatars/489.png"
+  },
+  {
+   "rank": 491,
+   "name": "Zylenoxpriffie",
+   "category": "SSG",
+   "time": "7:43.312",
+   "delta": "-34.5",
+   "ahead": true,
+   "elo": 1339,
+   "avatar": "avatars/490.png"
+  },
+  {
+   "rank": 492,
+   "name": "Silverpag41",
+   "category": "Ranked",
+   "time": "9:54.974",
+   "delta": "-30.7",
+   "ahead": true,
+   "elo": 1445,
+   "avatar": "avatars/491.png"
+  },
+  {
+   "rank": 493,
+   "name": "Intowway",
+   "category": "Ranked",
+   "time": "14:26.956",
+   "delta": "-9.4",
+   "ahead": true,
+   "elo": 1324,
+   "avatar": "avatars/492.png"
+  },
+  {
+   "rank": 494,
+   "name": "Kytowcour",
+   "category": "RSG",
+   "time": "12:05.542",
+   "delta": "+25.1",
+   "ahead": false,
+   "elo": 1735,
+   "avatar": "avatars/493.png"
+  },
+  {
+   "rank": 495,
+   "name": "Marmeschtdoog",
+   "category": "RSG",
+   "time": "8:23.368",
+   "delta": "-14.6",
+   "ahead": true,
+   "elo": 1037,
+   "avatar": "avatars/494.png"
+  },
+  {
+   "rank": 496,
+   "name": "Nixfeinknawk",
+   "category": "SSG",
+   "time": "10:02.239",
+   "delta": "+19.9",
+   "ahead": false,
+   "elo": 1091,
+   "avatar": "avatars/495.png"
+  },
+  {
+   "rank": 497,
+   "name": "Silverdoogpriffie",
+   "category": "RSG",
+   "time": "19:40.959",
+   "delta": "-44.2",
+   "ahead": true,
+   "elo": 871,
+   "avatar": "avatars/496.png"
+  },
+  {
+   "rank": 498,
+   "name": "Ninjanix",
+   "category": "SSG",
+   "time": "23:01.783",
+   "delta": "-38.3",
+   "ahead": true,
+   "elo": 843,
+   "avatar": "avatars/497.png"
+  },
+  {
+   "rank": 499,
+   "name": "Lyonllama",
+   "category": "SSG",
+   "time": "17:11.070",
+   "delta": "+10.1",
+   "ahead": false,
+   "elo": 1272,
+   "avatar": "avatars/498.png"
+  },
+  {
+   "rank": 500,
+   "name": "Nixether",
+   "category": "AA",
+   "time": "7:38.217",
+   "delta": "-42.2",
+   "ahead": true,
+   "elo": 1415,
+   "avatar": "avatars/499.png"
+  }
+ ],
+ "pace": [
+  {
+   "name": "Rrryguyllama",
+   "split": "End",
+   "time": "1:32.713",
+   "delta": "+5.5",
+   "ahead": false,
+   "avatar": "avatars/313.png"
+  },
+  {
+   "name": "Ninjatow91",
+   "split": "Fortress",
+   "time": "1:41.351",
+   "delta": "+19.5",
+   "ahead": false,
+   "avatar": "avatars/146.png"
+  },
+  {
+   "name": "Etherdoogcour",
+   "split": "Blind",
+   "time": "9:42.242",
+   "delta": "-14.9",
+   "ahead": true,
+   "avatar": "avatars/011.png"
+  },
+  {
+   "name": "Knawkpearlobby",
+   "split": "Fortress",
+   "time": "2:32.501",
+   "delta": "+9.8",
+   "ahead": false,
+   "avatar": "avatars/248.png"
+  },
+  {
+   "name": "Pearlrr",
+   "split": "Bastion",
+   "time": "1:54.712",
+   "delta": "-4.4",
+   "ahead": true,
+   "avatar": "avatars/185.png"
+  },
+  {
+   "name": "Reddracoaquacorde",
+   "split": "Fortress",
+   "time": "3:09.812",
+   "delta": "+7.0",
+   "ahead": false,
+   "avatar": "avatars/352.png"
+  },
+  {
+   "name": "Etherllama",
+   "split": "Stronghold",
+   "time": "2:22.016",
+   "delta": "+3.0",
+   "ahead": false,
+   "avatar": "avatars/382.png"
+  },
+  {
+   "name": "Naxrrobby",
+   "split": "Bastion",
+   "time": "7:32.543",
+   "delta": "+3.6",
+   "ahead": false,
+   "avatar": "avatars/299.png"
+  }
+ ],
+ "tiles": {
+  "pb": "14:32.481",
+  "pb_category": "RSG 1.16.1",
+  "today_runs": [
+   21,
+   27,
+   12,
+   15,
+   19,
+   27,
+   17
+  ],
+  "elo_history": [
+   1583,
+   1645,
+   1482,
+   1573,
+   1534,
+   1590,
+   1551,
+   1614,
+   1577,
+   1391,
+   1491,
+   1426,
+   1520,
+   1520,
+   1641,
+   1436,
+   1590,
+   1498,
+   1400,
+   1606,
+   1607,
+   1433,
+   1531,
+   1564
+  ],
+  "elo": 1642
+ }
+}

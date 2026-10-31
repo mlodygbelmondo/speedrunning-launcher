@@ -1,0 +1,477 @@
+{
+  "_comment": "Sample content for the prototype screens (SCREENS.md). Shared by the web scene and GPUI. Map, tutorial and tool names, versions and credits come from research/02 and research/04 (state 2026-10-23). Player names, times and stats are made up.",
+
+  "accounts": {
+    "store": { "windows": "Windows Credential Manager", "linux": "your system keyring", "macos": "the macOS Keychain" },
+    "device_code": "F7KQ-29XD",
+    "device_url": "microsoft.com/link",
+    "device_qr": [
+      "111111100000100111110101001111111",
+      "100000101110001000101111101000001",
+      "101110101010000101011000101011101",
+      "101110100001111000000111001011101",
+      "101110100011110110001100001011101",
+      "100000100000011111110010001000001",
+      "111111101010101010101010101111111",
+      "000000000000010101001010100000000",
+      "011101100111111111111100000000110",
+      "001000001111010100111001001101101",
+      "010000101001001001001101010111001",
+      "100110000001100110101001101101000",
+      "001001111000011010100111110011011",
+      "101011011010010101101011100000110",
+      "001000100101000011010110101101100",
+      "111011010101100100001110011111100",
+      "101010101101011010101110011011100",
+      "101011010001000111101001001011011",
+      "110110110001100000001100011110110",
+      "011100001100010110110010110010010",
+      "011110100011011010100110100001101",
+      "111000001001011111001111111001001",
+      "000000110100111010001101111011011",
+      "010011011001100000110011001101001",
+      "100011100010101000110010111110001",
+      "000000001010110111010000100011000",
+      "111111100011001000011111101010000",
+      "100000101010000011010101100011111",
+      "101110100010010010100101111110101",
+      "101110101000000000111101100100111",
+      "101110101101101000101011111101100",
+      "100000101110100001101011111110001",
+      "111111100011101110101101010010100"
+    ],
+    "list": [
+      { "name": "VioletRunner", "avatar": "avatars/042.png", "active": true, "expired": false, "ago": "2 h ago" },
+      { "name": "PracticeAlt", "avatar": "avatars/117.png", "active": false, "expired": true, "ago": "" }
+    ]
+  },
+
+  "modes": [
+    {
+      "id": "ranked", "name": "MCSR Ranked", "full": "1v1 ranked races", "icon": "swords",
+      "mc": "1.16.1", "status": "update", "default": true, "recommended": true,
+      "desc": "Race another player on the same seed. Elo, seasons and private rooms.",
+      "leaderboard": "mcsrranked.com",
+      "layers": ["ranked", "rsg", "run", "perf", "game", "java"]
+    },
+    {
+      "id": "rsg", "name": "RSG", "full": "Random Seed Glitchless", "icon": "play",
+      "mc": "1.16.1", "status": "ready", "default": false, "recommended": false,
+      "desc": "The classic: a new random world every run. The main speedrun.com category.",
+      "leaderboard": "speedrun.com",
+      "layers": ["rsg", "run", "perf", "game", "java"]
+    },
+    {
+      "id": "fsg", "name": "FSG", "full": "Filtered Seed Glitchless", "icon": "sparkles",
+      "mc": "1.16.1", "status": "ready", "default": false, "recommended": false,
+      "desc": "Random worlds, filtered so every seed has a fast start.",
+      "leaderboard": "FSG leaderboard",
+      "layers": ["fsg", "rsg", "run", "perf", "game", "java"]
+    },
+    {
+      "id": "ssg", "name": "SSG", "full": "Set Seed Glitchless", "icon": "map",
+      "mc": "1.16.1", "status": "missing", "default": false, "recommended": false,
+      "desc": "Pick one known seed and learn its route by heart.",
+      "leaderboard": "speedrun.com",
+      "layers": ["ssg", "run", "perf", "game", "java"]
+    },
+    {
+      "id": "draftout", "name": "Draftout", "full": "Ranked lockout with a draft", "icon": "list-checks",
+      "mc": "26.3", "status": "missing", "default": false, "recommended": false,
+      "desc": "1v1 lockout bingo on the newest Minecraft, with a draft phase first.",
+      "leaderboard": "draftoutmc.com",
+      "note": "Ninjabrain Bot is off in this mode: Draftout bans it.",
+      "layers": ["draftout", "perf26", "game26", "java25"]
+    }
+  ],
+
+  "layers": {
+    "java":     { "name": "Java", "detail": "Temurin 21", "mods": [] },
+    "game":     { "name": "Minecraft 1.16.1 + Fabric", "detail": "Fabric Loader 0.20.1", "mods": [] },
+    "perf":     { "name": "Performance", "mods": [
+      ["Sodium", "2.5.1"], ["Lithium", "1.0"], ["Starlight", "1.3.0"], ["Voyager", "1.0.1"], ["LazyDFU", "0.1.2"],
+      ["Krypton", "0.1.3"], ["Antigone", "2.0.0"], ["Chunkumulator", "1.1.1"], ["AntiResourceReload", "5.2.0"],
+      ["SpeedrunAPI", "2.2"], ["ForcePort", "1.3.0"], ["SleepBackground", "4.1"] ] },
+    "run":      { "name": "Run tools", "mods": [
+      ["SpeedRunIGT", "16.0"], ["StandardSettings", "2.3"], ["FastReset", "2.4.1"], ["Hermes", "0.16.0"],
+      ["State Output", "1.2.3"], ["MCSR Fairplay", "latest"] ] },
+    "rsg":      { "name": "Random seed", "mods": [ ["Atum", "2.7.2"], ["SeedQueue", "1.8"], ["WorldPreview", "6.3.1"], ["LazyStronghold", "1.1.4"] ] },
+    "ssg":      { "name": "Set seed", "mods": [ ["Atum", "2.7.2"], ["SetSpawn", "4.2.1"] ] },
+    "ranked":   { "name": "MCSR Ranked", "mods": [ ["MCSR Ranked", "self-updating"] ] },
+    "fsg":      { "name": "Filtered seed", "mods": [ ["FSG Mod", "latest"] ] },
+    "java25":   { "name": "Java", "detail": "Temurin 25", "mods": [] },
+    "game26":   { "name": "Minecraft 26.3 + Fabric", "detail": "Fabric Loader 0.20.1", "mods": [] },
+    "perf26":   { "name": "26.3 speedrun mods", "mods": [
+      ["Sodium", "latest"], ["Lithium", "latest"], ["Planifolia", "latest"], ["Krypton", "latest"],
+      ["ForcePort", "latest"], ["Hermes", "latest"], ["SpeedRunIGT", "latest"] ] },
+    "draftout": { "name": "Draftout", "mods": [ ["Draftout", "latest"] ] }
+  },
+  "disk_saved": "410 MB",
+
+  "checks": [
+    { "id": "legal_mods", "status": "ok", "args": { "n": "23" } },
+    { "id": "fabric", "status": "ok", "args": { "version": "0.20.1" } },
+    { "id": "java", "status": "ok", "args": { "java": "Temurin 21.0.8", "memory": "3 GB" } },
+    { "id": "ranked", "status": "ok", "args": { "version": "self-updating" } },
+    { "id": "toolscreen", "status": "warn", "args": { "bad": "1.4.7", "good": "1.4.4" } },
+    { "id": "ninjabrain", "status": "ok", "args": { "version": "1.5.2" } },
+    { "id": "account", "status": "ok", "args": { "name": "VioletRunner" } }
+  ],
+
+  "practice_categories": [
+    { "id": "all-in-one", "name": "All-in-one", "icon": "layers" },
+    { "id": "overworld", "name": "Overworld", "icon": "map" },
+    { "id": "bastion", "name": "Bastion", "icon": "puzzle" },
+    { "id": "blaze", "name": "Blaze", "icon": "sparkles" },
+    { "id": "stronghold", "name": "Stronghold", "icon": "eye" },
+    { "id": "end", "name": "End", "icon": "star" }
+  ],
+  "maps": [
+    { "name": "The MCSR Practice Map", "version": "2.0.0", "authors": "Dibedy", "includes": "Mescht, LlamaPag", "category": "all-in-one", "downloads": "273k", "status": "installed",
+      "desc": "Every split in one world, from the overworld to the end fight." },
+    { "name": "Llama's Bastion Practice", "version": "3.15.0", "authors": "LlamaPag", "includes": "", "category": "bastion", "downloads": "467k", "status": "update",
+      "desc": "All bastion types with their common routes." },
+    { "name": "End Practice", "version": "3.4.0", "authors": "Ryguy2k4", "includes": "", "category": "end", "downloads": "374k", "status": "installed",
+      "desc": "End fights: one-cycles, zero-cycles and tower setups." },
+    { "name": "Zero Practice", "version": "1.2.2", "authors": "Mescht", "includes": "", "category": "end", "downloads": "117k", "status": "available",
+      "desc": "Zero-cycle setups on every pillar." },
+    { "name": "Portal Practice v2", "version": "2.8", "authors": "Semperzz & ItzToxic", "includes": "", "category": "overworld", "downloads": "290k", "status": "available",
+      "desc": "Building nether portals from lava pools and ruined portals." },
+    { "name": "Portal Practice", "version": "1.3.1", "authors": "Mescht", "includes": "", "category": "overworld", "downloads": "", "status": "available",
+      "desc": "The original portal-building practice map." },
+    { "name": "OW Practice", "version": "2.0", "authors": "7rowl", "includes": "", "category": "overworld", "downloads": "", "status": "available",
+      "desc": "Overworld starts and routing." },
+    { "name": "Crafting Practice v2", "version": "2.1", "authors": "Semperzz", "includes": "", "category": "overworld", "downloads": "", "status": "available",
+      "desc": "Fast crafting and inventory handling." },
+    { "name": "BT Practice", "version": "1.3", "authors": "Mescht", "includes": "", "category": "overworld", "downloads": "", "status": "available",
+      "desc": "Finding buried treasure without a map." },
+    { "name": "Blaze Practice", "version": "1.1.0", "authors": "Mescht", "includes": "", "category": "blaze", "downloads": "", "status": "available",
+      "desc": "Blaze spawners in different fortress layouts." },
+    { "name": "Blaze Practice", "version": "1.3", "authors": "Semperzz", "includes": "", "category": "blaze", "downloads": "", "status": "available",
+      "desc": "Another take on blaze spawner setups." },
+    { "name": "End Portal Fill v2", "version": "2.0", "authors": "cylorun", "includes": "", "category": "stronghold", "downloads": "", "status": "available",
+      "desc": "Filling the end portal frame quickly." },
+    { "name": "Zero Sorting Practice", "version": "1.5", "authors": "Semperzz", "includes": "", "category": "end", "downloads": "", "status": "available",
+      "desc": "Sorting your inventory before a zero-cycle." }
+  ],
+  "practice_tools": [
+    { "name": "MiniPracticeKit", "version": "0.6", "authors": "Knawk", "icon": "wrench", "status": "installed",
+      "desc": "Command-block kit with presets for every split. Also works in your Ranked setup." },
+    { "name": "peepoPractice", "version": "2.2.1", "authors": "faluhub", "icon": "target", "status": "available",
+      "desc": "Split practice mod with a loadout editor and custom categories." },
+    { "name": "StrongholdTrainer", "version": "1.0", "authors": "mjtb49 and contributors", "icon": "eye", "status": "available",
+      "desc": "Stronghold navigation with timing and feedback." }
+  ],
+
+  "tutorial_groups": [
+    { "title": "Start here", "icon": "graduation-cap", "items": [
+      { "title": "How to set up Minecraft (and boat eye) for speedrunning", "creator": "draconix", "kind": "video", "length": "25 min", "level": "beginner", "date": "2026", "current": true, "url": "https://www.youtube.com/watch?v=l-q-_4R8_6M" },
+      { "title": "MCSR setup guide: Ninjabrain Bot, boat eye, Toolscreen, practice maps", "creator": "HiTrippy", "kind": "video", "length": "35 min", "level": "beginner", "date": "May 2026", "current": true, "url": "https://www.youtube.com/watch?v=Uvy0LzZuCxU" },
+      { "title": "The Ultimate Guide to Minecraft Speedrunning", "creator": "Couriway", "kind": "guide", "length": "7 chapters", "level": "beginner", "date": "Apr 2026", "current": true, "url": "https://www.youtube.com/watch?v=qo475jHhxGg" },
+      { "title": "Speedrunning guide for Ranked and RSG", "creator": "Mikeyboie", "kind": "series", "length": "4 parts", "level": "beginner", "date": "2025", "current": true, "url": "https://www.youtube.com/watch?v=egyiA_8FztM" }
+    ] },
+    { "title": "Bastions", "icon": "puzzle", "items": [
+      { "title": "How to speedrun Bridge", "creator": "MCSR Wiki", "kind": "video", "length": "", "level": "beginner", "date": "Feb 2026", "current": true, "url": "https://www.youtube.com/watch?v=FoNy438g1GM" },
+      { "title": "How to speedrun Housing", "creator": "MCSR Wiki", "kind": "video", "length": "", "level": "beginner", "date": "Mar 2026", "current": true, "url": "https://www.youtube.com/watch?v=y7fG2L4FZLU" },
+      { "title": "You only need 4 routes", "creator": "HiTrippy", "kind": "video", "length": "", "level": "beginner", "date": "2026", "current": true, "url": "https://www.youtube.com/watch?v=NKWnd0LJbbY" },
+      { "title": "Stables triple to gap, all variants", "creator": "meebie", "kind": "video", "length": "", "level": "advanced", "date": "Jan 2026", "current": true, "url": "https://www.youtube.com/watch?v=D4Ulw7VepJc" }
+    ] },
+    { "title": "Nether and fortress", "icon": "sparkles", "items": [
+      { "title": "How to complete ruined portals", "creator": "MCSR Wiki", "kind": "video", "length": "", "level": "beginner", "date": "Nov 2024", "current": true, "url": "https://www.youtube.com/watch?v=FkLYnUw39zU" },
+      { "title": "How to speedrun the Fortress", "creator": "MCSR Wiki", "kind": "video", "length": "", "level": "intermediate", "date": "Jul 2024", "current": false, "url": "https://www.youtube.com/watch?v=9LpyDBPC3u4" },
+      { "title": "All optimal spawner setups", "creator": "JackoWacko62", "kind": "video", "length": "", "level": "intermediate", "date": "Feb 2026", "current": true, "url": "https://www.youtube.com/watch?v=n11v-59LJnA" }
+    ] },
+    { "title": "Stronghold and eye throws", "icon": "eye", "items": [
+      { "title": "How to find the stronghold with Ninjabrain Bot", "creator": "k4yfour", "kind": "video", "length": "", "level": "beginner", "date": "Jan 2026", "current": true, "url": "https://www.youtube.com/watch?v=XmikooWmIAM" },
+      { "title": "Ninjabrain Bot boat eye tutorial", "creator": "HiTrippy", "kind": "video", "length": "", "level": "intermediate", "date": "Jul 2026", "current": true, "url": "https://www.youtube.com/watch?v=SxVJD7rW-x8" },
+      { "title": "Preemptive stronghold navigation in 3 minutes", "creator": "meebie", "kind": "video", "length": "3 min", "level": "intermediate", "date": "Jan 2026", "current": true, "url": "https://www.youtube.com/watch?v=LtouvpxyDGY" }
+    ] },
+    { "title": "The End", "icon": "star", "items": [
+      { "title": "How to one-cycle the Ender Dragon in 100 seconds", "creator": "k4yfour", "kind": "video", "length": "", "level": "beginner", "date": "Dec 2025", "current": true, "url": "https://www.youtube.com/watch?v=u9UVwwWxN_k" },
+      { "title": "Never fail a one-cycle again", "creator": "HiTrippy", "kind": "video", "length": "", "level": "intermediate", "date": "May 2026", "current": true, "url": "https://www.youtube.com/watch?v=9HpFTWRUtxw" },
+      { "title": "How to zero-cycle, ft. Doogile", "creator": "MCSR Wiki", "kind": "video", "length": "", "level": "advanced", "date": "Feb 2026", "current": true, "url": "https://www.youtube.com/watch?v=CSdkCmZ69RI" }
+    ] },
+    { "title": "Submitting and improving", "icon": "upload", "items": [
+      { "title": "How to submit Minecraft: Java Edition speedruns", "creator": "Ismexion", "kind": "video", "length": "", "level": "beginner", "date": "Jan 2025", "current": true, "url": "https://youtu.be/z2n2fCV1GY0" },
+      { "title": "How do I improve in MCSR?", "creator": "JackoWacko62", "kind": "video", "length": "", "level": "beginner", "date": "Mar 2026", "current": true, "url": "https://www.youtube.com/watch?v=mYULe_lELTk" }
+    ] }
+  ],
+
+  "tools": [
+    { "id": "ninjabrain", "name": "Ninjabrain Bot", "version": "1.5.2", "authors": "Ninjabrain1", "icon": "eye", "platform": "all",
+      "desc": "Finds the stronghold from your eye throws.", "installed": true, "pinned": true, "start_with_game": true, "auto_update": false },
+    { "id": "toolscreen", "name": "Toolscreen", "version": "1.4.4", "authors": "jojoe77777", "icon": "monitor", "platform": "windows",
+      "desc": "Instant resizing, eye zoom and overlays inside fullscreen.", "installed": true, "pinned": false, "start_with_game": true, "auto_update": true, "newer": "1.4.7" },
+    { "id": "waywall", "name": "waywall", "version": "prerelease", "authors": "tesselslate", "icon": "monitor-play", "platform": "linux",
+      "desc": "Resizing, eye zoom and a Ninjabrain overlay on Wayland.", "installed": false, "pinned": false, "start_with_game": true, "auto_update": true },
+    { "id": "paceman", "name": "PaceMan Tracker", "version": "0.7.3", "authors": "PaceMan team", "icon": "trophy", "platform": "all",
+      "desc": "Shares your live pace on paceman.gg.", "installed": true, "pinned": false, "start_with_game": true, "auto_update": true },
+    { "id": "jingle", "name": "Jingle", "version": "2.0.0-pre6", "authors": "DuncanRuns", "icon": "keyboard", "platform": "windows",
+      "desc": "Hotkeys, plugins and run-file packaging. Optional.", "installed": true, "pinned": false, "start_with_game": false, "auto_update": true },
+    { "id": "obs", "name": "OBS Studio", "version": "", "authors": "OBS Project", "icon": "video", "platform": "all",
+      "desc": "Records your runs for speedrun.com. Installed separately.", "installed": false, "pinned": false, "external": true, "start_with_game": false, "auto_update": false }
+  ],
+  "tools_checked_ago": "5 min ago",
+
+  "stats": {
+    "total_runs": "214",
+    "tiles": { "pb": "14:32.481", "pb_category": "RSG 1.16.1", "runs_month": "214", "runs_month_sub": "+38 vs September", "finished": "9", "finished_sub": "4% of runs", "avg_enter": "2:41", "avg_enter_sub": "-0:06 this week" },
+    "splits": ["Nether", "Bastion", "Fortress", "Blind", "Stronghold", "End"],
+    "runs": [
+      { "date": "Oct 25", "mode": "Ranked", "finished": true, "pb": false, "result": "15:48.210",
+        "splits": [["2:39","+0:08",false],["4:30","+0:18",false],["7:02","+0:22",false],["8:35","+0:37",false],["11:40","+0:49",false],["15:48","+1:16",false]] },
+      { "date": "Oct 25", "mode": "RSG", "finished": false, "pb": false, "result": "Bastion",
+        "splits": [["2:22","-0:09",true],["4:51","+0:39",false]] },
+      { "date": "Oct 24", "mode": "RSG", "finished": true, "pb": true, "result": "14:32.481",
+        "splits": [["2:31","",true],["4:12","",true],["6:40","",true],["7:58","",true],["10:51","",true],["14:32","",true]] },
+      { "date": "Oct 24", "mode": "RSG", "finished": false, "pb": false, "result": "Fortress",
+        "splits": [["2:44","+0:13",false],["4:05","-0:07",true],["7:30","+0:50",false]] },
+      { "date": "Oct 23", "mode": "Ranked", "finished": true, "pb": false, "result": "16:20.004",
+        "splits": [["2:50","+0:19",false],["4:41","+0:29",false],["6:58","+0:18",false],["8:20","+0:22",false],["11:02","+0:11",false],["16:20","+1:48",false]] },
+      { "date": "Oct 23", "mode": "RSG", "finished": false, "pb": false, "result": "Stronghold",
+        "splits": [["2:18","-0:13",true],["3:57","-0:15",true],["6:31","-0:09",true],["7:49","-0:09",true]] },
+      { "date": "Oct 22", "mode": "FSG", "finished": true, "pb": false, "result": "9:51.337",
+        "splits": [["1:12","",true],["2:40","",true],["4:31","",true],["5:20","",true],["7:12","",true],["9:51","",true]] },
+      { "date": "Oct 21", "mode": "RSG", "finished": false, "pb": false, "result": "Nether",
+        "splits": [] }
+    ]
+  },
+
+  "submit": {
+    "time": "14:32.481", "category": "Any% Glitchless RSG 1.16.1", "date": "Oct 24, 2026",
+    "igt": "14:32.481", "rta": "14:51.220",
+    "files": [
+      ["SpeedRunIGT record", "record.json"],
+      ["World", "Random Speedrun #48213"],
+      ["Fairplay archive", "fairplay-2026-10-24.zip"]
+    ],
+    "zip": "run-2026-10-24-1432.zip", "zip_size": "12.4 MB",
+    "sample_link": "https://www.youtube.com/watch?v=sample-run"
+  },
+
+  "settings": {
+    "languages": ["English", "Polski"],
+    "memory": ["2 GB", "3 GB", "4 GB", "6 GB"], "memory_default": 1,
+    "keybinds": ["Standard", "Couriway", "Custom"], "keybinds_default": 0,
+    "sensitivity": "47%",
+    "channels": ["Stable", "Beta"],
+    "data_folder": { "windows": "%APPDATA%\\Speedrunluncher", "linux": "~/.local/share/speedrunluncher", "macos": "~/Library/Application Support/Speedrunluncher" },
+    "close_on_launch": true, "start_with_system": false, "standard_settings": true, "auto_update": true
+  },
+
+  "game": { "mode": "MCSR Ranked", "started": "12 min ago", "resets": "37", "best": "15:48.210", "nether_entries": "6" },
+
+  "onboarding": { "obs_version": "31.1", "signed_in_as": "VioletRunner" },
+
+  "v3": {
+    "_comment": "Scene v3 (REDESIGN.md). Home per mode, Modes and Practice extras. Player data is made up; tier thresholds and the season number are real (MCSR Ranked, 2026-10).",
+    "season": 12,
+    "online": "1 243",
+    "default_mode": "ranked",
+    "modes": {
+      "ranked": {
+        "short": "Ranked",
+        "art": "ranked",
+        "mods_total": 23,
+        "disk": "94 MB",
+        "update_mod": "MCSR Ranked"
+      },
+      "rsg": {
+        "short": "RSG",
+        "art": "rsg",
+        "mods_total": 22,
+        "disk": "88 MB"
+      },
+      "fsg": {
+        "short": "FSG",
+        "art": "fsg",
+        "mods_total": 23,
+        "disk": "90 MB"
+      },
+      "ssg": {
+        "short": "SSG",
+        "art": "ssg",
+        "mods_total": 20,
+        "disk": "38 MB",
+        "download": "38 MB"
+      },
+      "draftout": {
+        "short": "Draftout",
+        "art": "draftout",
+        "mods_total": 8,
+        "disk": "612 MB",
+        "download": "612 MB"
+      }
+    },
+    "ranked": {
+      "elo": 1642,
+      "elo_delta": "+24",
+      "tier": "diamond",
+      "season_w": 18,
+      "season_l": 11,
+      "best": "12:48.302",
+      "matches": [
+        {
+          "opponent": "Dracored",
+          "avatar": "avatars/002.png",
+          "won": true,
+          "time": "12:48.302",
+          "elo": "+14"
+        },
+        {
+          "opponent": "Ninjatow91",
+          "avatar": "avatars/146.png",
+          "won": false,
+          "time": "13:20.551",
+          "elo": "-11"
+        },
+        {
+          "opponent": "Etherdoogcour",
+          "avatar": "avatars/011.png",
+          "won": true,
+          "time": "15:02.117",
+          "elo": "+12"
+        }
+      ],
+      "weekly": {
+        "n": 42,
+        "place": 214,
+        "total": "3 980",
+        "time": "13:51.090"
+      }
+    },
+    "runs": {
+      "rsg": {
+        "pb": "14:32.481",
+        "pb_date": "Oct 24",
+        "sob": "12:34.118",
+        "runs_month": 214,
+        "splits": [
+          {
+            "name": "Nether",
+            "art": "nether-portal",
+            "secs": 151,
+            "time": "2:31",
+            "best": "2:18"
+          },
+          {
+            "name": "Bastion",
+            "art": "bastion",
+            "secs": 101,
+            "time": "1:41",
+            "best": "1:22"
+          },
+          {
+            "name": "Fortress",
+            "art": "fortress",
+            "secs": 148,
+            "time": "2:28",
+            "best": "2:05"
+          },
+          {
+            "name": "Blind",
+            "art": "overworld",
+            "secs": 78,
+            "time": "1:18",
+            "best": "1:06"
+          },
+          {
+            "name": "Stronghold",
+            "art": "stronghold",
+            "secs": 173,
+            "time": "2:53",
+            "best": "2:31"
+          },
+          {
+            "name": "End",
+            "art": "the-end",
+            "secs": 221,
+            "time": "3:41",
+            "best": "3:12"
+          }
+        ]
+      },
+      "fsg": {
+        "pb": "9:51.337",
+        "pb_date": "Oct 22",
+        "sob": "8:42.910",
+        "runs_month": 31,
+        "splits": [
+          {
+            "name": "Nether",
+            "art": "nether-portal",
+            "secs": 72,
+            "time": "1:12",
+            "best": "1:05"
+          },
+          {
+            "name": "Bastion",
+            "art": "bastion",
+            "secs": 88,
+            "time": "1:28",
+            "best": "1:16"
+          },
+          {
+            "name": "Fortress",
+            "art": "fortress",
+            "secs": 111,
+            "time": "1:51",
+            "best": "1:38"
+          },
+          {
+            "name": "Blind",
+            "art": "overworld",
+            "secs": 49,
+            "time": "0:49",
+            "best": "0:42"
+          },
+          {
+            "name": "Stronghold",
+            "art": "stronghold",
+            "secs": 112,
+            "time": "1:52",
+            "best": "1:41"
+          },
+          {
+            "name": "End",
+            "art": "the-end",
+            "secs": 159,
+            "time": "2:39",
+            "best": "2:20"
+          }
+        ]
+      }
+    },
+    "install": {
+      "ssg": {
+        "new": [
+          "ssg"
+        ],
+        "have": [
+          "run",
+          "perf",
+          "game",
+          "java"
+        ]
+      },
+      "draftout": {
+        "new": [
+          "draftout",
+          "perf26",
+          "game26",
+          "java25"
+        ],
+        "have": []
+      }
+    },
+    "practice_art": {
+      "all-in-one": "nether-portal",
+      "overworld": "overworld",
+      "bastion": "bastion",
+      "blaze": "fortress",
+      "stronghold": "stronghold",
+      "end": "the-end"
+    },
+    "practice_default": "all-in-one"
+  }
+}

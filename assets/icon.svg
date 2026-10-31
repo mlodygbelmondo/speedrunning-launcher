@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <!-- The app's pixel "S" (launcher/assets/icons/logo.svg) in accent-2 on the window colour. -->
+  <rect width="64" height="64" fill="#0A0810"/>
+  <g transform="translate(8 8) scale(2)" fill="#B79CFF">
+    <rect x="3" y="1.5" width="18" height="3"/>
+    <rect x="0" y="4.5" width="6" height="3"/>
+    <rect x="18" y="4.5" width="6" height="3"/>
+    <rect x="0" y="7.5" width="6" height="3"/>
+    <rect x="3" y="10.5" width="18" height="3"/>
+    <rect x="18" y="13.5" width="6" height="3"/>
+    <rect x="0" y="16.5" width="6" height="3"/>
+    <rect x="18" y="16.5" width="6" height="3"/>
+    <rect x="3" y="19.5" width="18" height="3"/>
+  </g>
+</svg>

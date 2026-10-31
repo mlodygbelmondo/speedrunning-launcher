@@ -1,0 +1,77 @@
+[
+ {
+  "game_versions": [
+   "26.3"
+  ],
+  "loaders": [
+   "fabric"
+  ],
+  "id": "MDDuShtC",
+  "project_id": "wNlielYC",
+  "version_number": "1.18.0",
+  "date_published": "2026-10-20T09:01:12.850767Z",
+  "version_type": "beta",
+  "files": [
+   {
+    "hashes": {
+     "sha512": "f19d1144ae13dd63e0e8d35742b55a79929a86a718958a8f0266f8316b3ce3f88ff393f8c5a44c067cadf93c07cb8a85451a2ceac1fcbded6eabdea02d023f9b",
+     "sha1": "1e5630f4f4af31b991ad764ba8445bcc08c6c963"
+    },
+    "url": "https://cdn.modrinth.com/data/wNlielYC/versions/MDDuShtC/draftout-1.18.0.jar",
+    "filename": "draftout-1.18.0.jar",
+    "primary": true,
+    "size": 7147280
+   }
+  ]
+ },
+ {
+  "game_versions": [
+   "26.3"
+  ],
+  "loaders": [
+   "fabric"
+  ],
+  "id": "keCFw7dS",
+  "project_id": "wNlielYC",
+  "version_number": "1.17.2",
+  "date_published": "2026-10-04T12:00:42.937305Z",
+  "version_type": "beta",
+  "files": [
+   {
+    "hashes": {
+     "sha1": "98f58a55a63595a8a745ba8de622d0538095bb5a",
+     "sha512": "dbbfeaca3bf2e0acea94305e4534266632b08e354fe707853b84cbe2f393993891d89a0e54363c3944746cccefdcbfaef7b7f2ffe1ceffa8e334546216e369f8"
+    },
+    "url": "https://cdn.modrinth.com/data/wNlielYC/versions/keCFw7dS/draftout-1.17.2.jar",
+    "filename": "draftout-1.17.2.jar",
+    "primary": true,
+    "size": 7017588
+   }
+  ]
+ },
+ {
+  "game_versions": [
+   "26.3"
+  ],
+  "loaders": [
+   "fabric"
+  ],
+  "id": "maPqQHtD",
+  "project_id": "wNlielYC",
+  "version_number": "1.17.1",
+  "date_published": "2026-10-03T14:00:18.752028Z",
+  "version_type": "beta",
+  "files": [
+   {
+    "hashes": {
+     "sha512": "620e6cb94009b3edfe9fd5ed98fd3d12ff4bea8650ce564d241c42118c88efad479399c290506b071f4d70a7c1ce7f41ae8735f150ae5b000b13b88ab75d3f8a",
+     "sha1": "96982bbdf3d6343b2216a2a56c701d6e97594ef6"
+    },
+    "url": "https://cdn.modrinth.com/data/wNlielYC/versions/maPqQHtD/draftout-1.17.1.jar",
+    "filename": "draftout-1.17.1.jar",
+    "primary": true,
+    "size": 7016764
+   }
+  ]
+ }
+]

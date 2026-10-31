@@ -1,0 +1,77 @@
+[
+ {
+  "game_versions": [
+   "1.16.1"
+  ],
+  "loaders": [
+   "fabric"
+  ],
+  "id": "rj7xJrfe",
+  "project_id": "I9W1u5Ac",
+  "version_number": "6.0.4",
+  "date_published": "2026-10-17T19:25:50.967676Z",
+  "version_type": "release",
+  "files": [
+   {
+    "hashes": {
+     "sha512": "df99ce0d0cf60ef2b866d9e90d65656071671eb505f0d86cf4d21cf14825f7a8938a049928af59e61836d943383ea7d017de0cd01be7020a8dfbab411f2a620f",
+     "sha1": "89ee23291d44a3b1d2246f4866f9bd758f25ec5d"
+    },
+    "url": "https://cdn.modrinth.com/data/I9W1u5Ac/versions/rj7xJrfe/mcsrranked-6.0.4.jar",
+    "filename": "mcsrranked-6.0.4.jar",
+    "primary": true,
+    "size": 36241224
+   }
+  ]
+ },
+ {
+  "game_versions": [
+   "1.16.1"
+  ],
+  "loaders": [
+   "fabric"
+  ],
+  "id": "PMQjgUaG",
+  "project_id": "I9W1u5Ac",
+  "version_number": "6.0.3",
+  "date_published": "2026-10-16T13:25:20.566235Z",
+  "version_type": "release",
+  "files": [
+   {
+    "hashes": {
+     "sha1": "3661d6a5a7503aeee0ef878626b4c43ab4a6777c",
+     "sha512": "637d2bc6bf19b5f87088f9168759af3b69e3d4ade67765e40e6701bcd2358b95ce3c7468924812322cf0dc148b40ee3cda07c0a8979216a6b005144af1d2f41f"
+    },
+    "url": "https://cdn.modrinth.com/data/I9W1u5Ac/versions/PMQjgUaG/mcsrranked-6.0.3.jar",
+    "filename": "mcsrranked-6.0.3.jar",
+    "primary": true,
+    "size": 36229230
+   }
+  ]
+ },
+ {
+  "game_versions": [
+   "1.16.1"
+  ],
+  "loaders": [
+   "fabric"
+  ],
+  "id": "bHKNDWtT",
+  "project_id": "I9W1u5Ac",
+  "version_number": "6.0.2",
+  "date_published": "2026-10-15T10:40:41.305290Z",
+  "version_type": "release",
+  "files": [
+   {
+    "hashes": {
+     "sha1": "442898affa30debd6ffc771d943f7884d3a74435",
+     "sha512": "aa0ed503f41bee1e14b32dc19282248368084c918b21df839669ebba75f06aa35f47e250beff879324941705abcc02e3e76aed6ef0f7184628d3fbaa336c5e75"
+    },
+    "url": "https://cdn.modrinth.com/data/I9W1u5Ac/versions/bHKNDWtT/mcsrranked-6.0.2.jar",
+    "filename": "mcsrranked-6.0.2.jar",
+    "primary": true,
+    "size": 36229401
+   }
+  ]
+ }
+]

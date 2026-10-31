@@ -1,0 +1,50 @@
+{
+  "_comment": "What the Practice page adds to srl-practice's map catalogue (crates/srl-practice/data/catalogue.json, the one source for the maps: names, versions, authors, categories, downloads): the categories' art, in grid order, and the practice tools, most popular first. Descriptions are in copy.json (map.<id>, ptool.<id>).",
+  "categories": [
+    {
+      "id": "all-in-one",
+      "art": "nether-portal"
+    },
+    {
+      "id": "overworld",
+      "art": "overworld"
+    },
+    {
+      "id": "bastion",
+      "art": "bastion"
+    },
+    {
+      "id": "blaze",
+      "art": "fortress"
+    },
+    {
+      "id": "stronghold",
+      "art": "stronghold"
+    },
+    {
+      "id": "end",
+      "art": "the-end"
+    }
+  ],
+  "tools": [
+    {
+      "id": "minipracticekit",
+      "name": "MiniPracticeKit",
+      "version": "0.6",
+      "authors": "Knawk"
+    },
+    {
+      "id": "peepopractice",
+      "name": "peepoPractice",
+      "version": "2.2.1",
+      "authors": "faluhub"
+    },
+    {
+      "id": "strongholdtrainer",
+      "name": "StrongholdTrainer",
+      "version": "1.0",
+      "authors": "mjtb49",
+      "contributors": true
+    }
+  ]
+}

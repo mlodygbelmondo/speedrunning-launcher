@@ -1,0 +1,188 @@
+{
+ "schemaVersion": 7,
+ "mods": [
+  {
+   "modid": "commandqmod",
+   "name": "CommandQMod",
+   "description": "Allows you to press command to drop a full stack of items",
+   "homepage": "https://github.com/Slackow/CommandQMod",
+   "versions": [
+    {
+     "target_version": [
+      "26.3"
+     ],
+     "version": "1.2",
+     "url": "https://github.com/Slackow/CommandQMod/releases/download/v1.2/commandqmod-1.2%2B26.3.jar",
+     "sha1": "ee85f81e8b194f9bb544f5695206c6cdd43d852d",
+     "sha512": "1d9fe357fba592d66405cb34d6dd9673c38e0cd6fa7651624b2ab3097b8c6c81b605af5bf5f219b8db95bb5e5e83b413a0b0d1f97d308c576344c9b51dbeccdf",
+     "size": 3435,
+     "intermediary": [
+      "net.fabricmc:intermediary"
+     ]
+    }
+   ],
+   "traits": [
+    "mac-only"
+   ]
+  },
+  {
+   "modid": "custom-map-resetter",
+   "name": "Custom Map Resetter",
+   "description": "Resets custom maps by making copies of a main world and tracking attempts. Based on atum.",
+   "homepage": "https://modrinth.com/mod/custom-map-resetter",
+   "versions": [
+    {
+     "target_version": [
+      "1.16.1"
+     ],
+     "version": "1.4.1-1.16.x",
+     "url": "https://cdn.modrinth.com/data/DStLkW4t/versions/FVV4Djbv/custom-map-resetter-1.4.1-1.16.x.jar",
+     "sha1": "c5c8e66a97be8cbba5ecb2d8cc5e7f9f175dee56",
+     "sha512": "1bd8f4fa6d37e9974485c3a41785066c42e9c54f2ad347987b41f2031ceb1dda90ebbc3ef6282a87d103fd6c7f3e70b330f323acd52158c975e02797bec02b13",
+     "size": 21103,
+     "intermediary": [
+      "net.fabricmc:intermediary"
+     ]
+    }
+   ],
+   "incompatibilities": [
+    "atum"
+   ]
+  },
+  {
+   "modid": "draftout",
+   "name": "Draftout",
+   "description": "Draftout - local 1v1 lockout bingo with over 250 goals",
+   "homepage": "https://draftoutmc.com",
+   "versions": [
+    {
+     "target_version": [
+      "26.3"
+     ],
+     "version": "1.17.2",
+     "url": "https://cdn.modrinth.com/data/wNlielYC/versions/keCFw7dS/draftout-1.17.2.jar",
+     "sha1": "98f58a55a63595a8a745ba8de622d0538095bb5a",
+     "sha512": "dbbfeaca3bf2e0acea94305e4534266632b08e354fe707853b84cbe2f393993891d89a0e54363c3944746cccefdcbfaef7b7f2ffe1ceffa8e334546216e369f8",
+     "size": 7017588,
+     "intermediary": [
+      "net.fabricmc:intermediary"
+     ]
+    }
+   ]
+  },
+  {
+   "modid": "fsg-mod",
+   "name": "FSG Mod",
+   "description": "A mod which overrides atum's seed to be generated from any FSG filter.",
+   "homepage": "https://modrinth.com/mod/fsg-mod",
+   "versions": [
+    {
+     "target_version": [
+      "1.16.1"
+     ],
+     "version": "5.3.0+MC1.16.1",
+     "url": "https://cdn.modrinth.com/data/XZOGBIpM/versions/qc4OUmcd/FSG-Mod-5.3.0%2BMC1.16.1.jar",
+     "sha1": "a38d67e309f58548f63c109110a2c286a701dbca",
+     "sha512": "93f8d9b30f828938b57737ed6ad0c7ac85d2af709e3f389bf829d986f81e2c50d252f1ea3142e9f3bf5226a597f432e878c75ab9794411d120e986842ceab11b",
+     "size": 99724,
+     "dependencies": [
+      "atum"
+     ],
+     "intermediary": [
+      "net.fabricmc:intermediary"
+     ]
+    }
+   ]
+  },
+  {
+   "modid": "mcsrranked",
+   "name": "MCSR Ranked",
+   "description": "Minecraft Live Speedrunning Match Mod!",
+   "homepage": "https://mcsrranked.com",
+   "versions": [
+    {
+     "target_version": [
+      "1.16.1"
+     ],
+     "version": "5.8.26",
+     "url": "https://cdn.modrinth.com/data/I9W1u5Ac/versions/nt5s6inb/mcsrranked-5.8.26.jar",
+     "sha1": "709007c9beedc70ae0e5e9b1119b0c86409c6f6f",
+     "sha512": "491447889a75d2caa315b50955a519c7ced36b3ac5530369ffbd7c21b25d305969f97442ff4e49fad84cd0e24ef1a355d54e81fb4e14237ca905e07610b825f8",
+     "size": 27738025,
+     "dependencies": [
+      "lithium"
+     ],
+     "intermediary": [
+      "net.fabricmc:intermediary"
+     ]
+    }
+   ]
+  },
+  {
+   "modid": "no-telemetry",
+   "name": "No Telemetry",
+   "description": "Disable the telemetry introduced in 21w38a",
+   "homepage": "https://modrinth.com/mod/no-telemetry",
+   "versions": [
+    {
+     "target_version": [
+      "26.3"
+     ],
+     "version": "1.10.0",
+     "url": "https://cdn.modrinth.com/data/hg77g4Pw/versions/cBEkQM9c/no-telemetry-1.10.0.jar",
+     "sha1": "3d52342f5825d01dda6661ef7116cdbacbe49746",
+     "sha512": "a123e59ee7cb9de88669de06d56f5313cc60ee5ec80b0cc407ca0cff3b54b81255fba65e615fa7a33142b8030868e0c2a4cf9bdeadda7b3c593d707eff45576d",
+     "size": 96316,
+     "intermediary": [
+      "net.fabricmc:intermediary"
+     ]
+    }
+   ]
+  },
+  {
+   "modid": "nochatrestrictions",
+   "name": "No Chat Restrictions",
+   "description": "A mod dedicated to removing restrictions around the use of multiplayer features, including in-game chat.",
+   "homepage": "https://modrinth.com/mod/no-chat-restrictions",
+   "versions": [
+    {
+     "target_version": [
+      "26.3"
+     ],
+     "version": "Fabric-MC26.3-v1.3.0",
+     "url": "https://cdn.modrinth.com/data/z440MEwJ/versions/l4Pr3hk8/NoChatRestrictions-Fabric-MC26.3-v1.3.0.jar",
+     "sha1": "26baec9303152b126bd01469955efb6fb7bdc22f",
+     "sha512": "a8efe7fff44340695cd31c6c5028747997d4d23afcd6b58c7eb69d2d6586205fccc8c508ae3a2c22804e36db49530c297f1f9d598e21dd4ead1215db1dca0ff3",
+     "size": 16017,
+     "intermediary": [
+      "net.fabricmc:intermediary"
+     ]
+    }
+   ]
+  },
+  {
+   "modid": "peepopractice",
+   "name": "PeepoPractice",
+   "description": "The best and most advanced MCSR Practice mod!",
+   "homepage": "https://github.com/faluhub/peepoPractice",
+   "versions": [
+    {
+     "target_version": [
+      "1.16.1"
+     ],
+     "version": "2.2.1",
+     "url": "https://github.com/faluhub/peepoPractice/releases/download/v2.2.1/peepopractice-2.2.1.jar",
+     "sha1": "b111f3a653e207e8ff9aeccaeb3bddd9105afbfe",
+     "sha512": "1e8b885cb4e657e0ddca446879bcd47b17de94384059fd95038d8cbd5451b02c9da50f4e2505b7afeea9f4dea38c4384efdfbec30e1cb6816b58dc58890be2aa",
+     "size": 33606760,
+     "dependencies": [
+      "speedrunigt"
+     ],
+     "intermediary": [
+      "net.fabricmc:intermediary"
+     ]
+    }
+   ]
+  }
+ ]
+}

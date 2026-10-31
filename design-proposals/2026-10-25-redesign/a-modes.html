@@ -1,0 +1,53 @@
+<!doctype html><html lang="pl"><head><meta charset="utf-8"><link rel="stylesheet" href="fonts.css"><link rel="stylesheet" href="a-shell.css"><style>
+  .list { position: absolute; left: 64px; top: 104px; width: 432px; display: flex; flex-direction: column; gap: 10px; z-index: 2; }
+  .mr { position: relative; height: 104px; overflow: hidden; }
+  .mr i { position: absolute; inset: 0; background: var(--img) center / cover no-repeat, var(--fb) center / cover no-repeat, #1a1424; }
+  .mr::after { content: ''; position: absolute; inset: 0; background: linear-gradient(90deg, rgba(10,8,16,.92) 0%, rgba(10,8,16,.55) 55%, rgba(10,8,16,.25) 100%); }
+  .mr:not(.on)::after { background: linear-gradient(90deg, rgba(10,8,16,.95) 0%, rgba(10,8,16,.78) 60%, rgba(10,8,16,.6) 100%); }
+  .mr.on { outline: 2px solid var(--text); outline-offset: 3px; }
+  .mt { position: absolute; left: 20px; top: 26px; z-index: 1; } .mt b { display: block; font: 800 30px/1 'Archivo'; font-stretch: 112%; letter-spacing: -.02em; }
+  .mt span { display: block; margin-top: 8px; font: 500 11px/1 'Plex Mono'; color: var(--muted); }
+  .ms { position: absolute; right: 18px; top: 18px; z-index: 1; text-align: right; font: 600 10px/1 'Archivo'; font-stretch: 110%; letter-spacing: .16em; text-transform: uppercase; }
+  .ms em { display: block; margin-top: 8px; font: 500 11px/1 'Plex Mono'; font-style: normal; letter-spacing: 0; color: var(--faint); }
+  .ms.ok { color: var(--ok); } .ms.upd { color: var(--gold); } .ms.get { color: var(--accent-2); }
+  .det { position: absolute; left: 560px; right: 48px; top: 104px; z-index: 2; }
+  .det .eyebrow { margin-top: 4px; } .det h2 { margin-top: 12px; font: 800 72px/.9 'Archivo'; font-stretch: 112%; letter-spacing: -.03em; }
+  .det .desc { margin-top: 14px; max-width: 600px; font-size: 15px; }
+  .facts { margin-top: 22px; display: flex; gap: 36px; }
+  .facts div { font: 500 15px/1 'Plex Mono'; } .facts span { display: block; margin-bottom: 8px; }
+  .lh { margin-top: 30px; display: flex; justify-content: space-between; }
+  .stack { margin-top: 12px; display: flex; flex-direction: column; gap: 3px; }
+  .ly { height: 40px; display: flex; align-items: center; gap: 14px; padding: 0 16px; background: rgba(241,238,248,.05); }
+  .ly b { font: 600 14px/1 'Inter'; width: 210px; } .ly span { flex: 1; font: 400 12px/1 'Plex Mono'; color: var(--muted); }
+  .ly em { font: 500 11px/1 'Plex Mono'; font-style: normal; color: var(--faint); }
+  .ly.own { background: rgba(139,92,246,.22); box-shadow: inset 3px 0 0 var(--accent-2); } .ly.own em { color: var(--accent-2); }
+  .acts { margin-top: 26px; display: flex; align-items: center; gap: 28px; }
+  .play.sm { width: 280px; height: 58px; font-size: 17px; }
+  .note { margin-top: 18px; font-size: 12px; color: var(--faint); max-width: 640px; }
+  .glow2 { position: absolute; inset: 0; background: url('art/masters/bastion.jpg') 70% 40% / cover; opacity: .16; }
+  .glow2::after { content: ''; position: absolute; inset: 0; background: linear-gradient(90deg, var(--bg) 0%, rgba(10,8,16,.7) 50%, rgba(10,8,16,.85) 100%), linear-gradient(0deg, var(--bg), rgba(10,8,16,0) 60%); }
+</style></head><body><div class="glow2"></div><header class="top"><div class="brand"><svg viewBox="0 0 24 24" fill="currentColor" shape-rendering="crispEdges"><rect x="3" y="1.5" width="18" height="3"/><rect x="0" y="4.5" width="6" height="3"/><rect x="18" y="4.5" width="6" height="3"/><rect x="0" y="7.5" width="6" height="3"/><rect x="3" y="10.5" width="18" height="3"/><rect x="18" y="13.5" width="6" height="3"/><rect x="0" y="16.5" width="6" height="3"/><rect x="18" y="16.5" width="6" height="3"/><rect x="3" y="19.5" width="18" height="3"/></svg>SPEEDRUNLUNCHER</div><nav><a>GRAJ</a><a class="on">TRYBY</a><a>TRENING</a><a>NAUKA</a><a>NARZĘDZIA</a><a>STATYSTYKI</a></nav>
+    <div class="me"><svg
+  class="gear"
+  xmlns="http://www.w3.org/2000/svg"
+  width="24"
+  height="24"
+  viewBox="0 0 24 24"
+  fill="none"
+  stroke="currentColor"
+  stroke-width="2"
+  stroke-linecap="round"
+  stroke-linejoin="round"
+>
+  <path d="M9.671 4.136a2.34 2.34 0 0 1 4.659 0 2.34 2.34 0 0 0 3.319 1.915 2.34 2.34 0 0 1 2.33 4.033 2.34 2.34 0 0 0 0 3.831 2.34 2.34 0 0 1-2.33 4.033 2.34 2.34 0 0 0-3.319 1.915 2.34 2.34 0 0 1-4.659 0 2.34 2.34 0 0 0-3.32-1.915 2.34 2.34 0 0 1-2.33-4.033 2.34 2.34 0 0 0 0-3.831A2.34 2.34 0 0 1 6.35 6.051a2.34 2.34 0 0 0 3.319-1.915" />
+  <circle cx="12" cy="12" r="3" />
+</svg><div><div class="n">VioletRunner</div><div class="e"><i></i>1642 · Diament</div></div><img src="avatars/313.png"></div></header>
+<section class="list"><div class="mr on" style="--img:url('art/masters/mode-ranked.jpg');--fb:url('art/masters/bastion.jpg')"><i></i><div class="mt"><b>Ranked</b><span>MCSR Ranked</span></div><div class="ms upd">Aktualizacja<em>1.16.1</em></div></div><div class="mr" style="--img:url('art/masters/mode-rsg.jpg');--fb:url('art/masters/overworld.jpg')"><i></i><div class="mt"><b>RSG</b><span>Random Seed Glitchless</span></div><div class="ms ok">Gotowy<em>1.16.1</em></div></div><div class="mr" style="--img:url('art/masters/mode-fsg.jpg');--fb:url('art/masters/nether-portal.jpg')"><i></i><div class="mt"><b>FSG</b><span>Filtered Seed Glitchless</span></div><div class="ms ok">Gotowy<em>1.16.1</em></div></div><div class="mr" style="--img:url('art/masters/mode-ssg.jpg');--fb:url('art/masters/stronghold.jpg')"><i></i><div class="mt"><b>SSG</b><span>Set Seed Glitchless</span></div><div class="ms get">Do pobrania<em>1.16.1</em></div></div><div class="mr" style="--img:url('art/masters/mode-draftout.jpg');--fb:url('art/masters/the-end.jpg')"><i></i><div class="mt"><b>Draftout</b><span>Lockout z draftem</span></div><div class="ms get">Do pobrania<em>26.3</em></div></div></section>
+<section class="det"><div class="eyebrow">MCSR RANKED · SEZON 12</div><h2>Ranked</h2>
+<p class="desc">Wyścigi 1v1 na tym samym seedzie, elo i sezony. Kolejkę, pokoje prywatne i Weekly Race włączasz w menu Ranked w grze.</p>
+<div class="facts"><div><span class="cap">Minecraft</span>1.16.1</div><div><span class="cap">Mody</span>23</div><div><span class="cap">Na dysku</span>94 MB</div><div><span class="cap">Ranking</span>mcsrranked.com</div></div>
+<div class="lh"><span class="cap">Warstwy</span><span class="cap">wspólne warstwy oszczędzają 410 MB</span></div>
+<div class="stack"><div class="ly own" style="margin-left:0px"><b>MCSR Ranked</b><span>1 mod · aktualizuje się sam</span><em>tylko ten tryb</em></div><div class="ly" style="margin-left:0px"><b>Losowy seed</b><span>4 mody</span><em>wspólna z RSG, FSG</em></div><div class="ly" style="margin-left:0px"><b>Narzędzia do runów</b><span>6 modów</span><em>wspólna z RSG, FSG, SSG</em></div><div class="ly" style="margin-left:0px"><b>Wydajność</b><span>12 modów</span><em>wspólna z RSG, FSG, SSG</em></div><div class="ly" style="margin-left:0px"><b>Minecraft 1.16.1 + Fabric</b><span>Fabric Loader 0.20.1</span><em>wspólna z RSG, FSG, SSG</em></div><div class="ly" style="margin-left:0px"><b>Java</b><span>Temurin 21</span><em>wspólna z RSG, FSG, SSG</em></div></div>
+<div class="acts"><button class="play sm">GRAJ<small>najpierw zaktualizuje MCSR Ranked</small></button><span class="ghost">SPRAWDŹ PLIKI</span><span class="ghost">OTWÓRZ FOLDER</span></div>
+<p class="note">Ranked łączy się tylko w najnowszej wersji, więc launcher aktualizuje go przed każdym startem.</p>
+</section></body></html>

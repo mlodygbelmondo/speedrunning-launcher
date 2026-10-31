@@ -1,0 +1,30 @@
+{
+  "mc_version": "1.16.1",
+  "speedrunigt_version": "16.0+1.16.1",
+  "category": "ANY",
+  "run_type": "random_seed",
+  "is_completed": true,
+  "is_coop": false,
+  "is_hardcore": false,
+  "world_name": "Random Speedrun #42",
+  "is_cheat_allowed": false,
+  "default_gamemode": 0,
+  "date": 1761480000000,
+  "retimed_igt": 612345,
+  "final_igt": 610000,
+  "stats_igt": 12200,
+  "final_rta": 640000,
+  "open_lan": null,
+  "timelines": [
+    { "name": "enter_nether", "igt": 140000, "rta": 150000 },
+    { "name": "enter_bastion", "igt": 170000, "rta": 181000 },
+    { "name": "enter_fortress", "igt": 270000, "rta": 284000 },
+    { "name": "nether_travel", "igt": 330000, "rta": 345000 },
+    { "name": "nether_travel_blind", "igt": 330000, "rta": 345000 },
+    { "name": "enter_stronghold", "igt": 450000, "rta": 468000 },
+    { "name": "enter_end", "igt": 520000, "rta": 540000 },
+    { "name": "kill_ender_dragon", "igt": 600000, "rta": 628000 }
+  ],
+  "advancements": {},
+  "stats": {}
+}

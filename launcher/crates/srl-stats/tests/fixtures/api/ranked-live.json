@@ -1,0 +1,45 @@
+{
+ "status": "success",
+ "data": {
+  "players": 903,
+  "liveMatches": [
+   {
+    "currentTime": 1044295,
+    "players": [
+     {
+      "uuid": "00000009000000000000000000000000",
+      "nickname": "Player9",
+      "roleType": 1,
+      "eloRate": 968,
+      "eloRank": 9469,
+      "country": "pl"
+     },
+     {
+      "uuid": "0000000a000000000000000000000000",
+      "nickname": "Player10",
+      "roleType": 0,
+      "eloRate": 956,
+      "eloRank": 9347,
+      "country": "pl"
+     }
+    ],
+    "data": {
+     "688ee6153b0c42b7b4a36844e42b5fa1": {
+      "liveUrl": null,
+      "timeline": {
+       "time": 987329,
+       "type": "nether.find_fortress"
+      }
+     },
+     "aed991beecd84242b71a9043aae5aba4": {
+      "liveUrl": "https://example.invalid/live",
+      "timeline": {
+       "time": 369799,
+       "type": "nether.find_bastion"
+      }
+     }
+    }
+   }
+  ]
+ }
+}

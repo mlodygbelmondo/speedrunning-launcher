@@ -1,0 +1,81 @@
+{
+ "status": "success",
+ "data": {
+  "id": 109,
+  "seed": {
+   "overworld": "100953913541440379",
+   "nether": "100953913541440379",
+   "theEnd": "100953913541440379",
+   "rng": "100953913541440379",
+   "flags": 207
+  },
+  "endsAt": 1793577600,
+  "leaderboard": [
+   {
+    "rank": 1,
+    "player": {
+     "uuid": "00000004000000000000000000000000",
+     "nickname": "Player4",
+     "roleType": 1,
+     "eloRate": null,
+     "eloRank": null,
+     "country": "pl"
+    },
+    "time": 385600,
+    "replayExist": true
+   },
+   {
+    "rank": 2,
+    "player": {
+     "uuid": "00000005000000000000000000000000",
+     "nickname": "Player5",
+     "roleType": 1,
+     "eloRate": 1013,
+     "eloRank": 8232,
+     "country": null
+    },
+    "time": 392072,
+    "replayExist": true
+   },
+   {
+    "rank": 3,
+    "player": {
+     "uuid": "00000006000000000000000000000000",
+     "nickname": "Player6",
+     "roleType": 2,
+     "eloRate": 1562,
+     "eloRank": 673,
+     "country": "pl"
+    },
+    "time": 495126,
+    "replayExist": true
+   },
+   {
+    "rank": 4,
+    "player": {
+     "uuid": "00000007000000000000000000000000",
+     "nickname": "Player7",
+     "roleType": 1,
+     "eloRate": 1424,
+     "eloRank": 1395,
+     "country": "pl"
+    },
+    "time": 498930,
+    "replayExist": true
+   },
+   {
+    "rank": 5,
+    "player": {
+     "uuid": "00000008000000000000000000000000",
+     "nickname": "Player8",
+     "roleType": 0,
+     "eloRate": 1326,
+     "eloRank": 2183,
+     "country": "pl"
+    },
+    "time": 526073,
+    "replayExist": true
+   }
+  ]
+ }
+}

@@ -1,0 +1,137 @@
+{
+  "_comment": "Learn: other people's guides, credited and linked, never embedded. Titles are the authors' own; what each guide covers is in copy.json (learn.g.<id>), topic names in learn.topic.<id>. Every URL, title, author, date and length was checked live on 2026-10-26 (YouTube oEmbed and watch page, HTTP status for the rest); tools/check-learn-links.sh checks them again. Sources: research/04-practice-maps-and-tutorials.md section 2, plus the Draftout wiki and FSG Mod pages. kind: video | series | text | tool. date: YYYY-MM of publishing, where the source has one.",
+  "topics": [
+    {
+      "id": "setup",
+      "group": "runs",
+      "art": "nether-portal",
+      "modes": ["rsg", "fsg", "ssg", "ranked"],
+      "guides": [
+        { "id": "draconix-setup", "kind": "video", "title": "How to setup Minecraft (and Boateye) for Speedrunning - Full comprehensive guide [2026]", "author": "draconix", "url": "https://www.youtube.com/watch?v=l-q-_4R8_6M", "date": "2026-04", "minutes": 25 },
+        { "id": "couriway-guide", "kind": "video", "title": "The Ultimate Guide to Minecraft Speedrunning", "author": "Couriway", "url": "https://www.youtube.com/watch?v=qo475jHhxGg", "date": "2025-10", "minutes": 25 },
+        { "id": "mikeyboie-guide", "kind": "series", "title": "Minecraft 2025 Speedrunning Guide For RANKED/RSG", "author": "Mikeyboie", "url": "https://www.youtube.com/playlist?list=PL0wjVvs2xG6QRBm0-sC-sYqfOHGRX_32H", "date": "2025-06", "parts": 4 },
+        { "id": "simon-settings", "kind": "video", "title": "The Best Minecraft Speedrunning Settings + My keybinds", "author": "Stuff2Simon", "url": "https://www.youtube.com/watch?v=mswDTtBQ_2U", "date": "2026-03", "minutes": 4 },
+        { "id": "src-rules", "kind": "text", "title": "Rules", "author": "speedrun.com moderators", "url": "https://www.minecraftspeedrunning.com/public-resources/rules" },
+        { "id": "src-tools", "kind": "text", "title": "Tools and Resources", "author": "speedrun.com moderators", "url": "https://www.minecraftspeedrunning.com/public-resources/tools-and-resources" },
+        { "id": "ismexion-submit", "kind": "video", "title": "How to Submit Minecraft: Java Edition Speedruns", "author": "Ismexion", "url": "https://www.youtube.com/watch?v=z2n2fCV1GY0", "date": "2025-01", "minutes": 9 },
+        { "id": "jacko-improve", "kind": "video", "title": "\"How Do I Improve in MCSR?\"", "author": "JackoWacko62", "url": "https://www.youtube.com/watch?v=mYULe_lELTk", "date": "2026-03", "minutes": 8 }
+      ]
+    },
+    {
+      "id": "resets",
+      "group": "runs",
+      "art": "rsg",
+      "modes": ["rsg", "fsg"],
+      "guides": [
+        { "id": "sq-video", "kind": "video", "title": "SeedQueue", "author": "contaria", "url": "https://www.youtube.com/watch?v=fGu2MYZxh_c", "date": "2024-08", "minutes": 10 },
+        { "id": "sq-wiki", "kind": "text", "title": "SeedQueue wiki", "author": "contaria", "url": "https://github.com/contariaa/seedqueue/wiki" },
+        { "id": "sq-settings", "kind": "tool", "title": "Seedqueue Settings", "author": "maskersss", "url": "https://maskers.xyz/sq-settings/" },
+        { "id": "java-guide", "kind": "text", "title": "MCSR Java settings guide", "author": "maskersss", "url": "https://gist.github.com/maskersss/5847d594fc6ce4feb66fbd2d3fda281d" },
+        { "id": "fsg-mod", "kind": "text", "title": "FSG Mod", "author": "DuncanRuns", "url": "https://modrinth.com/mod/fsg-mod", "modes": ["fsg"] },
+        { "id": "jingle", "kind": "text", "title": "Jingle", "author": "DuncanRuns", "url": "https://github.com/DuncanRuns/Jingle" },
+        { "id": "linux-mcsr", "kind": "text", "title": "linux-mcsr", "author": "its-saanvi", "url": "https://github.com/its-saanvi/linux-mcsr", "platform": "linux" }
+      ]
+    },
+    {
+      "id": "bastions",
+      "group": "runs",
+      "art": "bastion",
+      "modes": ["rsg", "fsg", "ranked"],
+      "guides": [
+        { "id": "wiki-bridge", "kind": "video", "title": "How to SPEEDRUN BRIDGE - 2026", "author": "MCSR Wiki", "url": "https://www.youtube.com/watch?v=FoNy438g1GM", "date": "2026-02", "minutes": 9 },
+        { "id": "wiki-housing", "kind": "video", "title": "How to SPEEDRUN HOUSING - 2026", "author": "MCSR Wiki", "url": "https://www.youtube.com/watch?v=y7fG2L4FZLU", "date": "2026-03", "minutes": 9 },
+        { "id": "wiki-stables", "kind": "video", "title": "How to SPEEDRUN Bastions - STABLES", "author": "MCSR Wiki", "url": "https://www.youtube.com/watch?v=fjkkLdWYRmY", "date": "2024-05", "minutes": 12 },
+        { "id": "wiki-treasure", "kind": "video", "title": "How to SPEEDRUN Bastions - TREASURE", "author": "MCSR Wiki", "url": "https://www.youtube.com/watch?v=u4-KxRhNsUc", "date": "2024-05", "minutes": 8 },
+        { "id": "hitrippy-4routes", "kind": "video", "title": "You Only Need 4 Routes.", "author": "HiTrippy", "url": "https://www.youtube.com/watch?v=NKWnd0LJbbY", "date": "2026-06", "minutes": 9 },
+        { "id": "hitrippy-stables", "kind": "video", "title": "Stables Bastion Guide (All Useful Routes)", "author": "HiTrippy", "url": "https://www.youtube.com/watch?v=D8Mt1bNNWtg", "date": "2026-04", "minutes": 14 },
+        { "id": "hitrippy-housing", "kind": "video", "title": "Housing Bastion Guide (All Useful Routes)", "author": "HiTrippy", "url": "https://www.youtube.com/watch?v=O4-U4Lwzc-Y", "date": "2026-04", "minutes": 10 },
+        { "id": "meebie-ttg", "kind": "video", "title": "Stables Triple to Gap Updated Guide (all variants)", "author": "meebie", "url": "https://www.youtube.com/watch?v=D4Ulw7VepJc", "date": "2026-01", "minutes": 22 }
+      ]
+    },
+    {
+      "id": "nether",
+      "group": "runs",
+      "art": "fortress",
+      "modes": ["rsg", "fsg", "ranked"],
+      "guides": [
+        { "id": "wiki-portals", "kind": "video", "title": "How to Complete RUINED PORTALS", "author": "MCSR Wiki", "url": "https://www.youtube.com/watch?v=FkLYnUw39zU", "date": "2024-11", "minutes": 4 },
+        { "id": "wiki-fortress", "kind": "video", "title": "How to SPEEDRUN - The FORTRESS", "author": "MCSR Wiki", "url": "https://www.youtube.com/watch?v=9LpyDBPC3u4", "date": "2024-07", "minutes": 9 },
+        { "id": "cal-fortress", "kind": "video", "title": "The COMPLETE Fortress Guide for Ranked Speedrunning!", "author": "Calisthenicuber", "url": "https://www.youtube.com/watch?v=71ABl45UyAE", "date": "2026-03", "minutes": 23 },
+        { "id": "jacko-spawners", "kind": "video", "title": "ALL Optimal Spawner Setups for Minecraft Speedrunning", "author": "JackoWacko62", "url": "https://www.youtube.com/watch?v=n11v-59LJnA", "date": "2026-02", "minutes": 3 },
+        { "id": "twagz-travel", "kind": "video", "title": "Speedrunners Guide to Nether Travel", "author": "T_Wagz", "url": "https://www.youtube.com/watch?v=12efBB7SW9c", "date": "2020-11", "minutes": 26 }
+      ]
+    },
+    {
+      "id": "eyes",
+      "group": "runs",
+      "art": "ssg",
+      "modes": ["rsg", "fsg", "ranked"],
+      "guides": [
+        { "id": "k4y-ninjabrain", "kind": "video", "title": "How to Find the Stronghold with Ninjabrain Bot", "author": "k4yfour", "url": "https://www.youtube.com/watch?v=XmikooWmIAM", "date": "2026-01", "minutes": 3 },
+        { "id": "hitrippy-boateye", "kind": "video", "title": "Ninjabrain Bot (Boat Eye Tutorial)", "author": "HiTrippy", "url": "https://www.youtube.com/watch?v=SxVJD7rW-x8", "date": "2026-07", "minutes": 10 },
+        { "id": "nb-boat", "kind": "text", "title": "Boat measurements", "author": "Ninjabrain1", "url": "https://github.com/Ninjabrain1/Ninjabrain-Bot/wiki/Boat-measurements" },
+        { "id": "nb-readme", "kind": "text", "title": "Ninjabrain Bot", "author": "Ninjabrain1", "url": "https://github.com/Ninjabrain1/Ninjabrain-Bot" },
+        { "id": "jojoe-toolscreen", "kind": "video", "title": "How to set up Toolscreen for Minecraft Speedrunning", "author": "jojoe", "url": "https://www.youtube.com/watch?v=YqS-fxPx_jo", "date": "2026-02", "minutes": 2, "platform": "windows" },
+        { "id": "jojoe-advanced", "kind": "video", "title": "Advanced Tutorial for Toolscreen", "author": "jojoe", "url": "https://www.youtube.com/watch?v=LG13ljK9RPs", "date": "2026-03", "minutes": 21, "platform": "windows" },
+        { "id": "sens-calc", "kind": "tool", "title": "Toolscreen Sensitivity Calculator", "author": "qMaxXen", "url": "https://qmaxxen.github.io/Toolscreen-sens-calc/", "platform": "windows" },
+        { "id": "eye-wiggle", "kind": "text", "title": "What to do about eye wiggle", "author": "r0hkx", "url": "https://frontcage.com/t/what-to-do-about-eye-wiggle/14", "date": "2025-09" },
+        { "id": "spaceman-jingle", "kind": "video", "title": "How to Speedrun Minecraft: Ninjabrain Bot & Jingle Setup", "author": "Spaceman", "url": "https://www.youtube.com/watch?v=_Ro-6bSRghQ", "date": "2026-01", "minutes": 7 }
+      ]
+    },
+    {
+      "id": "stronghold",
+      "group": "runs",
+      "art": "stronghold",
+      "modes": ["rsg", "fsg", "ranked"],
+      "guides": [
+        { "id": "wiki-stronghold", "kind": "video", "title": "How to SPEEDRUN - The STRONGHOLD", "author": "MCSR Wiki", "url": "https://www.youtube.com/watch?v=9dZWe7dNNMg", "date": "2024-10", "minutes": 2 },
+        { "id": "meebie-preemptive", "kind": "video", "title": "Preemptive Stronghold Navigation in 3 minutes (find the portal room FAST)", "author": "meebie", "url": "https://www.youtube.com/watch?v=LtouvpxyDGY", "date": "2026-01", "minutes": 3 },
+        { "id": "hitrippy-preemptive", "kind": "video", "title": "Pre-Emptive Guide (Piedar)", "author": "HiTrippy", "url": "https://www.youtube.com/watch?v=gHHRAY3d-20", "date": "2026-07", "minutes": 18 },
+        { "id": "mimi-preemptive", "kind": "text", "title": "A Deeper Look Into Preemptive Navigation", "author": "Mimi", "url": "https://docs.google.com/document/d/1Xnmki5jOwuiwVnyv1b3VJLpiDWfNixgKW3zQowmpsYo/edit" }
+      ]
+    },
+    {
+      "id": "end",
+      "group": "runs",
+      "art": "the-end",
+      "modes": ["rsg", "fsg", "ssg", "ranked"],
+      "guides": [
+        { "id": "k4y-onecycle", "kind": "video", "title": "How to One Cycle the Ender Dragon in 100 Seconds", "author": "k4yfour", "url": "https://www.youtube.com/watch?v=u9UVwwWxN_k", "date": "2025-12", "minutes": 2 },
+        { "id": "hitrippy-onecycle", "kind": "video", "title": "Never Fail a 1 Cycle Again", "author": "HiTrippy", "url": "https://www.youtube.com/watch?v=9HpFTWRUtxw", "date": "2026-05", "minutes": 6 },
+        { "id": "fireworks-onecycle", "kind": "video", "title": "How to One Cycle", "author": "Marcus Fireworks", "url": "https://www.youtube.com/watch?v=JaVyuTyDxxs", "date": "2023-05", "minutes": 5 },
+        { "id": "wiki-zerocycle", "kind": "video", "title": "How to ZERO CYCLE - ft. @Doogile", "author": "MCSR Wiki", "url": "https://www.youtube.com/watch?v=CSdkCmZ69RI", "date": "2026-02", "minutes": 27 }
+      ]
+    },
+    {
+      "id": "ranked",
+      "group": "modes",
+      "art": "ranked",
+      "modes": ["ranked"],
+      "guides": [
+        { "id": "ranked-install", "kind": "text", "title": "Installation Guide", "author": "MCSR Ranked Wiki", "url": "https://wiki.mcsrranked.com/install/" },
+        { "id": "hitrippy-ranked", "kind": "video", "title": "MCSR Setup Guide: Ninjabrainbot, Boat Eye, Toolscreen, Standard Settings, Practice Maps", "author": "HiTrippy", "url": "https://www.youtube.com/watch?v=Uvy0LzZuCxU", "date": "2026-05", "minutes": 36 },
+        { "id": "simon-ranked", "kind": "video", "title": "How to set up Minecraft for MCSR Ranked - A full Guide", "author": "Stuff2Simon", "url": "https://www.youtube.com/watch?v=3W2UL4CkAPE", "date": "2026-03", "minutes": 4 },
+        { "id": "ranked-rules", "kind": "text", "title": "Rules", "author": "MCSR Ranked Wiki", "url": "https://wiki.mcsrranked.com/gameplay/rules" },
+        { "id": "ranked-seeds", "kind": "text", "title": "Filtered Seeds", "author": "MCSR Ranked Wiki", "url": "https://wiki.mcsrranked.com/gameplay/seed" },
+        { "id": "ranked-elo", "kind": "text", "title": "Elo and Ranks", "author": "MCSR Ranked Wiki", "url": "https://wiki.mcsrranked.com/gameplay/elo_and_ranks" },
+        { "id": "ranked-explanations", "kind": "series", "title": "MCSR Ranked Explanations", "author": "MCSR Ranked", "url": "https://www.youtube.com/playlist?list=PLKMhRbg_I18-1gMJC1oXKF8loH2AC7mRI", "date": "2025-05", "parts": 8 },
+        { "id": "hitrippy-keybinds", "kind": "video", "title": "Best Speedrunning Keybinds", "author": "HiTrippy", "url": "https://www.youtube.com/watch?v=UsdEzcsCafo", "date": "2026-06", "minutes": 8 }
+      ]
+    },
+    {
+      "id": "draftout",
+      "group": "modes",
+      "art": "draftout",
+      "modes": ["draftout"],
+      "guides": [
+        { "id": "draftout-start", "kind": "text", "title": "Getting started", "author": "Draftout wiki", "url": "https://draftoutmc.com/wiki/gameplay/getting-started" },
+        { "id": "draftout-playing", "kind": "text", "title": "Playing a match", "author": "Draftout wiki", "url": "https://draftoutmc.com/wiki/gameplay/playing" },
+        { "id": "draftout-drafting", "kind": "text", "title": "Drafting", "author": "Draftout wiki", "url": "https://draftoutmc.com/wiki/gameplay/drafting" },
+        { "id": "draftout-ranks", "kind": "text", "title": "Ranks and rating", "author": "Draftout wiki", "url": "https://draftoutmc.com/wiki/gameplay/ranks" },
+        { "id": "draftout-rules", "kind": "text", "title": "Rules", "author": "Draftout", "url": "https://draftoutmc.com/rules" },
+        { "id": "draftouter-howto", "kind": "video", "title": "How to Play Minecraft Draftout (Tips and Tricks)", "author": "Draftouter", "url": "https://www.youtube.com/watch?v=Ox2ug3pytoo", "date": "2026-05", "minutes": 5 },
+        { "id": "wario-strategies", "kind": "video", "title": "50 Strategies from the World's Top Draftout Players (Ft. Feinberg, Snakezy, BigBigMongey, & more)", "author": "Wario Time", "url": "https://www.youtube.com/watch?v=bbYC4UiJLwg", "date": "2026-07", "minutes": 22 }
+      ]
+    }
+  ]
+}

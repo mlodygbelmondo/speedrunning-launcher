@@ -18,7 +18,7 @@ commicie, który coś zmienia. Najnowsze wpisy dziennika są na górze.
 - **Samoaktualizacja launchera** jest zrobiona i wypchnięta (2026-10-31, szczegóły w dzienniku), CI zielone,
   wydanie `v0.1.0` opublikowane, suma SHA-256 sprawdzona po pobraniu. Nikt jej jeszcze nie uruchomił na Windowsie.
   Kolejne wydanie: podbij wersję w `launcher/Cargo.toml`, commit, tag `vX.Y.Z`, push tagu (`launcher/README.md`,
-  „Releasing a version”). Test na Windowsie: rozpakuj `v0.1.0`, potem wydajemy `v0.1.1` i uruchamiasz stary exe:
+  „Releasing a version”). Test na Windowsie: `v0.1.1` jest już wydane, więc rozpakuj `v0.1.0` (strona wydań) i uruchom go:
   w Ustawieniach, w O programie, ma się pojawić „Uruchom ponownie”, a po kliknięciu nowa wersja (0.1.1 w O programie)
   i brak `speedrunning-launcher.old.exe` w folderze po kilku sekundach.
 - **Logowanie Microsoft** jest wyłączone, dopóki Mojang nie zatwierdzi naszego client ID. Poradnik dla Piotra:
@@ -206,6 +206,10 @@ Potem:
 ## Dziennik
 
 ### 2026-10-31
+
+- **Wydanie `v0.1.1`** do testu samoaktualizacji na Windowsie (wybór Piotra): ten sam kod, tylko wersja
+  w `launcher/Cargo.toml`. Test: pobierz `v0.1.0` ze strony wydań, uruchom; launcher ma pobrać 0.1.1 i w Ustawieniach,
+  w O programie, zaproponować „Uruchom ponownie”.
 
 - **Bez atrybucji AI w gicie** (prośba Piotra). Cztery pierwsze commity publicznego repo miały linię
   `Co-Authored-By: Claude …`. Opisy przepisane (`git filter-branch --msg-filter`, pliki bez zmian, to samo

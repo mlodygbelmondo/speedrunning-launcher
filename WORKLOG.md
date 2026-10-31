@@ -5,7 +5,7 @@ commicie, który coś zmienia. Najnowsze wpisy dziennika są na górze.
 
 ## Teraz
 
-- **Stan:** `launcher` i `main` to ten sam commit (7f6fc77 plus ten wpis), a pierwsze numerowane wydanie
+- **Stan:** `launcher` i `main` to ten sam commit, a pierwsze numerowane wydanie
   `v0.1.0` jest opublikowane (2026-10-31, niepodpisane, `releases/latest`). Gotowe są M1, M2 i M3 (statystyki
   z prawdziwych danych, mapy treningowe, logowanie Microsoft z ekranami), import ustawień z innych launcherów,
   jedna instancja 1.16.1 ze stroną Mody, szlif UI i tekstów, blokada grania offline w wersji z client ID,
@@ -206,6 +206,13 @@ Potem:
 ## Dziennik
 
 ### 2026-10-31
+
+- **Bez atrybucji AI w gicie** (prośba Piotra). Cztery pierwsze commity publicznego repo miały linię
+  `Co-Authored-By: Claude …`. Opisy przepisane (`git filter-branch --msg-filter`, pliki bez zmian, to samo
+  drzewo), `launcher` i `main` wypchnięte z `--force-with-lease`. Wydanie `v0.1.0` usunięte i zbudowane od nowa
+  z tagu na nowym commicie, `launcher-latest` przebudowane ręcznym runem, stare runy CI usunięte. Na przyszłość:
+  `attribution` wyłączone w ustawieniach Claude Code, reguła w globalnym AGENTS.md i lokalny hook `commit-msg`,
+  który wycina takie linie.
 
 - **Samoaktualizacja launchera i numerowane wydania** (subagent, gałąź `launcher`, decyzja Piotra o budowie).
   - **CI:** tag `v<wersja>` buduje i testuje jak push, sprawdza, że tag to `v` plus `[workspace.package]

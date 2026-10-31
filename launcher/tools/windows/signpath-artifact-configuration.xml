@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- SignPath artifact configuration for the `launcher` workflow (.github/workflows/launcher.yml). The
+     workflow uploads the release exe with actions/upload-artifact, which wraps it in a zip, so the root
+     is a zip file with the exe inside. SignPath signs the exe only when its version resource names the
+     product (launcher/crates/srl-app/build.rs). Paste this into the project's artifact configuration
+     on signpath.io; see SIGNPATH.md. -->
+<artifact-configuration xmlns="http://signpath.io/artifact-configuration/v1">
+  <zip-file>
+    <pe-file path="speedrunning-launcher.exe" product-name="Speedrunning Launcher">
+      <authenticode-sign />
+    </pe-file>
+  </zip-file>
+</artifact-configuration>

@@ -1,6 +1,6 @@
 # Speedrunning Launcher: format, test and build on Linux and Windows, install RSG, Ninjabrain Bot
 # and Toolscreen headless on Windows, and publish the Windows build (zip) as the `launcher-latest`
-# prerelease. See launcher/README.md.
+# prerelease. Run by hand with `sign` ticked, the exe is signed through SignPath first. See launcher/README.md.
 name: launcher
 
 on:
@@ -10,6 +10,11 @@ on:
       - 'launcher/**'
       - '.github/workflows/launcher.yml'
   workflow_dispatch:
+    inputs:
+      sign:
+        description: Sign the exe through SignPath (each signing request waits for an approver)
+        type: boolean
+        default: false
 
 permissions:
   contents: write
@@ -64,6 +69,8 @@ jobs:
   windows:
     runs-on: windows-latest
     timeout-minutes: 120
+    outputs:
+      signed: ${{ steps.signed.outputs.signed }}
     defaults:
       run:
         shell: bash
@@ -89,6 +96,14 @@ jobs:
       # from the Windows SDK on windows-latest.
       - name: Release build
         run: cargo build --release --locked -p srl-app
+
+      # SignPath signs only an exe whose version resource names the product (build.rs).
+      - name: Version resource
+        shell: pwsh
+        run: |
+          $v = (Get-Item target/release/speedrunning-launcher.exe).VersionInfo
+          $v | Format-List ProductName, ProductVersion, FileVersion, FileDescription
+          if ($v.ProductName -ne 'Speedrunning Launcher') { throw "ProductName is '$($v.ProductName)'" }
 
       # The real pipeline without a window: Java, Minecraft 1.16.1, Fabric Loader and the RSG mods
       # into an empty data folder. Fails the job when the install fails (exit code 1). The release
@@ -130,6 +145,56 @@ jobs:
       - name: Default data folder
         run: target/release/speedrunning-launcher.exe --status
 
+      # Signing: the tested exe goes to SignPath as an artifact, an approver confirms the request on
+      # signpath.io, and the signed exe replaces it before packaging. Needs the SIGNPATH_API_TOKEN secret
+      # and the SIGNPATH_ORGANIZATION_ID variable (tools/windows/SIGNPATH.md).
+      - name: Check SignPath settings
+        if: inputs.sign
+        env:
+          TOKEN: ${{ secrets.SIGNPATH_API_TOKEN }}
+          ORG: ${{ vars.SIGNPATH_ORGANIZATION_ID }}
+        run: |
+          [ -n "$TOKEN" ] || { echo "the SIGNPATH_API_TOKEN secret is not set"; exit 1; }
+          [ -n "$ORG" ] || { echo "the SIGNPATH_ORGANIZATION_ID variable is not set"; exit 1; }
+
+      - name: Upload the unsigned exe
+        if: inputs.sign
+        id: unsigned
+        uses: actions/upload-artifact@v4
+        with:
+          name: speedrunning-launcher-unsigned
+          path: launcher/target/release/speedrunning-launcher.exe
+          if-no-files-found: error
+
+      - name: Sign through SignPath
+        if: inputs.sign
+        uses: signpath/github-action-submit-signing-request@v3
+        with:
+          api-token: ${{ secrets.SIGNPATH_API_TOKEN }}
+          organization-id: ${{ vars.SIGNPATH_ORGANIZATION_ID }}
+          project-slug: ${{ vars.SIGNPATH_PROJECT_SLUG || 'speedrunning-launcher' }}
+          signing-policy-slug: ${{ vars.SIGNPATH_POLICY_SLUG || 'release-signing' }}
+          artifact-configuration-slug: ${{ vars.SIGNPATH_ARTIFACT_CONFIGURATION_SLUG || 'initial' }}
+          github-artifact-id: ${{ steps.unsigned.outputs.artifact-id }}
+          wait-for-completion: true
+          # time for an approver to confirm the request
+          wait-for-completion-timeout-in-seconds: 3600
+          output-artifact-directory: ${{ runner.temp }}/signed
+
+      - name: Use the signed exe
+        if: inputs.sign
+        shell: pwsh
+        run: |
+          $signed = Join-Path $env:RUNNER_TEMP 'signed/speedrunning-launcher.exe'
+          $s = Get-AuthenticodeSignature $signed
+          $s | Format-List Status, StatusMessage, SignerCertificate
+          if ($s.Status -ne 'Valid') { throw "signature: $($s.Status)" }
+          Copy-Item $signed target/release/speedrunning-launcher.exe -Force
+
+      - name: Signed or not
+        id: signed
+        run: echo "signed=${{ inputs.sign && 'yes' || 'no' }}" >> "$GITHUB_OUTPUT"
+
       - name: Package
         run: |
           set -x
@@ -139,7 +204,8 @@ jobs:
           cp assets/fonts/*.txt dist/licenses/
           cp assets/icons/LICENSE-lucide.txt dist/licenses/
           sed 's/\r*$/\r/' tools/windows/README.txt > dist/README.txt
-          printf 'commit %s\nbuilt %s\nrun %s\n' "$GITHUB_SHA" "$(date -u +%FT%TZ)" "$GITHUB_RUN_ID" > dist/VERSION.txt
+          printf 'commit %s\nbuilt %s\nrun %s\nsigned %s\n' "$GITHUB_SHA" "$(date -u +%FT%TZ)" "$GITHUB_RUN_ID" \
+            "${{ steps.signed.outputs.signed }}" > dist/VERSION.txt
           rm -f speedrunning-launcher-windows.zip
           (cd dist && 7z a -tzip -mx=9 ../speedrunning-launcher-windows.zip . > /dev/null)
           ls -l speedrunning-launcher-windows.zip
@@ -164,11 +230,19 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
+          SIGNED: ${{ needs.windows.outputs.signed }}
         run: |
           mb=$(du -m speedrunning-launcher-windows.zip | cut -f1)
+          if [ "$SIGNED" = yes ]; then
+            signing="The exe is signed. Free code signing provided by SignPath.io, certificate by SignPath Foundation."
+          else
+            signing="This build is not signed, so Windows SmartScreen may ask: choose More info, then Run anyway."
+          fi
           notes="Windows test build of Speedrunning Launcher.
 
           Download speedrunning-launcher-windows.zip (${mb} MB), unzip it and run speedrunning-launcher.exe. README.txt in the zip says where the data and logs are.
+
+          ${signing}
 
           Built from ${GITHUB_SHA} by run ${GITHUB_RUN_ID}."
           if gh release view launcher-latest > /dev/null 2>&1; then

@@ -83,8 +83,9 @@ its author and opened in your browser.
 
 Windows test builds are published as the
 [`launcher-latest`](https://github.com/mlodygbelmondo/speedrunning-launcher/releases/tag/launcher-latest)
-prerelease. Unzip the archive and run the `.exe` inside. The builds aren't signed yet, so SmartScreen may ask:
-choose *More info*, then *Run anyway*.
+prerelease. Unzip the archive and run the `.exe` inside. Until the builds are signed (see the
+[Code signing policy](#code-signing-policy)), SmartScreen may ask: choose *More info*, then *Run anyway*. The
+release notes say whether a build is signed.
 
 The launcher keeps its data in `%APPDATA%\SpeedrunningLauncher\data` on Windows and in
 `~/.local/share/speedrunninglauncher` on Linux.
@@ -154,6 +155,34 @@ Day-to-day progress is in [`WORKLOG.md`](WORKLOG.md) (in Polish).
   ([`launcher/assets/art/CREDITS.md`](launcher/assets/art/CREDITS.md); the launcher shows
   [`launcher/assets/credits.md`](launcher/assets/credits.md) in Settings).
 - Fonts: Archivo, IBM Plex Mono and Inter, all under the SIL Open Font License 1.1.
+
+## Code signing policy
+
+Free code signing provided by [SignPath.io](https://about.signpath.io), certificate by
+[SignPath Foundation](https://signpath.org).
+
+- **Committers and reviewers:** [mlodygbelmondo](https://github.com/mlodygbelmondo)
+- **Approvers:** [mlodygbelmondo](https://github.com/mlodygbelmondo)
+
+Only `speedrunning-launcher.exe`, built by GitHub Actions from this repository
+([`.github/workflows/launcher.yml`](.github/workflows/launcher.yml)), is signed, and an approver confirms every
+signing request. The tools, mods and practice maps the launcher downloads belong to their authors and are not
+signed by this project. How a build gets signed: [`launcher/tools/windows/SIGNPATH.md`](launcher/tools/windows/SIGNPATH.md).
+
+### Privacy
+
+The launcher has no telemetry and sends no data about you to this project. It connects only to the services a
+feature needs:
+
+- **Installing and updating the game:** Mojang (game files and the Java runtime), Fabric (the mod loader),
+  mcsr-meta and Modrinth (the mod lists and mods), and GitHub (the legal mod lists, tools and practice maps). On
+  start the launcher downloads the current mod lists to see whether installed modes need updates.
+- **Signing in with Microsoft**, when you choose to: Microsoft, Xbox Live and Minecraft services. The sign-in
+  token stays on your computer.
+- **Stats**, when you open them: the public MCSR Ranked and Draftout APIs, asked for the nickname you play with.
+- **Skins** on the Stats and account screens: Minecraft's texture server.
+
+The game itself and the tools you install follow their own privacy rules.
 
 ## Licence
 

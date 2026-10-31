@@ -153,10 +153,13 @@ GitHub's `windows-latest` has.
 `.github/workflows/launcher.yml` runs on every push to the `launcher` branch that touches `launcher/` (and by hand):
 
 - **Linux:** `cargo fmt --check`, `cargo clippy -D warnings`, `cargo test --workspace`, the release build.
-- **Windows:** `cargo fmt --check`, `cargo test --workspace`, the release build, then a headless RSG install into an
+- **Windows:** `cargo fmt --check`, `cargo test --workspace`, the release build (its version resource must name
+  the product, `build.rs`), then a headless RSG install into an
   empty `SRL_HOME`, a headless install of Ninjabrain Bot and Toolscreen into another one (every file the launcher
   reports is hashed again with coreutils and must match a hash pinned in `srl-tools`), and the zip: the exe,
   `README.txt` (`tools/windows/README.txt`), the licences and `VERSION.txt`.
+- **Signing**, only in a run started by hand with `sign` ticked: the tested exe goes to SignPath, an approver
+  confirms the request and the signed exe goes into the zip (`tools/windows/SIGNPATH.md`).
 - **Publish**, when both pass: the zip replaces the asset of the `launcher-latest` prerelease:
   <https://github.com/mlodygbelmondo/speedrunning-launcher/releases/download/launcher-latest/speedrunning-launcher-windows.zip>.
 

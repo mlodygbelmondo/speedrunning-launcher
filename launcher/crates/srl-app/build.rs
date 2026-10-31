@@ -53,4 +53,16 @@ fn main() {
     {
         println!("cargo:rustc-env=SRL_COMMIT={}", &sha[..7]);
     }
+
+    // Windows Explorer's file properties and SignPath's product name check read the version
+    // resource. winresource fills the versions from the crate version and compiles it with rc.exe.
+    if env::var("CARGO_CFG_TARGET_OS").as_deref() == Ok("windows") {
+        let mut res = winresource::WindowsResource::new();
+        res.set("ProductName", "Speedrunning Launcher")
+            .set("FileDescription", "Speedrunning Launcher")
+            .set("OriginalFilename", "speedrunning-launcher.exe")
+            .set("LegalCopyright", "GNU GPL v3.0 or later");
+        res.compile()
+            .expect("Windows version resource (rc.exe from the Windows SDK)");
+    }
 }

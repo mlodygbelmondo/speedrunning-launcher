@@ -8,9 +8,10 @@ commicie, który coś zmienia. Najnowsze wpisy dziennika są na górze.
 - **Stan:** `launcher` i `main` to ten sam commit. Gotowe są M1, M2 i M3 (statystyki z prawdziwych danych, mapy
   treningowe, logowanie Microsoft z ekranami), import ustawień z innych launcherów, jedna instancja 1.16.1 ze stroną
   Mody, szlif UI i tekstów po ocenie ekranów oraz blokada grania offline w wersji z client ID. Szczegóły w dzienniku.
-- **W toku (noc z 28 na 29 października):** praca bez Piotra, jeden subagent naraz. Kolejność: blokada offline,
-  runy treningowe poza Statystykami, potem większa praca nad wyglądem z oceny ekranów (jeden system typografii
-  i przycisków). Wyniki w dzienniku.
+- **Repozytorium jest publiczne** od 2026-10-31 (GPL-3.0-or-later), z jednym commitem na start. Historia sprzed
+  niego jest w prywatnym `mlodygbelmondo/speedrunning-launcher-private` (lokalnie remote `private`).
+- **Podpis SignPath:** CI jest gotowe (ręczne uruchomienie z zaznaczonym `sign`), README ma „Code signing policy”.
+  Czeka na Piotra: wniosek na signpath.org, potem konfiguracja z `launcher/tools/windows/SIGNPATH.md`.
 - **Logowanie Microsoft** jest wyłączone, dopóki Mojang nie zatwierdzi naszego client ID. Poradnik dla Piotra:
   `launcher/docs/microsoft-login.md` (Azure i formularz Mojanga, po polsku). Bez client ID gra offline działa jak
   dotąd, więc testy w czasie weryfikacji nie potrzebują konta.
@@ -144,6 +145,8 @@ Potem:
 
 ## Decyzje
 
+- **2026-10-31**, Piotr: repozytorium publiczne na licencji GPL-3.0-or-later, jako nowe repo z czystą historią;
+  stara historia zostaje prywatna. Podpis exe przez SignPath Foundation (darmowy dla open source).
 - **2026-10-29**, Piotr: konta offline jak w Prism. Wersja z client ID pozwala grać offline dopiero po jednym
   zalogowaniu kontem Microsoft z grą na tym komputerze (wylogowanie tego nie cofa); wcześniej Graj prosi
   o zalogowanie. Wersja bez client ID gra offline jak dotąd, więc testy w czasie weryfikacji Mojanga działają bez
@@ -188,6 +191,24 @@ Potem:
 - **2026-10-23:** styl A+D, czyli Violet Noir plus dane speedrunowe.
 
 ## Dziennik
+
+### 2026-10-31
+
+- **Publiczne repozytorium.** Stare repo zmienione na prywatne `speedrunning-launcher-private`. Nowe publiczne
+  `mlodygbelmondo/speedrunning-launcher` startuje od jednego commita z drzewem z 7d6a3b1: bez `research/visual/`
+  (cudze zrzuty ekranu jako wzory), z `LICENSE` (GPL v3) i `license = "GPL-3.0-or-later"` w `Cargo.toml`. Przed
+  publikacją gitleaks przejrzał całą historię i drzewo: tylko fałszywe alarmy (testowy JWT, UUID Notcha, nazwa
+  szyfru). Plików Mojanga w drzewie nie ma. Autor commita to adres noreply GitHuba. Lokalny checkout: `origin` to
+  nowe repo, `private` stare. Pierwszy push nie uruchomił CI (gałąź `launcher` równa `main`, filtr ścieżek),
+  więc run był uruchomiony ręcznie.
+- **Przygotowanie podpisu SignPath.** Exe dostaje zasób wersji (`winresource` w `build.rs`: ProductName
+  „Speedrunning Launcher”, wersja z crate'a); CI na Windowsie sprawdza go po buildzie. Ręczne uruchomienie
+  workflow z `sign` wysyła przetestowany exe do SignPath (`signpath/github-action-submit-signing-request@v3`),
+  czeka do godziny na zatwierdzenie, sprawdza podpis (`Get-AuthenticodeSignature`) i pakuje podpisany exe. Bez
+  `sign` (każdy push) paczka jest niepodpisana jak dotąd; notatki wydania i `VERSION.txt` mówią, czy podpisana.
+  Konfiguracja artefaktu: `launcher/tools/windows/signpath-artifact-configuration.xml`, instrukcja:
+  `SIGNPATH.md` obok. README ma „Code signing policy” (role, zasady) i „Privacy” (z jakimi serwisami launcher
+  się łączy i kiedy; bez telemetrii).
 
 ### 2026-10-29
 

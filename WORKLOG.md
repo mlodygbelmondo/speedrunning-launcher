@@ -18,9 +18,9 @@ commicie, który coś zmienia. Najnowsze wpisy dziennika są na górze.
 - **Samoaktualizacja launchera** jest zrobiona i wypchnięta (2026-10-31, szczegóły w dzienniku), CI zielone,
   wydanie `v0.1.0` opublikowane, suma SHA-256 sprawdzona po pobraniu. Nikt jej jeszcze nie uruchomił na Windowsie.
   Kolejne wydanie: podbij wersję w `launcher/Cargo.toml`, commit, tag `vX.Y.Z`, push tagu (`launcher/README.md`,
-  „Releasing a version”). Test na Windowsie: `v0.1.1` jest już wydane, więc rozpakuj `v0.1.0` (strona wydań) i uruchom go:
-  w Ustawieniach, w O programie, ma się pojawić „Uruchom ponownie”, a po kliknięciu nowa wersja (0.1.1 w O programie)
-  i brak `speedrunning-launcher.old.exe` w folderze po kilku sekundach.
+  „Releasing a version”). Najnowsze jest `v0.1.2`. Test na Windowsie: Piotr ma zainstalowane 0.1.1, więc po
+  uruchomieniu launcher ma sam pobrać 0.1.2 (kropka na kole zębatym), w Ustawieniach, w O programie, zaproponować
+  „Uruchom ponownie”, a po kliknięciu pokazać 0.1.2 i usunąć `speedrunning-launcher.old.exe` po kilku sekundach.
 - **Logowanie Microsoft** jest wyłączone, dopóki Mojang nie zatwierdzi naszego client ID. Poradnik dla Piotra:
   `launcher/docs/microsoft-login.md` (Azure i formularz Mojanga, po polsku). Bez client ID gra offline działa jak
   dotąd, więc testy w czasie weryfikacji nie potrzebują konta.
@@ -204,6 +204,11 @@ Potem:
 - **2026-10-23:** styl A+D, czyli Violet Noir plus dane speedrunowe.
 
 ## Dziennik
+
+### 2026-11-01
+
+- **Wydanie `v0.1.2`** (wybór Piotra). Piotr miał już 0.1.1, najnowsze wydanie, więc launcher słusznie nie miał
+  czego pobrać. Ten sam kod, tylko wersja w `launcher/Cargo.toml`, żeby jego instalacja 0.1.1 zaktualizowała się sama.
 
 ### 2026-10-31
 

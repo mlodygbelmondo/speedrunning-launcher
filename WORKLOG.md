@@ -223,6 +223,13 @@ Potem:
 
 ### 2026-11-01
 
+- **Statystyki z własnych instancji:** światy własnej instancji liczą się jako runy jej trybu bazowego (np.
+  „Sub 10 grind” na zasadach RSG to runy RSG). `srl-stats`: `scan_with`/`Stats::local_with` z dodatkowymi
+  folderami gry i trybem każdego, `mode_of_world_in`; run bez globalnego rekordu ma id
+  `w:custom-<n>/<świat>`, więc nie zderza się ze światem o tej samej nazwie we wspólnej instancji. Backend podaje
+  foldery przy starcie, po utworzeniu i po usunięciu instancji; koniec gry własnej instancji odświeża Statystyki
+  jak koniec gry trybu. Test na prawdziwych plikach SpeedRunIGT przeniesionych do `custom-1`.
+
 - **Poprawki po przeglądzie (świeży subagent, 7 uwag, wszystkie poprawione):**
   1. „Posprzątaj” mogło na zawsze usunąć świat przemianowany w grze (Edit World zmienia tylko `LevelName`, folder
      zostaje „Random Speedrun #812”) i każdy „New World”. Teraz decyduje sama nazwa świata (folder tylko, gdy

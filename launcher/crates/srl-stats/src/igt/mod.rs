@@ -72,7 +72,7 @@ pub use history::{
     segment_times,
 };
 pub use record::{Record, RunType, Split, SplitKind};
-pub use scan::{LocalStats, Skipped, scan};
+pub use scan::{LocalStats, Skipped, scan, scan_with};
 
 /// Where to look. `IgtSources::for_user` is what the app uses; tests and the real-file check
 /// point it at their own folders.
@@ -124,7 +124,25 @@ pub struct LatestWorld {
 /// differ from ours only in case there, so the comparison is component-wise and
 /// case-insensitive on Windows.
 pub fn mode_of_world(paths: &Paths, world_path: &Path) -> Option<(Mode, String)> {
+    mode_of_world_in(paths, &[], world_path)
+}
+
+/// `mode_of_world`, also looking in `extra` game directories (the player's own instances), each
+/// with the mode its runs count for.
+pub fn mode_of_world_in(
+    paths: &Paths,
+    extra: &[(PathBuf, Mode)],
+    world_path: &Path,
+) -> Option<(Mode, String)> {
     let world = normalize(world_path);
+    let in_extra = extra.iter().find_map(|(dir, mode)| {
+        let saves = normalize(&dir.join("saves"));
+        let rest = world.strip_prefix(&saves)?.strip_prefix('/')?;
+        (!rest.is_empty() && !rest.contains('/')).then(|| (*mode, rest.to_string()))
+    });
+    if in_extra.is_some() {
+        return in_extra;
+    }
     game_dirs().into_iter().find_map(|dir_mode| {
         let saves = normalize(&paths.instance(dir_mode).join("saves"));
         let rest = world.strip_prefix(&saves)?;

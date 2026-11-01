@@ -184,11 +184,17 @@ impl Stats {
     /// Scans SpeedRunIGT's records (incrementally) and returns the runs per mode. Call it when the
     /// Stats page opens and after a game exits.
     pub async fn local(&self) -> LocalStats {
+        self.local_with(Vec::new()).await
+    }
+
+    /// `local`, also reading the worlds of `extra` game directories (the player's own
+    /// instances), each with the mode its runs count for.
+    pub async fn local_with(&self, extra: Vec<(std::path::PathBuf, srl_core::Mode)>) -> LocalStats {
         let guard = self.inner.scan_lock.clone().lock_owned().await;
         let inner = self.inner.clone();
         tokio::task::spawn_blocking(move || {
             let _guard = guard;
-            igt::scan(&inner.paths, &inner.sources)
+            igt::scan_with(&inner.paths, &inner.sources, &extra)
         })
         .await
         .unwrap_or_default()

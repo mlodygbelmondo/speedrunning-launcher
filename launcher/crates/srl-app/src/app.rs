@@ -588,8 +588,12 @@ impl Launcher {
                 let was_running = snap.state == ModeState::Running;
                 let running = state == ModeState::Running;
                 snap.state = state;
-                if was_running && !running && self.target == Page::Instances {
-                    self.rescan(cx);
+                // As after a mode's game: its runs count for the base mode.
+                if was_running && !running {
+                    self.backend.stats().scan();
+                    if self.target == Page::Instances {
+                        self.rescan(cx);
+                    }
                 }
             }
             Event::CustomInfo(id, info) => {

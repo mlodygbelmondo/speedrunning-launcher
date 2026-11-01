@@ -275,9 +275,16 @@ pub struct RealStats {
     /// API requests under way, by kind and lower-case name, so opening the page twice while
     /// offline doesn't start a second 8 s wait for the same answer.
     in_flight: Arc<Mutex<HashSet<(bool, String)>>>,
+    /// The player's own instances' game directories, with the mode their runs count for.
+    instance_dirs: Arc<Mutex<Vec<(std::path::PathBuf, srl_core::Mode)>>>,
 }
 
 impl RealStats {
+    /// The custom instances changed: the next scans read these game directories too.
+    pub fn set_instance_dirs(&self, dirs: Vec<(std::path::PathBuf, srl_core::Mode)>) {
+        *self.instance_dirs.lock().unwrap() = dirs;
+    }
+
     pub fn new(stats: Stats, events: Events, rt: tokio::runtime::Handle) -> Self {
         Self {
             stats,
@@ -286,6 +293,7 @@ impl RealStats {
             scan_queued: Arc::default(),
             scan_running: Arc::default(),
             in_flight: Arc::default(),
+            instance_dirs: Arc::default(),
         }
     }
 
@@ -318,18 +326,20 @@ impl StatsService for RealStats {
         if self.scan_queued.swap(true, Ordering::SeqCst) {
             return;
         }
-        let (stats, events, queued, running) = (
+        let (stats, events, queued, running, dirs) = (
             self.stats.clone(),
             self.events.clone(),
             self.scan_queued.clone(),
             self.scan_running.clone(),
+            self.instance_dirs.clone(),
         );
         self.rt.spawn(async move {
             // Once this scan is the one that runs, a new request queues another: files written
             // from now on may be missed by this one.
             let _running = running.lock().await;
             queued.store(false, Ordering::SeqCst);
-            let local = stats.local().await;
+            let extra = dirs.lock().unwrap().clone();
+            let local = stats.local_with(extra).await;
             super::real::log(format_args!(
                 "stats: scan of {} record files ({} parsed) in {} ms; {} skipped, {} unreadable \
                  folders",

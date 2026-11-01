@@ -218,6 +218,8 @@ impl RealBackend {
             settings_write: Mutex::new(()),
             check_lock: tokio::sync::Mutex::new(()),
         });
+        let list = inner.snap.lock().unwrap().settings.custom_instances.clone();
+        inner.stats_follow(&list);
         if data_error.is_none() && start_checks {
             rt.spawn(check_updates(inner.clone(), std::time::Duration::ZERO));
             // A Ninjabrain Bot an earlier session started and left behind (it closed or crashed
@@ -830,6 +832,7 @@ impl Inner {
                 },
             );
             let list = snap.settings.custom_instances.clone();
+            self.stats_follow(&list);
             let _ = self.events.unbounded_send(Event::CustomInstances(list));
             let _ = self
                 .events
@@ -842,6 +845,16 @@ impl Inner {
     }
 
     /// Tells the UI how a create or duplicate ended.
+    /// Statistics read the custom instances' worlds too, as runs of their base modes.
+    fn stats_follow(&self, list: &[CustomInstance]) {
+        let paths = self.core.paths();
+        self.stats.set_instance_dirs(
+            list.iter()
+                .map(|c| (paths.game_dir(c.instance()), c.base))
+                .collect(),
+        );
+    }
+
     fn created(&self, answer: Result<Created, String>, copy: bool) {
         if let Err(e) = &answer {
             log(format_args!("new instance failed: {e}"));
@@ -872,6 +885,7 @@ impl Inner {
             snap.settings.custom_instances.retain(|c| c.id != id);
             snap.customs.remove(&id);
             let list = snap.settings.custom_instances.clone();
+            self.stats_follow(&list);
             let _ = self.events.unbounded_send(Event::CustomInstances(list));
         }
         self.write_settings();

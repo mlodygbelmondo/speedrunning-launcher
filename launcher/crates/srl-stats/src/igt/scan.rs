@@ -32,7 +32,6 @@ use srl_core::{Mode, Paths};
 use super::{
     IgtSources, LatestWorld,
     history::{Run, RunHistory, WorldRef},
-    mode_of_world,
     record::{self, Record},
 };
 use crate::cache::write_atomic;
@@ -196,6 +195,9 @@ impl Scanner {
 
 struct WorldRecord {
     world: WorldRef,
+    /// `<mode>/<folder>` in the launcher's own directories, `<instance dir>/<folder>` in an extra
+    /// one: the run's id when no global record matches it.
+    key: String,
     record: Record,
     /// When the world folder was created (epoch ms), where the file system knows.
     created_ms: Option<i64>,
@@ -210,6 +212,12 @@ struct GlobalRecord {
 /// `tokio::task::spawn_blocking` (the `Stats` facade does). Never fails; a broken index or an
 /// unwritable meta folder only cost speed.
 pub fn scan(paths: &Paths, sources: &IgtSources) -> LocalStats {
+    scan_with(paths, sources, &[])
+}
+
+/// `scan`, also reading the worlds of `extra` game directories (the player's own instances),
+/// whose runs count for the mode given with each.
+pub fn scan_with(paths: &Paths, sources: &IgtSources, extra: &[(PathBuf, Mode)]) -> LocalStats {
     let started = Instant::now();
     let index_path = index_path(paths);
     let old = fs::read(&index_path)
@@ -240,7 +248,7 @@ pub fn scan(paths: &Paths, sources: &IgtSources) -> LocalStats {
     let mut globals_listed = true;
     for dir in &sources.global_dirs {
         if latest_world.is_none() {
-            latest_world = read_latest_world(paths, &dir.join("latest_world.json"));
+            latest_world = read_latest_world(paths, extra, &dir.join("latest_world.json"));
         }
         let records = dir.join("records");
         let entries = match list(&records) {
@@ -272,8 +280,19 @@ pub fn scan(paths: &Paths, sources: &IgtSources) -> LocalStats {
     // World records in our instances.
     let mut worlds: Vec<WorldRecord> = Vec::new();
     let world_modes = srl_core::shared::WorldModes::load(paths);
-    for dir_mode in super::game_dirs() {
-        let saves = paths.instance(dir_mode).join("saves");
+    let mut game_dirs: Vec<(PathBuf, Mode, Option<String>)> = super::game_dirs()
+        .into_iter()
+        .map(|m| (paths.instance(m), m, None))
+        .collect();
+    for (dir, mode) in extra {
+        let name = dir
+            .file_name()
+            .map(|n| n.to_string_lossy().into_owned())
+            .unwrap_or_default();
+        game_dirs.push((dir.clone(), *mode, Some(name)));
+    }
+    for (game_dir, dir_mode, extra_name) in game_dirs {
+        let saves = game_dir.join("saves");
         let entries = match list(&saves) {
             Ok(entries) => entries,
             Err(e) => {
@@ -295,12 +314,17 @@ pub fn scan(paths: &Paths, sources: &IgtSources) -> LocalStats {
                     .ok()
                     .and_then(|t| t.duration_since(UNIX_EPOCH).ok())
                     .map(|d| d.as_millis() as i64);
-                let mode = if dir_mode.is_shared() {
+                let mode = if extra_name.is_none() && dir_mode.is_shared() {
                     world_modes.mode_of(&world_dir, created_ms)
                 } else {
                     dir_mode
                 };
+                let key = match &extra_name {
+                    Some(d) => format!("{d}/{dir_name}"),
+                    None => format!("{}/{dir_name}", mode.id()),
+                };
                 worlds.push(WorldRecord {
+                    key,
                     world: WorldRef {
                         mode,
                         dir_name,
@@ -383,7 +407,7 @@ fn list(dir: &Path) -> std::io::Result<Vec<PathBuf>> {
     Ok(out)
 }
 
-fn read_latest_world(paths: &Paths, file: &Path) -> Option<LatestWorld> {
+fn read_latest_world(paths: &Paths, extra: &[(PathBuf, Mode)], file: &Path) -> Option<LatestWorld> {
     #[derive(Deserialize)]
     struct Raw {
         world_path: String,
@@ -395,7 +419,7 @@ fn read_latest_world(paths: &Paths, file: &Path) -> Option<LatestWorld> {
     let raw: Raw = serde_json::from_slice(&fs::read(file).ok()?).ok()?;
     let world_path = PathBuf::from(&raw.world_path);
     Some(LatestWorld {
-        mode: mode_of_world(paths, &world_path).map(|(m, _)| m),
+        mode: super::mode_of_world_in(paths, extra, &world_path).map(|(m, _)| m),
         world_path,
         category: raw.category,
         version: raw.version,
@@ -545,7 +569,7 @@ fn attribute(
             continue;
         }
         runs.push(Run {
-            id: format!("w:{}/{}", w.world.mode.id(), w.world.dir_name),
+            id: format!("w:{}", w.key),
             mode: Some(w.world.mode),
             record: w.record,
             world: Some(w.world),
@@ -644,6 +668,37 @@ mod tests {
         let again = scan(&paths, &sources);
         assert_eq!((again.files, again.parsed), (15, 0));
         assert_eq!(again.modes, stats.modes);
+    }
+
+    /// A custom instance's worlds count for the mode it plays like, with ids of their own.
+    #[test]
+    fn extra_game_dirs_count_for_their_mode() {
+        let (s, paths, sources) = real_fixture("extra");
+        let custom = s.0.join("srl/instances/custom-1");
+        fs::create_dir_all(&custom).unwrap();
+        fs::rename(
+            paths.instance(Mode::Rsg).join("saves"),
+            custom.join("saves"),
+        )
+        .unwrap();
+        let stats = scan_with(&paths, &sources, &[(custom.clone(), Mode::Fsg)]);
+        assert_eq!(stats.mode(Mode::Rsg).run_count, 0);
+        let fsg = stats.mode(Mode::Fsg);
+        assert_eq!(fsg.run_count, 8, "7 global + 1 world-only");
+        assert!(
+            fsg.runs
+                .iter()
+                .any(|r| r.id == "w:custom-1/Random Speedrun #8")
+        );
+        assert_eq!(stats.unattributed.run_count, 0);
+        assert_eq!(
+            super::super::mode_of_world_in(
+                &paths,
+                &[(custom.clone(), Mode::Fsg)],
+                &custom.join("saves/W")
+            ),
+            Some((Mode::Fsg, "W".into()))
+        );
     }
 
     #[test]

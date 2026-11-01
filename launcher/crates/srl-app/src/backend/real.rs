@@ -40,7 +40,7 @@ use super::{
     account::{self, Accounts, RealAccounts},
     importer::{Importer, RealImport},
     info_event,
-    instances::{self, CopyPlan, CopyProgress, CopyWhat, Created, NewInstance},
+    instances::{self, CopyFrom, CopyPlan, CopyProgress, CopyWhat, Created, NewInstance},
     pipeline::{self, Core, Local, Startup},
     practice::{Host, PracticeMaps, RealPractice},
     state_event,
@@ -406,9 +406,35 @@ impl Backend for RealBackend {
         let inner = self.inner.clone();
         self.rt.spawn_blocking(move || {
             let answer = inner
-                .duplicate(from, &name, with_worlds)
+                .duplicate(CopyFrom::Instance(from), &name, with_worlds)
                 .map_err(|e| format!("{e:#}"));
             inner.copying.lock().unwrap().remove(&from);
+            inner.created(answer, true);
+        });
+    }
+
+    fn import_instance(
+        &self,
+        dir: std::path::PathBuf,
+        base: Mode,
+        name: String,
+        with_worlds: bool,
+    ) {
+        // Never one of ours: that is Make a copy, and copying the data folder into itself
+        // would not end.
+        if dir.starts_with(self.inner.core.paths().root()) {
+            self.inner
+                .created(Err("that folder is this launcher's own".to_string()), true);
+            return;
+        }
+        self.inner
+            .cancel_copy
+            .store(false, std::sync::atomic::Ordering::Relaxed);
+        let inner = self.inner.clone();
+        self.rt.spawn_blocking(move || {
+            let answer = inner
+                .duplicate(CopyFrom::Folder(dir, base), &name, with_worlds)
+                .map_err(|e| format!("{e:#}"));
             inner.created(answer, true);
         });
     }
@@ -697,35 +723,43 @@ impl Inner {
     /// `duplicate_instance` (blocking): the source's definition (a mode's memory and mods, a
     /// custom instance's whole definition), its directory copied with progress, then the new
     /// definition. A failed copy leaves nothing behind.
-    fn duplicate(self: &Arc<Self>, from: Instance, name: &str, worlds: bool) -> Result<Created> {
+    fn duplicate(self: &Arc<Self>, from: CopyFrom, name: &str, worlds: bool) -> Result<Created> {
         let (name, base, memory_mb, mods, jvm_args) = {
             let snap = self.snap.lock().unwrap();
             let s = &snap.settings;
             let name = s
                 .validate_instance_name(name, None)
                 .map_err(|p| anyhow::anyhow!("{p}"))?;
-            match from {
+            match &from {
+                // Another launcher's instance: its files, and the base mode's mods and memory.
+                CopyFrom::Folder(_, base) => (
+                    name,
+                    *base,
+                    None,
+                    srl_mods::ModChoice::default(),
+                    Vec::new(),
+                ),
                 // The shared directory's copy plays like the mode it was duplicated from (Ranked
                 // stays Ranked); the mode's own memory and mod changes come along.
-                Instance::Mode(m) => (
+                CopyFrom::Instance(Instance::Mode(m)) => (
                     name,
-                    m,
-                    s.mode_memory_mb.get(&m).copied(),
-                    s.mod_choices.get(&m).cloned().unwrap_or_default(),
+                    *m,
+                    s.mode_memory_mb.get(m).copied(),
+                    s.mod_choices.get(m).cloned().unwrap_or_default(),
                     Vec::new(),
                 ),
                 // Practice is a 1.16.1 game played like RSG; its fixed practice mods don't come
                 // along (a custom instance starts from its base's set).
-                Instance::Practice => (
+                CopyFrom::Instance(Instance::Practice) => (
                     name,
                     super::practice::TOOLS_LIKE,
                     None,
                     srl_mods::ModChoice::default(),
                     Vec::new(),
                 ),
-                Instance::Custom(c) => {
+                CopyFrom::Instance(Instance::Custom(c)) => {
                     let def = s
-                        .custom(c)
+                        .custom(*c)
                         .with_context(|| format!("there is no instance {c}"))?;
                     (
                         name,
@@ -743,13 +777,17 @@ impl Inner {
             let first = self.snap.lock().unwrap().settings.next_custom_id();
             instances::reserve(paths, first)?
         };
-        let (src, dir) = (paths.game_dir(from), paths.game_dir(Instance::Custom(id)));
+        let src = match &from {
+            CopyFrom::Instance(i) => paths.game_dir(*i),
+            CopyFrom::Folder(dir, _) => dir.clone(),
+        };
+        let dir = paths.game_dir(Instance::Custom(id));
         let started = Instant::now();
         let plan = CopyPlan::new(&src, CopyWhat::Everything { worlds });
         let (files_total, bytes_total) = (plan.files(), plan.bytes());
         log(format_args!(
             "{id}: copying {} into \"{name}\" ({files_total} files, {} MB{})",
-            from.id(),
+            src.display(),
             bytes_total / 1_000_000,
             if worlds { ", worlds too" } else { "" }
         ));
@@ -783,7 +821,9 @@ impl Inner {
             log(format_args!("{id}: copy cancelled, removed"));
             anyhow::bail!(instances::COPY_CANCELLED);
         };
-        if let Err(e) = instances::fix_per_mode_files(paths, from, &dir) {
+        if let CopyFrom::Instance(from) = from
+            && let Err(e) = instances::fix_per_mode_files(paths, from, &dir)
+        {
             instances::discard(paths, id);
             return Err(e);
         }
@@ -1564,6 +1604,75 @@ mod tests {
             _ => None,
         });
         assert_eq!(next.id, CustomId(4));
+        drop(b);
+        std::fs::remove_dir_all(&root).unwrap();
+    }
+
+    /// Another launcher's instance comes over as a custom instance: its files without its mods
+    /// and logs, worlds only when asked; the launcher's own folders are refused.
+    #[test]
+    fn another_launchers_instance_is_imported() {
+        let root = std::env::temp_dir().join(format!("srl-real-import-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&root);
+        let paths = Paths::new(root.join("data"));
+        let theirs = root.join("MultiMC/instances/RSG/.minecraft");
+        for f in [
+            "options.txt",
+            "config/atum.json",
+            "saves/W/level.dat",
+            "mods/cheat.jar",
+            "logs/latest.log",
+        ] {
+            write(&theirs.join(f), f);
+        }
+        Settings {
+            player_name: Some("Violet_Runner".into()),
+            ..Settings::default()
+        }
+        .save(&Settings::file(&paths))
+        .unwrap();
+        let (tx, mut rx) = futures::channel::mpsc::unbounded();
+        let b = RealBackend::open(paths.clone(), tx, false).unwrap();
+
+        b.import_instance(theirs.clone(), Mode::Fsg, "RSG".into(), false);
+        let made = next_event(&mut rx, 10, |e| match e {
+            Event::InstanceCopied(r) => Some(r.unwrap()),
+            _ => None,
+        });
+        let dir = paths.game_dir(Instance::Custom(made.id));
+        assert!(dir.join("options.txt").exists());
+        assert!(dir.join("config/atum.json").exists());
+        assert!(!dir.join("saves").exists(), "no worlds unless asked");
+        assert!(!dir.join("mods").exists(), "mods come from the launcher");
+        assert!(!dir.join("logs").exists());
+        assert_eq!(
+            b.snapshot().settings.custom(made.id).unwrap().base,
+            Mode::Fsg
+        );
+
+        b.import_instance(theirs.clone(), Mode::Fsg, "RSG 2".into(), true);
+        let two = next_event(&mut rx, 10, |e| match e {
+            Event::InstanceCopied(r) => Some(r.unwrap()),
+            _ => None,
+        });
+        assert!(
+            paths
+                .game_dir(Instance::Custom(two.id))
+                .join("saves/W/level.dat")
+                .exists()
+        );
+
+        b.import_instance(
+            paths.game_dir(Instance::Custom(two.id)),
+            Mode::Fsg,
+            "Own".into(),
+            true,
+        );
+        let err = next_event(&mut rx, 10, |e| match e {
+            Event::InstanceCopied(r) => Some(r.unwrap_err()),
+            _ => None,
+        });
+        assert!(err.contains("own"), "{err}");
         drop(b);
         std::fs::remove_dir_all(&root).unwrap();
     }

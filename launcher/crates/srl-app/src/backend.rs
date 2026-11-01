@@ -41,7 +41,7 @@ pub use fake::{
     fake_sign_in_first,
 };
 pub use importer::{ImportEvent, ImportPreset, ImportResult, Importer};
-pub use instances::{COPY_CANCELLED, CopyProgress, Created, NewInstance};
+pub use instances::{COPY_CANCELLED, CopyFrom, CopyProgress, Created, NewInstance};
 pub use practice::{PracticeEvent, PracticeMaps, PracticePreset, PracticeSnapshot};
 pub use real::RealBackend;
 pub use stats::{StatsEvent, StatsService, StatsSettings, StatsView};
@@ -1065,6 +1065,10 @@ pub trait Backend {
     /// Stops the running `duplicate_instance`s: what they copied is removed and each ends with
     /// `InstanceCopied(Err(COPY_CANCELLED))`.
     fn cancel_copy(&self);
+    /// Makes a custom instance on `base` from another launcher's game directory, as
+    /// `duplicate_instance` does from one of ours (the same files left out, `saves/` only
+    /// `with_worlds`), with `InstanceCopy` progress and `InstanceCopied` at the end.
+    fn import_instance(&self, dir: PathBuf, base: Mode, name: String, with_worlds: bool);
     /// `add_jar` for a custom instance's Mods tab: `Event::InstanceJarAdded`.
     fn add_instance_jar(&self, id: CustomId, path: PathBuf);
     /// Opens an instance's game directory (`Paths::game_dir`) in the file manager.

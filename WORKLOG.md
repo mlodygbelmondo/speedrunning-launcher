@@ -10,16 +10,16 @@ commicie, który coś zmienia. Najnowsze wpisy dziennika są na górze.
 
   | Miara | Start | Teraz |
   |---|---|---|
-  | 1. Wygląd i dopracowanie | 7,5 | 7,5 |
+  | 1. Wygląd i dopracowanie | 7,5 | 8 |
   | 2. Ruch i płynność (animacje) | 5 | 7 |
-  | 3. Model instancji (własne instancje: tworzenie, kopia, usuwanie) | 3 | 7,5 |
-  | 4. Zawartość instancji (światy, mody, paczki, konfiguracja, logi) | 4 | 8 |
-  | 5. Nawigacja i układ informacji | 7 | 8 |
-  | 6. Teksty EN i PL | 7 | 7,5 |
-  | 7. Odporność i bezpieczeństwo danych | 7,5 | 8 |
+  | 3. Model instancji (własne instancje: tworzenie, kopia, usuwanie) | 3 | 8,5 |
+  | 4. Zawartość instancji (światy, mody, paczki, konfiguracja, logi) | 4 | 8,5 |
+  | 5. Nawigacja i układ informacji | 7 | 8,5 |
+  | 6. Teksty EN i PL | 7 | 8 |
+  | 7. Odporność i bezpieczeństwo danych | 7,5 | 8,5 |
   | 8. Wydajność (bezczynność 0 klatek, start) | 9 | 9 |
-  | 9. Jakość kodu i testy | 8 | 8 |
-  | 10. Wartość dla speedrunnera (legalność, narzędzia, trening, staty) | 8 | 8,5 |
+  | 9. Jakość kodu i testy | 8 | 8,5 |
+  | 10. Wartość dla speedrunnera (legalność, narzędzia, trening, staty) | 8 | 9 |
 
 - **Stan:** `launcher` i `main` to ten sam commit, a pierwsze numerowane wydanie
   `v0.1.0` jest opublikowane (2026-10-31, niepodpisane, `releases/latest`). Gotowe są M1, M2 i M3 (statystyki
@@ -222,6 +222,16 @@ Potem:
 ## Dziennik
 
 ### 2026-11-01
+
+- **Przeniesienie instancji z innego launchera jako własnej:** w formularzu „Nowa instancja”, pod „Na start”,
+  instancje znalezione przez import (MultiMC, Prism, MCSR Launcher…) w tej samej wersji gry; wybrana daje nazwę
+  domyślną i opcję „Ze światami”. Utwórz kopiuje jej folder jak „Zrób kopię” (bez `mods/`, logów, `.fabric`),
+  z paskiem i Anuluj w formularzu; mody będą z legalnego zestawu trybu bazowego. Backend: `import_instance`,
+  `CopyFrom::{Instance, Folder}` (jedna ścieżka kopiowania dla kopii i importu), folder danych launchera
+  odrzucany. Test na prawdziwym backendzie (bez modów i logów, światy tylko na życzenie, własny folder
+  odrzucony); sprawdzone w Xvfb na danych testowych.
+- **Oceny po rundzie:** wygląd 8, model instancji 8,5, zawartość 8,5, nawigacja 8,5, teksty 8, odporność 8,5,
+  kod 8,5, wartość 9; ruch 7 i wydajność 9 bez zmian.
 
 - **Statystyki z własnych instancji:** światy własnej instancji liczą się jako runy jej trybu bazowego (np.
   „Sub 10 grind” na zasadach RSG to runy RSG). `srl-stats`: `scan_with`/`Stats::local_with` z dodatkowymi

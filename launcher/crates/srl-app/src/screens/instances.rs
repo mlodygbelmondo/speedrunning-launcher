@@ -155,6 +155,10 @@ pub struct NewForm {
     pub base: Mode,
     /// Start with the options, keys and packs of the instance of the same Minecraft version.
     pub copy: bool,
+    /// Or bring this instance of another launcher over (its game directory and name).
+    pub source: Option<(PathBuf, String)>,
+    /// With `source`: its worlds too.
+    pub worlds: bool,
 }
 
 impl Default for NewForm {
@@ -162,6 +166,8 @@ impl Default for NewForm {
         Self {
             base: Mode::Rsg,
             copy: true,
+            source: None,
+            worlds: false,
         }
     }
 }
@@ -194,6 +200,9 @@ pub struct InstancesView {
     pub copy_worlds: bool,
     /// The New instance form's create is under way.
     pub submitting: bool,
+    /// The New instance form is bringing another launcher's instance over (`copying` has the
+    /// progress).
+    pub importing: bool,
 }
 
 impl Default for InstancesView {
@@ -215,6 +224,7 @@ impl Default for InstancesView {
             jvm_problem: None,
             copy_worlds: false,
             submitting: false,
+            importing: false,
         }
     }
 }
@@ -1765,6 +1775,30 @@ impl Launcher {
     /// player is typing there).
     pub fn instance_copied(&mut self, answer: Result<Created, String>, cx: &mut Context<Self>) {
         self.copying = None;
+        if std::mem::take(&mut self.instances.importing) {
+            match answer {
+                Ok(made) => {
+                    self.instances.creating = None;
+                    self.inst_new_name.text.clear();
+                    self.refocus_root = true;
+                    self.select_instance(InstKey::Custom(made.id), cx);
+                    self.instances.tab = Tab::Worlds;
+                    self.instances.note = Some(if made.skipped.is_empty() {
+                        (tf("inst.copy.done", &[("name", &made.name)]), false)
+                    } else {
+                        (tn("inst.copy.skipped", made.skipped.len() as u64), true)
+                    });
+                }
+                Err(why) if why == COPY_CANCELLED => {
+                    self.instances.name_problem = Some(t("inst.copy.cancelled"));
+                }
+                Err(why) => {
+                    self.instances.name_problem = Some(tf("inst.copy.failed", &[("why", &why)]));
+                }
+            }
+            cx.notify();
+            return;
+        }
         let note = match answer {
             Ok(made) => {
                 if self.instances.creating.is_none() {
@@ -1792,6 +1826,9 @@ impl Launcher {
     }
 
     pub fn open_new_instance(&mut self, cx: &mut Context<Self>) {
+        if !self.import.scanned {
+            self.backend().import().scan();
+        }
         self.instances.creating = Some(NewForm::default());
         self.instances.name_problem = None;
         self.instances.confirm = None;
@@ -1803,8 +1840,16 @@ impl Launcher {
     /// The name a new instance gets when the field is left empty: "My instance", numbered if
     /// taken.
     pub fn default_instance_name(&self) -> String {
-        self.settings
-            .unique_instance_name(&t("inst.new.default_name"))
+        let wanted = match self
+            .instances
+            .creating
+            .as_ref()
+            .and_then(|f| f.source.as_ref())
+        {
+            Some((_, name)) => name.clone(),
+            None => t("inst.new.default_name").to_string(),
+        };
+        self.settings.unique_instance_name(&wanted)
     }
 
     pub fn submit_new_instance(&mut self, cx: &mut Context<Self>) {
@@ -1825,6 +1870,26 @@ impl Launcher {
             return;
         }
         self.instances.name_problem = None;
+        if let Some((dir, _)) = form.source {
+            if self.copying.is_some() {
+                self.instances.name_problem = Some(t("inst.new.wait_copy"));
+                cx.notify();
+                return;
+            }
+            self.instances.importing = true;
+            self.copying = Some(CopyProgress {
+                id: CustomId(0),
+                name: name.clone(),
+                files: 0,
+                files_total: 0,
+                bytes: 0,
+                bytes_total: 0,
+            });
+            self.backend()
+                .import_instance(dir, form.base, name, form.worlds);
+            cx.notify();
+            return;
+        }
         self.instances.submitting = true;
         let from = Self::settings_source(form.base);
         self.backend().create_instance(NewInstance {
@@ -1999,6 +2064,9 @@ impl Launcher {
                 )
                 .on_click(cx.listener(move |this, _, _, cx| {
                     if let Some(f) = &mut this.instances.creating {
+                        if f.base.minecraft_version() != m.minecraft_version() {
+                            f.source = None;
+                        }
                         f.base = m;
                     }
                     cx.notify();
@@ -2009,15 +2077,17 @@ impl Launcher {
         let copy = chip(
             "inst-new-copy",
             &tf("inst.new.copy", &[("from", &from_name)]),
-            form.copy,
+            form.copy && form.source.is_none(),
             true,
         )
         .on_click(cx.listener(|this, _, _, cx| {
             if let Some(f) = &mut this.instances.creating {
-                f.copy = !f.copy;
+                f.copy = f.source.is_some() || !f.copy;
+                f.source = None;
             }
             cx.notify();
         }));
+        let start = self.import_choices(&form, cx);
         let section = |title: SharedString, body: Div| {
             div()
                 .flex()
@@ -2091,24 +2161,127 @@ impl Launcher {
             ))
             .child(section(
                 t("inst.new.start"),
-                div().flex().flex_row().child(copy),
-            ))
-            .child(
                 div()
                     .flex()
-                    .flex_row()
-                    .items_center()
-                    .gap(px(24.))
-                    .child(
-                        primary("inst-new-create", &t("inst.new.create"))
-                            .on_click(cx.listener(|this, _, _, cx| this.submit_new_instance(cx))),
-                    )
-                    .child(
-                        tertiary("inst-new-cancel", &t("v3.cancel")).on_click(cx.listener(
-                            |this, _, _, cx| this.cancel_inst_field(Field::NewInstance, cx),
-                        )),
-                    ),
+                    .flex_col()
+                    .gap(px(12.))
+                    .child(div().flex().flex_row().child(copy))
+                    .children(start),
+            ))
+            .child(self.new_instance_actions(cx))
+    }
+
+    /// The other launchers' instances on the form's Minecraft version, to bring one over, and
+    /// "With worlds" once one is picked. `None` when there are none.
+    fn import_choices(&self, form: &NewForm, cx: &mut Context<Self>) -> Option<Div> {
+        let mc = form.base.minecraft_version();
+        let found: Vec<_> = self
+            .import
+            .found
+            .iter()
+            .filter(|s| s.runs(mc))
+            .take(4)
+            .collect();
+        if found.is_empty() {
+            return (!self.import.scanned).then(|| {
+                inter(12., FontWeight::NORMAL, 1.4)
+                    .text_color(faint3())
+                    .child(t("inst.new.looking"))
+            });
+        }
+        let mut chips = div().flex().flex_row().flex_wrap().gap(px(6.));
+        for (i, s) in found.into_iter().enumerate() {
+            let on = form.source.as_ref().is_some_and(|(d, _)| *d == s.game_dir);
+            let launcher = super::import::launcher_name(s.launcher);
+            let text = if launcher.is_empty() {
+                s.name.clone()
+            } else {
+                format!("{} · {launcher}", s.name)
+            };
+            let pick = (s.game_dir.clone(), s.name.clone());
+            chips = chips.child(
+                chip(("inst-new-src", i), &text, on, true).on_click(cx.listener(
+                    move |this, _, _, cx| {
+                        if let Some(f) = &mut this.instances.creating {
+                            f.source = if on { None } else { Some(pick.clone()) };
+                        }
+                        cx.notify();
+                    },
+                )),
+            );
+        }
+        let worlds = form.source.is_some().then(|| {
+            chip("inst-new-worlds", &t("inst.copy.worlds"), form.worlds, true).on_click(
+                cx.listener(|this, _, _, cx| {
+                    if let Some(f) = &mut this.instances.creating {
+                        f.worlds = !f.worlds;
+                    }
+                    cx.notify();
+                }),
             )
+        });
+        Some(
+            div()
+                .flex()
+                .flex_col()
+                .gap(px(8.))
+                .child(
+                    inter(12., FontWeight::NORMAL, 1.4)
+                        .text_color(faint3())
+                        .child(t("inst.new.other")),
+                )
+                .child(chips)
+                .children(worlds.map(|w| div().flex().flex_row().child(w))),
+        )
+    }
+
+    /// Create and Cancel, or the progress of bringing an instance over.
+    fn new_instance_actions(&self, cx: &mut Context<Self>) -> Div {
+        let row = div().flex().flex_row().items_center().gap(px(24.));
+        if self.instances.importing {
+            let (frac, text) = match &self.copying {
+                Some(p) if p.bytes_total > 0 => (
+                    p.bytes as f32 / p.bytes_total as f32,
+                    tf(
+                        "inst.copy.progress",
+                        &[
+                            ("name", &p.name),
+                            ("done", &size(p.bytes)),
+                            ("total", &size(p.bytes_total)),
+                        ],
+                    ),
+                ),
+                Some(p) => (0., tf("inst.copy.counting", &[("name", &p.name)])),
+                None => (0., SharedString::default()),
+            };
+            return row
+                .child(
+                    div()
+                        .w(px(420.))
+                        .flex()
+                        .flex_col()
+                        .gap(px(8.))
+                        .child(thin_progress(frac, 3.))
+                        .child(
+                            plex(11., FontWeight::MEDIUM)
+                                .text_color(muted3())
+                                .child(text),
+                        ),
+                )
+                .child(
+                    tertiary("inst-import-cancel", &t("v3.cancel"))
+                        .on_click(cx.listener(|this, _, _, _| this.backend().cancel_copy())),
+                );
+        }
+        row.child(
+            primary("inst-new-create", &t("inst.new.create"))
+                .on_click(cx.listener(|this, _, _, cx| this.submit_new_instance(cx))),
+        )
+        .child(
+            tertiary("inst-new-cancel", &t("v3.cancel")).on_click(
+                cx.listener(|this, _, _, cx| this.cancel_inst_field(Field::NewInstance, cx)),
+            ),
+        )
     }
 
     /// Where a new instance on `base` takes its options, keys and packs from: the instance of the

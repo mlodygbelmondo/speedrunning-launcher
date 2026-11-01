@@ -971,5 +971,8 @@
   "home.customs": "Your instances",
   "inst.copy.done": "“{name}” is ready. Download sets up its game and mods.",
   "inst.copy.failed": "Couldn't copy it: {why}",
-  "inst.jvm_problem.loader": "“{arg}” changes how Fabric loads mods, which isn't allowed in runs."
+  "inst.jvm_problem.loader": "“{arg}” changes how Fabric loads mods, which isn't allowed in runs.",
+  "inst.new.other": "Or bring one over from another launcher (its options, configs, packs; mods come from here):",
+  "inst.new.looking": "Looking for your instances in other launchers…",
+  "inst.new.wait_copy": "Wait for the copy under way to finish."
 }

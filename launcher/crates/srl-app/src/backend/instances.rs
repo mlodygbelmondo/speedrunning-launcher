@@ -28,6 +28,14 @@ use std::{
 use anyhow::{Context, Result};
 use srl_core::{CustomId, Instance, Mode, Paths};
 
+/// What a duplicate copies: one of the launcher's instances, or another launcher's game
+/// directory (an import), played like the given mode.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum CopyFrom {
+    Instance(Instance),
+    Folder(PathBuf, Mode),
+}
+
 /// The error a duplicate ends with when `Backend::cancel_copy` stopped it.
 pub const COPY_CANCELLED: &str = "copy cancelled";
 

@@ -892,7 +892,7 @@ fn source_line(s: &Source) -> SharedString {
     parts.join(" · ").into()
 }
 
-fn launcher_name(l: From) -> String {
+pub fn launcher_name(l: From) -> String {
     match l {
         From::Folder => String::new(),
         From::Official => t("import.official").to_string(),

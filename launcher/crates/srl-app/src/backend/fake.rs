@@ -16,8 +16,8 @@ use std::{
 use srl_core::{CustomId, Instance, Mode, Progress, Stage, Unit};
 
 use super::{
-    Backend, CopyProgress, Created, CustomInstance, Event, Events, FailDetail, FailKind, Failure,
-    Launched, ModeInfo, ModeSnapshot, ModeState, NewInstance, Settings, Snapshot,
+    Backend, CopyFrom, CopyProgress, Created, CustomInstance, Event, Events, FailDetail, FailKind,
+    Failure, Launched, ModeInfo, ModeSnapshot, ModeState, NewInstance, Settings, Snapshot,
     account::{AccountProblem, AccountSnapshot, Accounts, AccountsPreset, FakeAccounts},
     importer::{FakeImport, ImportPreset, Importer},
     index, info_event,
@@ -88,7 +88,7 @@ enum Cmd {
     AddJar(Mode, PathBuf),
     AddInstanceJar(CustomId, PathBuf),
     Create(NewInstance),
-    Duplicate(Instance, String, bool),
+    Duplicate(CopyFrom, String, bool),
     Delete(CustomId),
     CancelCopy,
 }
@@ -419,13 +419,22 @@ impl Backend for FakeBackend {
         let _ = self.cmds.send(Cmd::Create(spec));
     }
     fn duplicate_instance(&self, from: Instance, name: String, with_worlds: bool) {
-        let _ = self.cmds.send(Cmd::Duplicate(from, name, with_worlds));
+        let _ = self
+            .cmds
+            .send(Cmd::Duplicate(CopyFrom::Instance(from), name, with_worlds));
     }
     fn delete_instance(&self, id: CustomId) {
         let _ = self.cmds.send(Cmd::Delete(id));
     }
     fn cancel_copy(&self) {
         let _ = self.cmds.send(Cmd::CancelCopy);
+    }
+    fn import_instance(&self, dir: PathBuf, base: Mode, name: String, with_worlds: bool) {
+        let _ = self.cmds.send(Cmd::Duplicate(
+            CopyFrom::Folder(dir, base),
+            name,
+            with_worlds,
+        ));
     }
     fn add_instance_jar(&self, id: CustomId, path: PathBuf) {
         let _ = self.cmds.send(Cmd::AddInstanceJar(id, path));
@@ -625,7 +634,7 @@ impl Worker {
         }
     }
 
-    fn duplicate(&mut self, from: Instance, name: &str, worlds: bool) {
+    fn duplicate(&mut self, from: CopyFrom, name: &str, worlds: bool) {
         let answer = {
             let shared = self.shared.lock().unwrap();
             let s = &shared.settings;
@@ -633,14 +642,17 @@ impl Worker {
                 .map_err(|p| p.to_string())
                 .and_then(|name| {
                     let (base, memory_mb, mods, jvm_args) = match from {
-                        Instance::Mode(m) => (
+                        CopyFrom::Folder(_, base) => (base, None, Default::default(), Vec::new()),
+                        CopyFrom::Instance(Instance::Mode(m)) => (
                             m,
                             s.mode_memory_mb.get(&m).copied(),
                             s.mod_choices.get(&m).cloned().unwrap_or_default(),
                             Vec::new(),
                         ),
-                        Instance::Practice => (Mode::Rsg, None, Default::default(), Vec::new()),
-                        Instance::Custom(c) => {
+                        CopyFrom::Instance(Instance::Practice) => {
+                            (Mode::Rsg, None, Default::default(), Vec::new())
+                        }
+                        CopyFrom::Instance(Instance::Custom(c)) => {
                             let d = s.custom(c).ok_or(format!("there is no instance {c}"))?;
                             (d.base, d.memory_mb, d.mods.clone(), d.jvm_args.clone())
                         }

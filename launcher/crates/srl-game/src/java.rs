@@ -216,6 +216,37 @@ pub fn home(java_root: &Path, component: &str, version: &str) -> Result<PathBuf>
     }
 }
 
+/// Written into a runtime's directory once all its files are in place and it has an executable.
+const COMPLETE: &str = ".srl-complete";
+
+/// Notes that the runtime at `home` is whole, so a later failed update can fall back to it.
+pub fn mark_complete(home: &Path) -> std::io::Result<()> {
+    std::fs::write(home.join(COMPLETE), b"")
+}
+
+/// The newest runtime of `component` that an earlier install finished (see [`mark_complete`]),
+/// other than version `except`: (version, home). An update that can't be fetched (no network
+/// halfway through) starts the game with it instead of failing.
+pub fn newest_complete(
+    java_root: &Path,
+    component: &str,
+    platform: &Platform,
+    except: Option<&str>,
+) -> Option<(String, PathBuf)> {
+    let prefix = format!("{component}-");
+    std::fs::read_dir(java_root)
+        .ok()?
+        .flatten()
+        .filter_map(|e| {
+            let name = e.file_name().into_string().ok()?;
+            let version = name.strip_prefix(&prefix)?.to_string();
+            let home = e.path();
+            let whole = home.join(COMPLETE).is_file() && executable(&home, platform).is_file();
+            (whole && except != Some(version.as_str())).then_some((version, home))
+        })
+        .max_by(|a, b| crate::util::cmp_versions(&a.0, &b.0))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -293,5 +324,37 @@ mod tests {
         assert!(
             executable(Path::new("/j"), &p(Os::Windows, Arch::X86_64)).ends_with("bin/javaw.exe")
         );
+    }
+
+    #[test]
+    fn falls_back_to_the_newest_whole_runtime() {
+        let root = std::env::temp_dir().join(format!("srl-java-test-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&root);
+        let linux = Platform {
+            os: Os::Linux,
+            arch: Arch::X86_64,
+            os_version: String::new(),
+        };
+        let runtime = |version: &str, whole: bool| {
+            let home = home(&root, "java-runtime-delta", version).unwrap();
+            std::fs::create_dir_all(home.join("bin")).unwrap();
+            std::fs::write(home.join("bin/java"), b"").unwrap();
+            if whole {
+                mark_complete(&home).unwrap();
+            }
+        };
+        runtime("21.0.7", true);
+        runtime("21.0.10", true);
+        // Cut off halfway: never chosen.
+        runtime("21.0.11", false);
+        let pick =
+            |except| newest_complete(&root, "java-runtime-delta", &linux, except).map(|(v, _)| v);
+        assert_eq!(pick(None).as_deref(), Some("21.0.10"));
+        assert_eq!(pick(Some("21.0.10")).as_deref(), Some("21.0.7"));
+        assert_eq!(
+            newest_complete(&root, "java-runtime-gamma", &linux, None),
+            None
+        );
+        std::fs::remove_dir_all(&root).unwrap();
     }
 }

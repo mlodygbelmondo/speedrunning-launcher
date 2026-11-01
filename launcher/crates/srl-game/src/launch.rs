@@ -672,6 +672,115 @@ pub async fn spawn(
     })
 }
 
+/// How often a game from an earlier launcher session is checked for its exit.
+const ADOPTED_POLL: Duration = Duration::from_secs(1);
+
+impl GameProcess {
+    /// Watches a game this process didn't start: one an earlier launcher session left running
+    /// (the caller checked that `pid` is still that game). Its exit code can't be read, so its
+    /// end counts as a normal exit; the exit is seen within [`ADOPTED_POLL`]. Stop and kill work
+    /// as for a game started here.
+    pub fn adopt(pid: u32, instance: impl Into<Instance>, log_path: PathBuf) -> GameProcess {
+        let (exit_tx, exit_rx) = watch::channel(None);
+        let (kill_tx, mut kill_rx) = mpsc::unbounded_channel::<()>();
+        tokio::spawn(async move {
+            let mut tick = tokio::time::interval(ADOPTED_POLL);
+            loop {
+                tokio::select! {
+                    _ = tick.tick() => {}
+                    msg = kill_rx.recv() => match msg {
+                        Some(()) => adopted::kill(pid),
+                        // Every handle is gone: nobody waits for the exit any more.
+                        None => return,
+                    },
+                }
+                if !adopted::alive(pid) {
+                    break;
+                }
+            }
+            let _ = exit_tx.send(Some(GameExit {
+                code: None,
+                success: true,
+            }));
+        });
+        GameProcess {
+            pid,
+            instance: instance.into(),
+            log_path,
+            exit: exit_rx,
+            kill: kill_tx,
+        }
+    }
+}
+
+/// Liveness and kill for a game that isn't this process's child.
+mod adopted {
+    #[cfg(target_os = "linux")]
+    pub fn alive(pid: u32) -> bool {
+        // A zombie has exited; its parent (not us) hasn't reaped it yet.
+        std::fs::read_to_string(format!("/proc/{pid}/stat")).is_ok_and(|stat| {
+            stat.rsplit_once(')')
+                .and_then(|(_, rest)| rest.trim_start().chars().next())
+                .is_some_and(|state| state != 'Z')
+        })
+    }
+
+    #[cfg(all(unix, not(target_os = "linux")))]
+    pub fn alive(pid: u32) -> bool {
+        // SAFETY: signal 0 only checks that the process exists.
+        unsafe { libc::kill(pid as libc::pid_t, 0) == 0 }
+    }
+
+    /// SIGKILL to its process group (the launcher that started it made it lead one), so a
+    /// wrapper's children go too.
+    #[cfg(unix)]
+    pub fn kill(pid: u32) {
+        // SAFETY: plain syscalls on a game the caller checked is ours.
+        unsafe {
+            if libc::killpg(pid as libc::pid_t, libc::SIGKILL) != 0 {
+                libc::kill(pid as libc::pid_t, libc::SIGKILL);
+            }
+        }
+    }
+
+    #[cfg(windows)]
+    pub fn alive(pid: u32) -> bool {
+        use windows_sys::Win32::{
+            Foundation::{CloseHandle, STILL_ACTIVE},
+            System::Threading::{
+                GetExitCodeProcess, OpenProcess, PROCESS_QUERY_LIMITED_INFORMATION,
+            },
+        };
+        // SAFETY: plain Win32 calls on a handle opened and closed here.
+        unsafe {
+            let handle = OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, 0, pid);
+            if handle.is_null() {
+                return false;
+            }
+            let mut code = 0u32;
+            let alive = GetExitCodeProcess(handle, &mut code) != 0 && code == STILL_ACTIVE as u32;
+            CloseHandle(handle);
+            alive
+        }
+    }
+
+    #[cfg(windows)]
+    pub fn kill(pid: u32) {
+        use windows_sys::Win32::{
+            Foundation::CloseHandle,
+            System::Threading::{OpenProcess, PROCESS_TERMINATE, TerminateProcess},
+        };
+        // SAFETY: plain Win32 calls on a handle opened and closed here.
+        unsafe {
+            let handle = OpenProcess(PROCESS_TERMINATE, 0, pid);
+            if !handle.is_null() {
+                TerminateProcess(handle, 1);
+                CloseHandle(handle);
+            }
+        }
+    }
+}
+
 /// SIGKILL to the game's process group (it leads one, see `spawn`), so a wrapper's children go
 /// too; elsewhere `start_kill`.
 fn kill_tree(child: &mut tokio::process::Child, pid: u32) {
@@ -1009,5 +1118,26 @@ mod tests {
         assert_eq!(report.request, Some(QuitRequest::Window(1)));
         assert_eq!(report.escalated, None, "{report:?}");
         let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    /// A game from an earlier session: running while its process lives, ended by `kill`.
+    #[cfg(target_os = "linux")]
+    #[tokio::test]
+    async fn adopted_game_is_watched_and_killed() {
+        use std::os::unix::process::CommandExt as _;
+        let mut child = std::process::Command::new("sleep")
+            .arg("30")
+            .process_group(0)
+            .spawn()
+            .unwrap();
+        let game = GameProcess::adopt(child.id(), Mode::Rsg, PathBuf::from("/nowhere.log"));
+        tokio::time::sleep(Duration::from_millis(1200)).await;
+        assert!(game.is_running());
+        let exit = tokio::time::timeout(Duration::from_secs(5), game.kill())
+            .await
+            .expect("the kill is seen within a poll");
+        assert!(exit.success);
+        let _ = child.wait();
+        assert!(!adopted::alive(child.id()));
     }
 }

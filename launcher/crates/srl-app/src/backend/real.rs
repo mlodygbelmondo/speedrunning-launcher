@@ -220,6 +220,24 @@ impl RealBackend {
         });
         let list = inner.snap.lock().unwrap().settings.custom_instances.clone();
         inner.stats_follow(&list);
+        // Games an earlier session left running (it was closed or crashed while they ran):
+        // Running from the first frame, with Stop, until they exit.
+        {
+            let _in_rt = rt.enter();
+            for game in inner.core.adopt_earlier_games() {
+                let instance = game.process.instance();
+                log(format_args!(
+                    "{}: game from an earlier session still runs, pid {}",
+                    instance.id(),
+                    game.process.pid()
+                ));
+                let (cancel, cancelled) = watch::channel(false);
+                inner.runs.lock().unwrap().insert(instance, cancel);
+                let before = inner.state(instance);
+                inner.set_state(instance, ModeState::Running);
+                rt.spawn(watch_earlier(inner.clone(), game, before, cancelled));
+            }
+        }
         if data_error.is_none() && start_checks {
             rt.spawn(check_updates(inner.clone(), std::time::Duration::ZERO));
             // A Ninjabrain Bot an earlier session started and left behind (it closed or crashed
@@ -1136,25 +1154,7 @@ async fn play(
     inner.set_info(instance, |info| info.launched = Some(game.launched.clone()));
     inner.set_state(instance, ModeState::Running);
 
-    // Stop (cancel while running): ask the game to quit the way its window's close button does,
-    // so it saves; SIGTERM, then a kill, only if it doesn't.
-    let stopper = {
-        let process = game.process.clone();
-        let mut cancelled = cancelled.clone();
-        let id = id.clone();
-        tokio::spawn(async move {
-            wait_cancel(&mut cancelled).await;
-            let asked = Instant::now();
-            let report = process.stop_detailed(STOP_GRACE).await;
-            log(format_args!(
-                "{id}: stopped in {:.1}s: exit {:?} (asked by {:?}, escalated: {:?})",
-                asked.elapsed().as_secs_f64(),
-                report.exit.code,
-                report.request,
-                report.escalated
-            ));
-        })
-    };
+    let stopper = stopper(&game.process, &cancelled, &id);
     let startup = game.startup(pipeline::STARTUP_LIMIT).await;
     let mut failure = None;
     match &startup {
@@ -1210,6 +1210,53 @@ async fn play(
     };
     inner.set_info(instance, |info| info.launched = None);
     inner.finish(instance, end);
+}
+
+/// Stop (cancel while running): asks the game to quit the way its window's close button does,
+/// so it saves; SIGTERM, then a kill, only if it doesn't.
+fn stopper(
+    process: &srl_game::GameProcess,
+    cancelled: &watch::Receiver<bool>,
+    id: &str,
+) -> tokio::task::JoinHandle<()> {
+    let (process, mut cancelled, id) = (process.clone(), cancelled.clone(), id.to_string());
+    tokio::spawn(async move {
+        wait_cancel(&mut cancelled).await;
+        let asked = Instant::now();
+        let report = process.stop_detailed(STOP_GRACE).await;
+        log(format_args!(
+            "{id}: stopped in {:.1}s: exit {:?} (asked by {:?}, escalated: {:?})",
+            asked.elapsed().as_secs_f64(),
+            report.exit.code,
+            report.request,
+            report.escalated
+        ));
+    })
+}
+
+/// A game an earlier launcher session left running: Running here (set by the caller) until it
+/// exits, and Stop works on it. Then the instance goes back to `before`.
+async fn watch_earlier(
+    inner: Arc<Inner>,
+    game: pipeline::Game,
+    before: ModeState,
+    cancelled: watch::Receiver<bool>,
+) {
+    let instance = game.process.instance();
+    let id = instance.id().into_owned();
+    let stopper = stopper(&game.process, &cancelled, &id);
+    game.wait().await;
+    let stopped = *cancelled.borrow();
+    if stopped {
+        let _ = stopper.await;
+    } else {
+        stopper.abort();
+    }
+    log(format_args!(
+        "{id}: the earlier session's game exited{}",
+        if stopped { " after Stop" } else { "" }
+    ));
+    inner.finish(instance, before);
 }
 
 /// The background check: mod lists no older than `max_age` (on start: fresh ones), every mode's
@@ -1454,6 +1501,51 @@ mod tests {
 
     /// Create, duplicate, change and delete custom instances through the real backend, on a
     /// temp data folder and the built-in mod lists (no network, no game).
+    /// A game an earlier session left running is Running on start, and Stop ends it.
+    #[cfg(target_os = "linux")]
+    #[test]
+    fn earlier_sessions_game_runs_until_stopped() {
+        use std::os::unix::process::CommandExt as _;
+        let root = std::env::temp_dir().join(format!("srl-real-earlier-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&root);
+        let paths = Paths::new(&root);
+        let game_dir = paths.instance(Mode::Rsg);
+        // A stand-in for the game: its command line names the game directory, as Java's does.
+        let mut game = std::process::Command::new("sh")
+            .args(["-c", "sleep 60", "sh"])
+            .arg(&game_dir)
+            .process_group(0)
+            .spawn()
+            .unwrap();
+        write(
+            &paths.logs().join("rsg.pid"),
+            &serde_json::json!({ "pid": game.id(), "started": 0, "game_dir": game_dir })
+                .to_string(),
+        );
+
+        let (tx, mut rx) = futures::channel::mpsc::unbounded();
+        let b = RealBackend::open(paths.clone(), tx, false).unwrap();
+        let state = |b: &RealBackend| {
+            b.snapshot().modes[Mode::ALL.iter().position(|m| *m == Mode::Rsg).unwrap()]
+                .state
+                .clone()
+        };
+        assert_eq!(state(&b), ModeState::Running);
+        // Another mode of the same directory can't start under it.
+        assert!(b.inner.core.game_running(Instance::Mode(Mode::Rsg)));
+
+        b.cancel(Mode::Rsg);
+        next_event(&mut rx, 20, |ev| match ev {
+            Event::State(Mode::Rsg, s) if s != ModeState::Running => Some(()),
+            _ => None,
+        });
+        let _ = game.wait();
+        assert_ne!(state(&b), ModeState::Running);
+        assert!(!paths.logs().join("rsg.pid").exists());
+        drop(b);
+        let _ = std::fs::remove_dir_all(&root);
+    }
+
     #[test]
     fn custom_instances_from_create_to_trash() {
         let root = std::env::temp_dir().join(format!("srl-real-customs-{}", std::process::id()));
@@ -1701,7 +1793,8 @@ mod tests {
         });
         assert!(err.contains("own"), "{err}");
         drop(b);
-        std::fs::remove_dir_all(&root).unwrap();
+        // The backend's last writes can still be landing; a leftover temp dir is harmless.
+        let _ = std::fs::remove_dir_all(&root);
     }
 
     fn p(stage: Stage, done: u64, total: u64, unit: Unit) -> Progress {

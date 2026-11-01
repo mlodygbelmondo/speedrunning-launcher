@@ -248,7 +248,27 @@ impl GameInstaller {
             anyhow::Ok((loader, profile))
         };
         let java = async {
-            let r = self.java_manifest(&meta, prof.java_component).await?;
+            java::check_component(prof.java_component)?;
+            let r = match self.java_manifest(&meta, prof.java_component).await {
+                Ok((version, manifest)) => (version, Some(manifest)),
+                // The runtime list names a build whose file list can't be fetched now: a runtime
+                // an earlier Play finished still starts the game.
+                Err(err) => {
+                    let Some((version, _)) = java::newest_complete(
+                        &self.paths.java(),
+                        prof.java_component,
+                        &self.platform,
+                        None,
+                    ) else {
+                        return Err(err);
+                    };
+                    meta.warn(format!(
+                        "the {} runtime is unavailable ({err:#}); using the installed Java {version}",
+                        prof.java_component
+                    ));
+                    (version, None)
+                }
+            };
             step();
             anyhow::Ok(r)
         };
@@ -315,9 +335,11 @@ impl GameInstaller {
             });
         }
 
-        java::check_component(prof.java_component)?;
         let java_home = java::home(&self.paths.java(), prof.java_component, &java_version)?;
-        let java_plan = java::plan(&java_manifest, &java_home)?;
+        let java_plan = match &java_manifest {
+            Some(m) => Some(java::plan(m, &java_home)?),
+            None => None,
+        };
 
         if index.is_virtual || index.map_to_resources {
             bail!("asset indexes for Minecraft 1.7 and older are not supported");
@@ -356,18 +378,42 @@ impl GameInstaller {
                 .collect()
         };
         let (java_todo, game_todo, assets_todo) = (
-            stale(&java_plan.downloads),
+            java_plan
+                .as_ref()
+                .map(|p| stale(&p.downloads))
+                .unwrap_or_default(),
             stale(&game_files),
             stale(&asset_files),
         );
-        tokio::try_join!(
+        let (java_got, game_got, assets_got) = tokio::join!(
             self.downloader
                 .download_all(java_todo, Stage::Java, progress.clone()),
             self.downloader
                 .download_all(game_todo, Stage::Game, progress.clone()),
             self.downloader
                 .download_all(assets_todo, Stage::Assets, progress.clone()),
-        )?;
+        );
+        game_got?;
+        assets_got?;
+        // A Java update cut off halfway (no network) leaves the previous runtime whole in its own
+        // directory (`java::home`): the game starts with that one, and the next Play retries.
+        let (java_version, java_home, java_plan) = match java_got {
+            Ok(()) => (java_version, java_home, java_plan),
+            Err(err) => {
+                let Some((version, home)) = java::newest_complete(
+                    &self.paths.java(),
+                    prof.java_component,
+                    &self.platform,
+                    Some(&java_version),
+                ) else {
+                    return Err(err);
+                };
+                meta.warn(format!(
+                    "Java {java_version} couldn't be downloaded ({err:#}); using the installed Java {version}"
+                ));
+                (version, home, None)
+            }
+        };
 
         // 4. Finish: Java permissions and links, natives, the instance directory.
         let natives_dir = self.paths.natives(game);
@@ -377,7 +423,9 @@ impl GameInstaller {
             let natives_dir = natives_dir.clone();
             let game_dir = game_dir.clone();
             tokio::task::spawn_blocking(move || -> Result<()> {
-                java::finish(&java_plan)?;
+                if let Some(plan) = &java_plan {
+                    java::finish(plan)?;
+                }
                 std::fs::create_dir_all(&natives_dir)?;
                 if !native_sources.is_empty() {
                     natives::extract_all(&native_sources, &natives_dir)?;
@@ -391,10 +439,18 @@ impl GameInstaller {
         if !executable.is_file() {
             bail!("the Java runtime has no {}", executable.display());
         }
+        if java_plan.is_some()
+            && let Err(e) = java::mark_complete(&java_home)
+        {
+            meta.warn(format!(
+                "couldn't note {} as complete: {e}",
+                java_home.display()
+            ));
+        }
 
         for d in java_plan
-            .downloads
             .iter()
+            .flat_map(|p| &p.downloads)
             .chain(&game_files)
             .chain(&asset_files)
         {

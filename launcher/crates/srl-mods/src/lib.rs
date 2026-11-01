@@ -51,7 +51,8 @@
 //! - A legal-board jar is installed only if its sha512 is in `legal-builds.csv` (rule A.8.5). A
 //!   recommended build missing from the CSV is left out with `Note::NotInLegalBuilds` rather than
 //!   installed: the CSV is the authority, and gaps close when the next legal-mods commit lands.
-//!   Schema 7 has one build per Minecraft version, so there is no older build to fall back to.
+//!   Schema 7 has one build per Minecraft version, so the only older build is the one already in
+//!   `mods/`: a legal one stays there until the CSV lists the new build (`ModSet::keep_installed`).
 //! - The non-legal extras are verified against their own source's sha512: Modrinth for
 //!   `mcsrranked`, `fsg-mod` and `draftout` (extra.json lags behind it and is only the offline
 //!   fallback), `extra.json` for Draftout's optional extras.

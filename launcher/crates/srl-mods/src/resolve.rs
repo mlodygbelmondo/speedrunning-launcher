@@ -187,6 +187,13 @@ pub struct ModSet {
     /// Every jar the metadata knows for this instance, by sha512. Used by `status` and
     /// `install`.
     pub known: HashMap<String, KnownJar>,
+    /// Recommended mods whose newest build `legal-builds.csv` doesn't list yet
+    /// (`Note::NotInLegalBuilds`): a legal build of one already in `mods/` stays there until the
+    /// CSV catches up, instead of the mod leaving the set. mods.json has one build per Minecraft
+    /// version, so the installed one is the only older build there is. Only mods whose
+    /// dependencies are in the set.
+    #[serde(default)]
+    pub keep_installed: Vec<String>,
 }
 
 impl ModSet {
@@ -421,6 +428,8 @@ pub fn resolve(meta: &ModMeta, mode: Mode, os: Os, opts: &ResolveOptions) -> Res
     let category = Category::of(instance);
     let mut notes = Vec::new();
     let mut set: BTreeMap<String, ModEntry> = BTreeMap::new();
+    // Recommended mods whose newest build isn't legal yet, with that build's dependencies.
+    let mut waiting: Vec<(String, Vec<String>)> = Vec::new();
 
     // 1. The recommended legal set.
     for m in &meta.mods.mods {
@@ -456,6 +465,7 @@ pub fn resolve(meta: &ModMeta, mode: Mode, os: Os, opts: &ResolveOptions) -> Res
                 modid: m.modid.clone(),
                 version: v.version.clone(),
             });
+            waiting.push((m.modid.clone(), v.dependencies.clone()));
             continue;
         }
         if let Some(e) = entry(m, v, ModSource::Legal, reason, &mut notes) {
@@ -515,6 +525,16 @@ pub fn resolve(meta: &ModMeta, mode: Mode, os: Os, opts: &ResolveOptions) -> Res
         }
     }
 
+    let keep_installed = waiting
+        .into_iter()
+        .filter(|(modid, deps)| {
+            !set.contains_key(modid)
+                && deps
+                    .iter()
+                    .all(|d| set.contains_key(d) || provided(modid, d))
+        })
+        .map(|(modid, _)| modid)
+        .collect();
     let mut mods: Vec<ModEntry> = set.into_values().collect();
     make_file_names_unique(&mut mods);
     Ok(ModSet {
@@ -524,6 +544,7 @@ pub fn resolve(meta: &ModMeta, mode: Mode, os: Os, opts: &ResolveOptions) -> Res
         mods,
         notes,
         known: known_jars(meta, instance, mc, os),
+        keep_installed,
     })
 }
 
@@ -606,6 +627,8 @@ pub fn resolve_ids(
         mods,
         notes,
         known,
+        // The practice list is short and explicit: a mod it names that isn't legal yet stays out.
+        keep_installed: Vec::new(),
     })
 }
 

@@ -573,6 +573,47 @@ impl Core {
         is_our_game(&stamp).then_some(stamp.pid)
     }
 
+    /// At launcher start: takes over the games an earlier launcher session left running (it was
+    /// closed or crashed while they ran), so they count as running here and Stop works on them.
+    /// Their launch details (player, memory, tools) aren't known. Call before any Play.
+    pub fn adopt_earlier_games(&self) -> Vec<Game> {
+        let instances: Vec<Instance> = std::fs::read_dir(self.paths.logs())
+            .into_iter()
+            .flatten()
+            .flatten()
+            .filter_map(|e| {
+                let name = e.file_name().to_string_lossy().into_owned();
+                Instance::from_id(name.strip_suffix(".pid")?)
+            })
+            // The practice page has its own game state; an earlier practice game keeps its maps
+            // from changing through `earlier_game`.
+            .filter(|i| *i != Instance::Practice)
+            .collect();
+        let mut games = Vec::new();
+        for instance in instances {
+            let Some(pid) = self.earlier_game(instance) else {
+                continue;
+            };
+            let Ok(token) = self.guard.game_started(instance) else {
+                continue;
+            };
+            let log = self
+                .paths
+                .logs()
+                .join(format!("{}-latest.log", instance.id()));
+            games.push(Game {
+                process: GameProcess::adopt(pid, instance, log),
+                token: Some(token),
+                pid_file: self.pid_file(instance),
+                launched: Launched::default(),
+                game_args: Vec::new(),
+                session: None,
+                account_in_use: None,
+            });
+        }
+        games
+    }
+
     /// At launcher start: takes over the tools an earlier launcher session left running (it was
     /// closed or crashed while a game ran). They stop once the games of that session are gone,
     /// or now if none runs. Returns what it did, for the log.

@@ -75,6 +75,7 @@ pub fn apply(meta: &ModMeta, set: ModSet, choice: &ModChoice) -> ModSet {
         mods,
         mut notes,
         mut known,
+        mut keep_installed,
     } = set;
     let category = Category::of(instance);
     let mut map: BTreeMap<String, ModEntry> =
@@ -146,6 +147,8 @@ pub fn apply(meta: &ModMeta, set: ModSet, choice: &ModChoice) -> ModSet {
                 allowed: true,
             });
     }
+    // A mod turned off (or now in the set after all) keeps no older build.
+    keep_installed.retain(|id| !choice.off.contains(id) && !mods.iter().any(|m| m.modid == *id));
     ModSet {
         instance,
         os,
@@ -153,6 +156,7 @@ pub fn apply(meta: &ModMeta, set: ModSet, choice: &ModChoice) -> ModSet {
         mods,
         notes,
         known,
+        keep_installed,
     }
 }
 

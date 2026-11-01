@@ -647,6 +647,11 @@ fn plan_from(set: &ModSet, found: Vec<Found>) -> Plan {
     let mut plan = Plan::default();
     let mut satisfied: HashSet<&str> = HashSet::new();
     let mut leftovers = Vec::new();
+    let links: HashSet<String> = found
+        .iter()
+        .filter(|f| f.symlink)
+        .map(|f| f.file_name.clone())
+        .collect();
     for f in found {
         let entry = set.mods.iter().find(|m| m.sha512 == f.sha512);
         match entry {
@@ -660,6 +665,18 @@ fn plan_from(set: &ModSet, found: Vec<Found>) -> Plan {
                 sha512: f.sha512,
                 size: f.size,
             }),
+        }
+    }
+    // A mod whose newest build isn't legal yet keeps the legal build it has.
+    for id in &set.keep_installed {
+        let kept = leftovers.iter().position(|j| {
+            !links.contains(&j.file_name)
+                && j.known
+                    .as_ref()
+                    .is_some_and(|k| k.allowed && k.modid == *id)
+        });
+        if let Some(i) = kept {
+            plan.keep.push(leftovers.remove(i).file_name);
         }
     }
     for m in &set.mods {

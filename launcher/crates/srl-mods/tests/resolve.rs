@@ -255,6 +255,8 @@ fn a_build_missing_from_legal_builds_is_left_out() {
             version: "1.1.4".into()
         }]
     );
+    // Its legal build in mods/, if there is one, stays until the CSV lists the new one.
+    assert_eq!(s.keep_installed, ["lazystronghold"]);
 }
 
 #[test]

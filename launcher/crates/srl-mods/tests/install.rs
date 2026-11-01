@@ -91,6 +91,7 @@ fn set_of(mode: Mode, jars: &[&Jar], known: Vec<(String, KnownJar)>) -> ModSet {
         mods: jars.iter().map(|j| j.entry()).collect(),
         notes: vec![],
         known: all,
+        keep_installed: vec![],
     }
 }
 
@@ -396,4 +397,37 @@ async fn a_foreign_jar_under_a_set_jars_name_is_kept_aside() {
         b"the player's own build"
     );
     assert_eq!(status(&paths, &set).await.unwrap(), Status::UpToDate);
+}
+
+/// SeedQueue's newest build isn't in legal-builds.csv yet: the legal 1.7.1 in mods/ stays, an
+/// illegal build of it doesn't.
+#[tokio::test]
+async fn a_mod_waiting_for_legal_builds_keeps_its_installed_build() {
+    let paths = home("keep-installed");
+    let (atum, old) = (Jar::new("atum", "2.7.2"), Jar::new("seedqueue", "1.7.1"));
+    put_in_store(&paths, &[&atum, &old]);
+    let dl = Downloader::new().unwrap();
+    let guard = InstanceGuard::new();
+    install(
+        &paths,
+        &dl,
+        &set_of(Mode::Rsg, &[&atum, &old], vec![]),
+        &guard,
+        None,
+    )
+    .await
+    .unwrap();
+
+    let mut set = set_of(Mode::Rsg, &[&atum], vec![old.known(true)]);
+    set.keep_installed = vec!["seedqueue".into()];
+    assert_eq!(status(&paths, &set).await.unwrap(), Status::UpToDate);
+    install(&paths, &dl, &set, &guard, None).await.unwrap();
+    let dir = mods_dir(&paths, Mode::Rsg);
+    assert_eq!(names(&dir), ["atum-2.7.2.jar", "seedqueue-1.7.1.jar"]);
+
+    // An illegalized build is not kept.
+    let mut set = set_of(Mode::Rsg, &[&atum], vec![old.known(false)]);
+    set.keep_installed = vec!["seedqueue".into()];
+    install(&paths, &dl, &set, &guard, None).await.unwrap();
+    assert_eq!(names(&dir), ["atum-2.7.2.jar"]);
 }

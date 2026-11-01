@@ -79,10 +79,7 @@ commicie, który coś zmienia. Najnowsze wpisy dziennika są na górze.
   - Nikt nie uruchomił paczki na pulpicie Windowsa. CI instaluje na Windowsie bez okna RSG, Ninjabrain Bota
     i Toolscreen. Wstrzyknięcie Toolscreen było sprawdzone tylko pod wine (testowa DLL w notatniku), nigdy w grze.
   - waywall nie był uruchomiony z grą, bo test E2E działa w Xvfb, a nie w sesji Wayland.
-  - Gra uruchomiona w poprzedniej sesji launchera nie jest pokazywana jako trwająca.
   - Toolscreen nie jest jeszcze przygotowany dla Draftout (26.3 potrzebuje jego warstwy Vulkan).
-  - Gdy mcsr-meta nie ma legalnej wersji moda dla trybu, tryb daje błąd. Nie wraca do starszej legalnej wersji.
-  - Przerwana aktualizacja Javy bez sieci: launcher nie wraca jeszcze sam do poprzedniej wersji.
   - Katalog danych na Windowsie: Roaming czy LocalAppData, do decyzji.
   - Samoaktualizacja tylko na Linuksie i w testach: zmiana nazwy działającego exe, start nowego i usunięcie
     `.old.exe` przy następnym starcie trzeba sprawdzić na prawdziwym Windowsie (też z Defenderem i folderem
@@ -227,6 +224,27 @@ Potem:
 - **2026-10-23:** styl A+D, czyli Violet Noir plus dane speedrunowe.
 
 ## Dziennik
+
+### 2026-11-02
+
+- **Odporność** (prośba Piotra: luki z „Czego jeszcze brakuje”):
+  - Gra zostawiona przez poprzednią sesję launchera (zamknięty albo wysypany w trakcie gry) jest od
+    pierwszej klatki pokazywana jako trwająca, z działającym Zatrzymaj. Launcher czyta `logs/<id>.pid`,
+    sprawdza, że to wciąż ta gra (Linux: `--gameDir` w linii poleceń, Windows: czas startu procesu),
+    i co sekundę patrzy, czy żyje (`GameProcess::adopt` w `srl-game`). Nick gracza, pamięć i narzędzia
+    takiej gry nie są znane, więc ekran gry ich nie pokazuje. Trening tego nie dostaje: jego gra z
+    poprzedniej sesji dalej tylko blokuje zmiany map. Testy: `adopted_game_is_watched_and_killed`
+    (srl-game) i `earlier_sessions_game_runs_until_stopped` (srl-app).
+  - Mod, którego najnowszej wersji nie ma jeszcze w `legal-builds.csv`, nie znika już z `mods/`:
+    zostaje zainstalowana legalna wersja, aż CSV dogoni manifest (`ModSet::keep_installed`). mods.json
+    ma jedną wersję na wersję Minecrafta, więc zainstalowana jest jedyną starszą, jaką da się wziąć.
+    Tylko gdy zależności moda są w zestawie; wyłączony przez gracza mod nie jest trzymany.
+  - Aktualizacja Javy przerwana bez sieci (albo lista plików nowej Javy niedostępna): gra startuje
+    z poprzednią Javą, a następne Graj próbuje znowu. Ukończona Java dostaje znacznik
+    `.srl-complete` w swoim katalogu; starsze instalacje dostają go przy najbliższym udanym Graj.
+    Test tylko jednostkowy (`falls_back_to_the_newest_whole_runtime`), bez prawdziwego zerwania sieci.
+  - Niestabilne sprzątanie w teście importu (`remove_dir_all` w trakcie ostatnich zapisów backendu)
+    już nie wywraca testu.
 
 ### 2026-11-01
 

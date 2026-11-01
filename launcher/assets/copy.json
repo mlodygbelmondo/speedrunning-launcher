@@ -907,5 +907,8 @@
   "inst.shared.empty": "Nothing is installed here yet. Download sets up Minecraft 1.16.1, Fabric and the selected mode's mods in this instance.",
   "inst.draftout.empty": "Nothing is installed here yet. Download sets up Minecraft 26.3, Fabric and Draftout's mods in this instance.",
   "inst.practice.empty": "Nothing is installed here yet. Install a map on the Practice page and play it; the practice game sets itself up here.",
-  "home.instance": "Manage instance"
+  "home.instance": "Manage instance",
+  "inst.worlds.seed": "seed {seed}",
+  "inst.worlds.copy_seed": "Copy seed",
+  "inst.worlds.copied": "Copied"
 }

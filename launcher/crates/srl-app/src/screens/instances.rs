@@ -30,7 +30,19 @@ use crate::{
     v3::*,
 };
 
-use super::stats::fmt_date;
+use super::stats::{fmt_date, today_and_month_ms};
+
+/// "18:40" for today, else the short date ("Oct 24").
+fn fmt_when(ms: i64) -> SharedString {
+    use chrono::TimeZone;
+    let (today, _) = today_and_month_ms();
+    if ms >= today
+        && let Some(d) = chrono::Local.timestamp_millis_opt(ms).earliest()
+    {
+        return d.format("%H:%M").to_string().into();
+    }
+    fmt_date(ms)
+}
 
 const LIST_X: f32 = 48.;
 const LIST_W: f32 = 300.;
@@ -154,6 +166,8 @@ pub struct InstancesView {
     pub note: Option<(SharedString, bool)>,
     /// The game log's last lines, read with the scan, for the Logs tab.
     pub tail: Vec<String>,
+    /// The seed last copied with "Copy seed" (its button says Copied).
+    pub copied: Option<i64>,
 }
 
 impl Default for InstancesView {
@@ -168,6 +182,7 @@ impl Default for InstancesView {
             confirm: None,
             note: None,
             tail: Vec::new(),
+            copied: None,
         }
     }
 }
@@ -917,14 +932,47 @@ impl Launcher {
                 if w.reset {
                     tags.push((t("inst.worlds.reset"), faint3()));
                 }
-                let sub = (w.name != w.dir).then(|| w.dir.clone());
+                let sub = match (w.seed, w.name != w.dir) {
+                    (Some(seed), true) => Some(format!(
+                        "{}  ·  {}",
+                        tf("inst.worlds.seed", &[("seed", &seed.to_string())]),
+                        w.dir
+                    )),
+                    (Some(seed), false) => {
+                        Some(tf("inst.worlds.seed", &[("seed", &seed.to_string())]).to_string())
+                    }
+                    (None, true) => Some(w.dir.clone()),
+                    (None, false) => None,
+                };
+                let seed = w.seed;
                 let open = saves.join(&w.dir);
                 let dir = w.dir.clone();
-                let mut actions: Vec<AnyElement> = vec![
-                    tertiary(("inst-world-open", i), &t("inst.open"))
-                        .on_click(cx.listener(move |_, _, _, _| open_folder(&open)))
+                let mut actions: Vec<AnyElement> = Vec::new();
+                if let Some(seed) = seed {
+                    let copied = self.instances.copied == Some(seed);
+                    actions.push(
+                        tertiary_in(
+                            ("inst-world-seed", i),
+                            &t(if copied {
+                                "inst.worlds.copied"
+                            } else {
+                                "inst.worlds.copy_seed"
+                            }),
+                            if copied { ok3() } else { muted3() },
+                        )
+                        .on_click(cx.listener(move |this, _, _, cx| {
+                            cx.write_to_clipboard(gpui::ClipboardItem::new_string(
+                                seed.to_string(),
+                            ));
+                            this.instances.copied = Some(seed);
+                            cx.notify();
+                        }))
                         .into_any_element(),
-                ];
+                    );
+                }
+                actions.extend([tertiary(("inst-world-open", i), &t("inst.open"))
+                    .on_click(cx.listener(move |_, _, _, _| open_folder(&open)))
+                    .into_any_element()]);
                 if !busy {
                     actions.push(
                         tertiary(("inst-world-trash", i), &t("inst.trash"))
@@ -1291,7 +1339,7 @@ fn row(
     bytes: u64,
     actions: Vec<AnyElement>,
 ) -> gpui::Stateful<Div> {
-    let name_w = PANE_W - 420.;
+    let name_w = PANE_W - 510.;
     div()
         .id(id.into())
         .relative()
@@ -1357,7 +1405,7 @@ fn row(
                 .flex_none()
                 .w(px(70.))
                 .text_color(faint3())
-                .child(when.map(fmt_date).unwrap_or_default()),
+                .child(when.map(fmt_when).unwrap_or_default()),
         )
         .child(
             plex(11., FontWeight::MEDIUM)
@@ -1375,7 +1423,7 @@ fn row(
         .child(
             div()
                 .flex_none()
-                .w(px(130.))
+                .w(px(220.))
                 .flex()
                 .flex_row()
                 .justify_end()

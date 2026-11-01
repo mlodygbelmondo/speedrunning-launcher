@@ -207,6 +207,11 @@ Potem:
 
 ### 2026-11-01
 
+- **Seed każdego świata** na karcie Światy, z „Kopiuj seed” (po dobrym runie seed jest od razu w schowku).
+  `srl-practice::level` czyta teraz też `Data.WorldGenSettings.seed` (1.16+), `Data.RandomSeed` (starsze)
+  i `Data.LastPlayed`; lista sortuje po `LastPlayed`, dzisiejsze światy pokazują godzinę. „Zarządzaj instancją”
+  obok Graj na Starcie prowadzi do instancji trybu. Strona Instancje czyta folder ponownie, gdy gra się zamknie.
+
 - **Strona Instancje zamiast Trybów** (prośba Piotra: launcher ma myśleć instancjami, z podglądem światów, modów,
   konfiguracji). Nowa zakładka w nawigacji: po lewej instancje (Speedrun 1.16.1 dla Ranked, RSG, FSG i SSG,
   Draftout, Mapy treningowe), po prawej wybrana: Graj z wyborem trybu, liczby (światy, rozmiar, mody, Java) i karty:

@@ -27,8 +27,11 @@ pub struct World {
     /// The name the game's Singleplayer list shows (`LevelName`, colour codes removed), else the
     /// folder name.
     pub name: String,
-    /// When the game last saved it (`level.dat`'s time), ms since the Unix epoch.
+    /// When the game last saved it (`LastPlayed`, else `level.dat`'s time), ms since the Unix
+    /// epoch.
     pub played_ms: Option<i64>,
+    /// The world seed, to copy after a good run.
+    pub seed: Option<i64>,
     /// Bytes on disk, the whole folder.
     pub size: u64,
     /// The mode that made it, in the shared 1.16.1 directory (`srl_core::shared::WorldModes`).
@@ -161,12 +164,18 @@ fn worlds(saves: &Path, modes: Option<&srl_core::shared::WorldModes>) -> Vec<Wor
             let level = path.join("level.dat");
             // A folder without level.dat isn't a world the game lists (a half-deleted one).
             let meta = fs::metadata(&level).ok()?;
-            let name = srl_practice::level::read_level_dat_file(&level)
-                .ok()
+            let info = srl_practice::level::read_level_dat_file(&level).ok();
+            let name = info
+                .as_ref()
                 .and_then(|l| l.display_name())
                 .filter(|n| !n.is_empty())
                 .unwrap_or_else(|| dir.clone());
-            let played_ms = meta.modified().ok().and_then(ms);
+            let played_ms = info
+                .as_ref()
+                .and_then(|l| l.last_played)
+                .filter(|t| *t > 0)
+                .or_else(|| meta.modified().ok().and_then(ms));
+            let seed = info.as_ref().and_then(|l| l.seed);
             let mode = modes.map(|m| m.mode_of(&path, None));
             Some(World {
                 reset: is_reset_world(&name) || is_reset_world(&dir),
@@ -174,6 +183,7 @@ fn worlds(saves: &Path, modes: Option<&srl_core::shared::WorldModes>) -> Vec<Wor
                 dir,
                 name,
                 played_ms,
+                seed,
                 mode,
             })
         })
@@ -437,7 +447,6 @@ pub fn write_sample(game_dir: &Path) -> Result<()> {
     if game_dir.join("saves").exists() {
         return Ok(());
     }
-    let level = |name: &str| srl_practice::level::sample_level_dat(name);
     let saves = game_dir.join("saves");
     let mut named = vec![
         "Bastion route practice".to_string(),
@@ -454,7 +463,6 @@ pub fn write_sample(game_dir: &Path) -> Result<()> {
     for (i, name) in named.iter().enumerate() {
         let w = saves.join(name);
         fs::create_dir_all(w.join("region"))?;
-        fs::write(w.join("level.dat"), level(name))?;
         // Played one after another, the named ones first (so newest on top reads like a real
         // instance).
         let age = std::time::Duration::from_secs(if i < 3 {
@@ -462,6 +470,13 @@ pub fn write_sample(game_dir: &Path) -> Result<()> {
         } else {
             600 * (i as u64 - 2)
         });
+        let played = ms(now - age).unwrap_or(0);
+        // Seeds that look like real ones: 64-bit, either sign.
+        let seed = (i as i64 + 1).wrapping_mul(0x5DEE_CE66_D1F3_A2B7_u64 as i64) ^ 0x2545_F491;
+        fs::write(
+            w.join("level.dat"),
+            srl_practice::level::sample_level_dat(name, seed, played),
+        )?;
         fs::File::options()
             .write(true)
             .open(w.join("level.dat"))?
@@ -585,7 +600,13 @@ mod tests {
                 .iter()
                 .any(|w| w.name == "Sub 10 attempt" && !w.reset)
         );
-        assert!(c.worlds.iter().all(|w| w.size > 0));
+        assert!(c.worlds.iter().all(|w| w.size > 0 && w.seed.is_some()));
+        // Newest first, by LastPlayed.
+        assert!(
+            c.worlds
+                .windows(2)
+                .all(|p| p[0].played_ms >= p[1].played_ms)
+        );
         assert_eq!(c.packs.len(), 2);
         assert!(
             c.packs

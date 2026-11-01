@@ -18,6 +18,10 @@ pub struct LevelInfo {
     pub version_name: Option<String>,
     /// `Data.LevelName`, with the author's `§` colour codes left in.
     pub level_name: Option<String>,
+    /// The world seed: `Data.WorldGenSettings.seed` (1.16 and newer), else `Data.RandomSeed`.
+    pub seed: Option<i64>,
+    /// `Data.LastPlayed`, ms since the Unix epoch: when the game last saved the world.
+    pub last_played: Option<i64>,
 }
 
 impl LevelInfo {
@@ -66,6 +70,7 @@ enum Spot {
     Root,
     Data,
     Version,
+    WorldGen,
     Other,
 }
 
@@ -86,6 +91,9 @@ impl Reader<'_> {
     }
     fn i32(&mut self) -> Result<i32> {
         Ok(i32::from_be_bytes(self.take(4)?.try_into()?))
+    }
+    fn i64(&mut self) -> Result<i64> {
+        Ok(i64::from_be_bytes(self.take(8)?.try_into()?))
     }
     fn string(&mut self) -> Result<String> {
         let n = u16::from_be_bytes(self.take(2)?.try_into()?) as usize;
@@ -111,7 +119,19 @@ impl Reader<'_> {
                     self.info.data_version = Some(v);
                 }
             }
-            4 | 6 => drop(self.take(8)?),
+            4 => {
+                let v = self.i64()?;
+                match (spot, name) {
+                    (Spot::WorldGen, "seed") => self.info.seed = Some(v),
+                    // Older worlds; a 1.16 world's WorldGenSettings wins whatever the order.
+                    (Spot::Data, "RandomSeed") => {
+                        self.info.seed.get_or_insert(v);
+                    }
+                    (Spot::Data, "LastPlayed") => self.info.last_played = Some(v),
+                    _ => {}
+                }
+            }
+            6 => drop(self.take(8)?),
             5 => drop(self.take(4)?),
             7 => self.array(1)?,
             8 => {
@@ -134,6 +154,7 @@ impl Reader<'_> {
                 let here = match (spot, name) {
                     (Spot::Root, "Data") => Spot::Data,
                     (Spot::Data, "Version") => Spot::Version,
+                    (Spot::Data, "WorldGenSettings") => Spot::WorldGen,
                     _ => Spot::Other,
                 };
                 loop {
@@ -175,8 +196,8 @@ pub fn parse(raw: &[u8]) -> Result<LevelInfo> {
 }
 
 /// A minimal 1.16.1 `level.dat` (gzip NBT: `Data.DataVersion`, `Data.LevelName`,
-/// `Data.Version.Name`) for sample worlds: the launcher's screenshot data and other crates' tests.
-pub fn sample_level_dat(name: &str) -> Vec<u8> {
+/// `Data.LastPlayed`, `Data.WorldGenSettings.seed`, `Data.Version.Name`) for sample worlds: the launcher's screenshot data and other crates' tests.
+pub fn sample_level_dat(name: &str, seed: i64, last_played_ms: i64) -> Vec<u8> {
     use std::io::Write;
     fn named(out: &mut Vec<u8>, tag: u8, name: &str) {
         out.push(tag);
@@ -194,6 +215,12 @@ pub fn sample_level_dat(name: &str) -> Vec<u8> {
     n.extend(2567i32.to_be_bytes());
     named(&mut n, 8, "LevelName");
     string(&mut n, name);
+    named(&mut n, 4, "LastPlayed");
+    n.extend(last_played_ms.to_be_bytes());
+    named(&mut n, 10, "WorldGenSettings");
+    named(&mut n, 4, "seed");
+    n.extend(seed.to_be_bytes());
+    n.push(0);
     named(&mut n, 10, "Version");
     named(&mut n, 8, "Name");
     string(&mut n, "1.16.1");
@@ -295,6 +322,30 @@ pub(crate) mod tests {
             info.display_name().as_deref(),
             Some("Zero Practice v1.2.2 by Mescht")
         );
+    }
+
+    #[test]
+    fn reads_the_seed_and_when_it_was_played() {
+        let info = read_level_dat(&level_dat(2567, "x", 1_761_900_000_000)).unwrap();
+        assert_eq!(info.last_played, Some(1_761_900_000_000));
+        // No WorldGenSettings and no RandomSeed in this one.
+        assert_eq!(info.seed, None);
+        let info =
+            read_level_dat(&super::sample_level_dat("Random Speedrun #7", -42, 1_000)).unwrap();
+        assert_eq!(info.seed, Some(-42));
+        assert_eq!(info.last_played, Some(1_000));
+        assert_eq!(info.display_name().as_deref(), Some("Random Speedrun #7"));
+        // Pre-1.16: Data.RandomSeed; a nested "seed" elsewhere is not the world's.
+        let old = Nbt::root()
+            .compound("Data")
+            .long("RandomSeed", 123)
+            .compound("Player")
+            .long("seed", 9)
+            .end()
+            .end()
+            .end()
+            .gzip();
+        assert_eq!(read_level_dat(&old).unwrap().seed, Some(123));
     }
 
     #[test]

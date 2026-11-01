@@ -959,5 +959,8 @@
   "inst.shared.empty": "Nic tu jeszcze nie ma. Pobierz instaluje w tej instancji Minecrafta 1.16.1, Fabric i mody wybranego trybu.",
   "inst.draftout.empty": "Nic tu jeszcze nie ma. Pobierz instaluje w tej instancji Minecrafta 26.3, Fabric i mody Draftout.",
   "inst.practice.empty": "Nic tu jeszcze nie ma. Zainstaluj mapę na stronie Trening i zagraj; gra treningowa sama się tu zainstaluje.",
-  "home.instance": "Zarządzaj instancją"
+  "home.instance": "Zarządzaj instancją",
+  "inst.worlds.seed": "seed {seed}",
+  "inst.worlds.copy_seed": "Kopiuj seed",
+  "inst.worlds.copied": "Skopiowany"
 }

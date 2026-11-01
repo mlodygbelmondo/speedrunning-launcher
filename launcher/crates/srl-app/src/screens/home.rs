@@ -17,7 +17,7 @@ use srl_core::Mode;
 use srl_stats::SplitKind;
 
 use crate::{
-    app::Launcher,
+    app::{Launcher, Page},
     assets::{SHADE_HERO, card_path, embedded},
     catalog,
     copy::{t, tf, tn},
@@ -603,6 +603,7 @@ impl Launcher {
     }
 
     fn home_modes(&self, cx: &mut Context<Self>) -> Div {
+        let customs = self.home_customs(cx);
         let tiles =
             catalog::MODES.iter().enumerate().map(|(i, d)| {
                 let on = i == self.mode_sel;
@@ -684,8 +685,55 @@ impl Launcher {
             .flex()
             .flex_col()
             .gap(px(14.))
-            .child(Self::band_head(&t("v3.modes"), shared.as_deref()))
+            .child(match customs {
+                Some(links) => div()
+                    .flex()
+                    .flex_row()
+                    .justify_between()
+                    .items_end()
+                    .child(section_head(&t("v3.modes")))
+                    .child(links),
+                None => Self::band_head(&t("v3.modes"), shared.as_deref()),
+            })
             .child(div().flex().flex_row().gap(px(14.)).children(tiles))
+    }
+
+    /// "Your instances": a link to each custom instance (up to three, then "+N"), at the right
+    /// of the Modes head. `None` without custom instances.
+    fn home_customs(&self, cx: &mut Context<Self>) -> Option<Div> {
+        let list = &self.settings.custom_instances;
+        if list.is_empty() {
+            return None;
+        }
+        const SHOWN: usize = 3;
+        let mut row = div()
+            .flex()
+            .flex_row()
+            .items_center()
+            .gap(px(18.))
+            .child(label(&t("home.customs")));
+        for c in list.iter().take(SHOWN) {
+            let id = c.id;
+            row = row.child(
+                tertiary_in(("home-custom", id.0 as usize), &c.name, muted3()).on_click(
+                    cx.listener(move |this, _, _, cx| {
+                        this.select_instance(super::instances::InstKey::Custom(id), cx);
+                        this.navigate(Page::Instances, cx);
+                    }),
+                ),
+            );
+        }
+        if list.len() > SHOWN {
+            row = row.child(
+                tertiary_in(
+                    "home-custom-more",
+                    &format!("+{}", list.len() - SHOWN),
+                    muted3(),
+                )
+                .on_click(cx.listener(|this, _, _, cx| this.navigate(Page::Instances, cx))),
+            );
+        }
+        Some(row)
     }
 
     /// The status row under the description: the status, the mod count when known, and one

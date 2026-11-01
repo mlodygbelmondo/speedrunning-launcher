@@ -1021,5 +1021,6 @@
   "inst.copy.skipped_many": "Skopiowano, ale {n} plików nie dało się odczytać i je pominięto.",
   "inst.copy.worlds_size": "Ze światami ({size})",
   "inst.copy.cancelled": "Kopiowanie anulowane. Nic nie zostało.",
-  "inst.copy.counting": "Liczenie plików „{name}”…"
+  "inst.copy.counting": "Liczenie plików „{name}”…",
+  "home.customs": "Twoje instancje"
 }

@@ -967,5 +967,6 @@
   "inst.copy.skipped_one": "Copied, but {n} file couldn't be read and was left out.",
   "inst.copy.worlds_size": "With worlds ({size})",
   "inst.copy.cancelled": "Copy cancelled. Nothing was kept.",
-  "inst.copy.counting": "Counting the files of “{name}”…"
+  "inst.copy.counting": "Counting the files of “{name}”…",
+  "home.customs": "Your instances"
 }

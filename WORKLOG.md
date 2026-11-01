@@ -223,6 +223,9 @@ Potem:
 
 ### 2026-11-01
 
+- **Własne instancje na Starcie:** nad kafelkami trybów, po prawej, „Twoje instancje” z linkami do trzech
+  pierwszych (dalej „+N”); link otwiera instancję na stronie Instancje. Bez własnych instancji nagłówek bez zmian.
+
 - **Anulowanie kopii instancji:** obok paska „Zrób kopię” jest Anuluj. Kopia zatrzymuje się przed następnym
   plikiem (`CopyPlan::run_until`), skopiowane pliki i rekordy nowej instancji znikają, a strona mówi „Kopiowanie
   anulowane. Nic nie zostało.”. Pasek pokazuje się od razu po kliknięciu („Liczenie plików…”), więc drugie

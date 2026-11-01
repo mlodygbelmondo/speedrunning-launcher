@@ -37,7 +37,15 @@ commicie, który coś zmienia. Najnowsze wpisy dziennika są na górze.
   niego jest w prywatnym `mlodygbelmondo/speedrunning-launcher-private` (lokalnie remote `private`).
 - **Podpis SignPath:** CI jest gotowe (ręczne uruchomienie z zaznaczonym `sign`, a wydania z tagu same, gdy
   SignPath jest skonfigurowany), README ma „Code signing policy”. Czeka na Piotra: wniosek na signpath.org, potem
-  konfiguracja z `launcher/tools/windows/SIGNPATH.md`.
+  konfiguracja z `launcher/tools/windows/SIGNPATH.md`. Instalator jest podpisywany osobnym żądaniem i potrzebuje
+  w SignPath drugiej konfiguracji artefaktu (`installer`, plik `signpath-installer-artifact-configuration.xml`),
+  więc podpisane wydanie to dwa zatwierdzenia.
+- **Instalator Windows** (2026-11-02): `speedrunning-launcher-setup.exe` z Inno Setup
+  (`launcher/tools/windows/installer.iss`), dla jednego użytkownika i bez uprawnień administratora, do
+  `%LOCALAPPDATA%\Programs\Speedrunning Launcher`. Wydania mają go obok zipa; zip zostaje jako wersja przenośna
+  i źródło samoaktualizacji. Dane launchera są teraz w `%LOCALAPPDATA%\SpeedrunningLauncher\data`, a stary folder
+  z Roaming launcher przenosi sam przy pierwszym starcie. Nikt tego jeszcze nie uruchomił na Windowsie (CI
+  instaluje i odinstalowuje po cichu i sprawdza przeniesienie).
 - **Samoaktualizacja launchera** jest zrobiona i wypchnięta (2026-10-31, szczegóły w dzienniku), CI zielone,
   wydanie `v0.1.0` opublikowane, suma SHA-256 sprawdzona po pobraniu. Nikt jej jeszcze nie uruchomił na Windowsie.
   Kolejne wydanie: podbij wersję w `launcher/Cargo.toml`, commit, tag `vX.Y.Z`, push tagu (`launcher/README.md`,
@@ -55,7 +63,7 @@ commicie, który coś zmienia. Najnowsze wpisy dziennika są na górze.
   sprawdzić na Linuksie:
   1. Import: launcher znajduje Twoje instancje (MultiMC, Prism, MCSR Launcher, `.minecraft`), a po imporcie gra ma
      Twoje klawisze, czułość i paczki zasobów. Kopie zapasowe są w `import-backup-<czas>` w folderze instancji.
-  2. Narzędzia: Toolscreen po instalacji pokazuje 1.4.7, a w `%APPDATA%\SpeedrunningLauncher\data\tools\toolscreen\1.4.7\x64\`
+  2. Narzędzia: Toolscreen po instalacji pokazuje 1.4.7, a w `%LOCALAPPDATA%\SpeedrunningLauncher\data\tools\toolscreen\1.4.7\x64\`
      są `Toolscreen.dll` i `liblogger_x64.dll`.
   3. Graj w RSG: okienko Toolscreen pojawia się w lewym górnym rogu gry, Ctrl+I otwiera jego ustawienia, a Thin,
      Wide i EyeZoom przełączają się od razu.
@@ -72,6 +80,22 @@ commicie, który coś zmienia. Najnowsze wpisy dziennika są na górze.
      .jar…” otwiera okno wyboru pliku Windowsa; jar Fabric API launcher odrzuca.
   9. Statystyki po kilku resetach pokazują te runy. Trening: zainstaluj jedną mapę (np. Bastion Trainer) i zagraj.
   10. Ustawienia, potem Autorzy i licencje: w kolumnie Kod są Pandora Launcher i EasyInjectBundled.
+  11. Przeniesienie danych (zanim zainstalujesz nową wersję, masz dane w `%APPDATA%\SpeedrunningLauncher\data`):
+      pierwszy start wersji po 0.2.3 przenosi je do `%LOCALAPPDATA%\SpeedrunningLauncher\data`, a folder
+      `%APPDATA%\SpeedrunningLauncher` znika. Tryby zostają gotowe (Graj, nie Zainstaluj), światy, klawisze
+      i konto są na miejscu. Pierwsze Graj po przeniesieniu sprawdza pliki gry od nowa, więc trwa kilka sekund
+      dłużej. Jeśli gra z poprzedniego startu jeszcze działa, launcher zostaje w Roaming i próbuje znowu przy
+      następnym starcie.
+  12. Instalator: pobierz
+      <https://github.com/mlodygbelmondo/speedrunning-launcher/releases/download/launcher-latest/speedrunning-launcher-setup.exe>
+      i uruchom. Nie pyta o uprawnienia administratora, mówi po polsku, skrót na pulpicie jest odznaczony, a na
+      końcu „Uruchom aplikację Speedrunning Launcher” otwiera launcher. Launcher jest w menu Start
+      i w `%LOCALAPPDATA%\Programs\Speedrunning Launcher`, z ikoną (fioletowe S) w menu Start, na pasku zadań
+      i w rogu okna. SmartScreen może zapytać, bo instalator nie jest podpisany.
+  13. Ustawienia Windowsa › Aplikacje: jest „Speedrunning Launcher” z numerem wersji. Po samoaktualizacji
+      zainstalowanej kopii lista pokazuje nową wersję.
+  14. Odinstaluj z Ustawień › Aplikacje: znika folder w `Programs` i wpis w menu Start, a okienko na końcu mówi,
+      że gry, instancje i światy zostały w `%LOCALAPPDATA%\SpeedrunningLauncher\data`. Ten folder jest nietknięty.
 
   W Ranked mod MCSR Ranked najpierw pokazuje ekran zgody na politykę prywatności i zasady. Akceptujesz go sam,
   w grze.
@@ -83,7 +107,10 @@ commicie, który coś zmienia. Najnowsze wpisy dziennika są na górze.
   - Toolscreen nie jest jeszcze przygotowany dla Draftout (26.3 potrzebuje jego warstwy Vulkan).
   - Gdy mcsr-meta nie ma legalnej wersji moda dla trybu, tryb daje błąd. Nie wraca do starszej legalnej wersji.
   - Przerwana aktualizacja Javy bez sieci: launcher nie wraca jeszcze sam do poprzedniej wersji.
-  - Katalog danych na Windowsie: Roaming czy LocalAppData, do decyzji.
+  - Instalator i przeniesienie danych z Roaming do LocalAppData (2026-11-02) bez testu na prawdziwym Windowsie:
+    kreator, ikona, skróty, odinstalowanie z okienkiem o danych i wersja na liście Aplikacje po samoaktualizacji.
+    Pod wine sprawdzone: kompilacja skryptu (Inno Setup 6.7.4 i 7.1.1), cicha instalacja z wpisem w Aplikacjach
+    i skrótem, odinstalowanie zostawiające dane, okienko po polsku.
   - Samoaktualizacja tylko na Linuksie i w testach: zmiana nazwy działającego exe, start nowego i usunięcie
     `.old.exe` przy następnym starcie trzeba sprawdzić na prawdziwym Windowsie (też z Defenderem i folderem
     w Program Files, gdzie launcher ma pokazać link do wydań).
@@ -177,10 +204,14 @@ Poza planem, na prośbę Piotra:
 Potem:
 
 - [x] Aktualizacje launchera: numerowane wydania z tagów i samoaktualizacja (2026-10-31, czeka na test na Windowsie).
-- [ ] Instalator i podpis.
+- [x] Instalator: Inno Setup, dla jednego użytkownika, bez admina, EN i PL (2026-11-02, czeka na test na Windowsie).
+- [ ] Podpis (czeka na SignPath).
 
 ## Decyzje
 
+- **2026-11-02**, Piotr: dane launchera na Windowsie w LocalAppData, nie w Roaming (gigabajty gier i światów nie
+  mogą jeździć z profilem mobilnym). Prawdziwy instalator: Inno Setup, dla jednego użytkownika, bez uprawnień
+  administratora; zip zostaje jako wersja przenośna i źródło samoaktualizacji.
 - **2026-10-31**, Piotr: repozytorium publiczne na licencji GPL-3.0-or-later, jako nowe repo z czystą historią;
   stara historia zostaje prywatna. Podpis exe przez SignPath Foundation (darmowy dla open source).
 - **2026-10-29**, Piotr: konta offline jak w Prism. Wersja z client ID pozwala grać offline dopiero po jednym
@@ -227,6 +258,46 @@ Potem:
 - **2026-10-23:** styl A+D, czyli Violet Noir plus dane speedrunowe.
 
 ## Dziennik
+
+### 2026-11-02
+
+- **Instalator Windows i dane w LocalAppData** (decyzje Piotra, wyżej):
+  - Dane: `Paths::from_env` bierze `data_local_dir` (`%LOCALAPPDATA%\SpeedrunningLauncher\data`; na Linuksie
+    i macOS to ten sam folder co dotąd). `adopt_old_data` przy pierwszym starcie przenosi folder z Roaming (a bez
+    niego ten spod starej nazwy), gdy nowego jeszcze nie ma; gdy przeniesienie się nie uda (otwarte pliki,
+    Roaming na innym dysku), launcher zostaje przy starym folderze i próbuje przy następnym starcie. Pusty folder
+    nadrzędny w Roaming znika. Testy na folderach tymczasowych (przeniesienie, stara nazwa, ten sam folder,
+    nieudane przeniesienie i ponowna próba).
+  - Zapis instalacji trzyma bezwzględną ścieżkę Javy, więc po przeniesieniu tryby pokazywałyby „Zainstaluj”.
+    `local_state` szuka tej samej Javy w nowym folderze danych (test). Znaczniki sprawdzonych plików też mają
+    stare ścieżki, więc pierwsze Graj po przeniesieniu przelicza hashe plików gry (bez pobierania).
+  - Instalator `launcher/tools/windows/installer.iss` (Inno Setup): dla jednego użytkownika, bez admina, do
+    `%LOCALAPPDATA%\Programs\Speedrunning Launcher`, wpis w menu Start, skrót na pulpicie odznaczony, wpis
+    w Aplikacjach, EN i PL, „Uruchom” na końcu. Odinstalowanie nie rusza danych i mówi, gdzie są (też gdy zostały
+    w Roaming); usuwa `.old.exe` i `.new` po samoaktualizacji.
+  - Ikona: `launcher/assets/icon.ico` (pikselowe S z `assets/icon.svg`, rozmiary 16–256 rysowane na pełnych
+    pikselach). Exe dotąd nie miał ikony; teraz ma ją w zasobach (`build.rs`, id 1, które GPUI bierze też dla okna
+    i paska zadań), a instalator używa tego samego pliku.
+  - Samoaktualizacja w zainstalowanej kopii: folder jest zapisywalny, więc podmiana exe działa jak w zipie. Po
+    udanej podmianie launcher zapisuje nową wersję w `DisplayVersion` wpisu Aplikacji (`HKCU\…\Uninstall\
+    {AppId}_is1`), tylko gdy `InstallLocation` wpisu to folder tego exe (`backend/update.rs`, `apps_entry`).
+  - CI (`windows`): po instalacjach bez okna dane z testu RSG udają stary folder w Roaming; `--status` ma je
+    przenieść do Local, a RSG ma zostać gotowe. Potem `iscc` buduje instalator z tych samych plików co zip, CI go
+    instaluje po cichu, sprawdza exe, wpis w Aplikacjach z wersją, skrót w menu Start i `--status`
+    zainstalowanego exe, odinstalowuje i sprawdza, że dane zostały. Przy podpisie instalator idzie osobnym
+    żądaniem SignPath (druga konfiguracja artefaktu, `SIGNPATH.md`). Wydania i `launcher-latest` mają instalator
+    i zip, każdy ze swoim `.sha256`; opis wydania kieruje najpierw do instalatora.
+  - Dokumentacja: `tools/windows/README.txt`, `launcher/README.md` (CI, instalator, samoaktualizacja), README
+    w repo (pobieranie, folder danych, roadmapa, polityka podpisu), `SIGNPATH.md`.
+  - Sprawdzone: `cargo fmt`, clippy `-D warnings` (workspace i srl-app na `x86_64-pc-windows-gnu`), testy
+    srl-core, srl-app i srl-update, `cargo check` na Windows (gnu), actionlint z shellcheck na workflow. Pod wine:
+    skrypt kompiluje się w Inno Setup 6.7.4 i 7.1.1 bez ostrzeżeń, cicha instalacja (pliki, wpis w Aplikacjach
+    z `DisplayVersion` i `InstallLocation`, skrót w menu Start), odinstalowanie (folder i wpis znikają, dane
+    zostają), kreator i okienko o danych po polsku. Też pod wine: mały exe z `Paths::from_env` (srl-core na
+    `x86_64-pc-windows-gnu`) przeniósł folder z Roaming do Local i usunął pusty `Roaming\SpeedrunningLauncher`,
+    a folder spod starej nazwy zostawił, gdy Local już był. Samego launchera wine nie uruchomi (brak `icuuc.dll`).
+  - Niesprawdzone na Windowsie: wszystko powyżej na prawdziwym pulpicie (lista „Czeka na Piotra”, punkty 11–14),
+    kroki CI z instalatorem (pierwsze uruchomienie dopiero po pushu), podpis instalatora w SignPath.
 
 ### 2026-11-01
 

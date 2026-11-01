@@ -56,9 +56,14 @@ fn main() {
 
     // Windows Explorer's file properties and SignPath's product name check read the version
     // resource. winresource fills the versions from the crate version and compiles it with rc.exe.
+    // The icon (`assets/icon.ico`, the pixel S of `../assets/icon.svg`) gets resource id 1, which
+    // is also the one GPUI loads for the window and the taskbar; the installer uses the same file.
     if env::var("CARGO_CFG_TARGET_OS").as_deref() == Ok("windows") {
+        let icon = assets.join("icon.ico");
+        println!("cargo:rerun-if-changed={}", icon.display());
         let mut res = winresource::WindowsResource::new();
-        res.set("ProductName", "Speedrunning Launcher")
+        res.set_icon(&icon.to_string_lossy())
+            .set("ProductName", "Speedrunning Launcher")
             .set("FileDescription", "Speedrunning Launcher")
             .set("OriginalFilename", "speedrunning-launcher.exe")
             .set("LegalCopyright", "GNU GPL v3.0 or later");

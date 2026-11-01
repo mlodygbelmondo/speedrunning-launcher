@@ -477,7 +477,7 @@ impl Core {
     /// opens.
     pub fn local_state(&self, instance: impl Into<Instance>) -> Local {
         let instance = instance.into();
-        let Some(record) = std::fs::read(self.record_file(instance))
+        let Some(mut record) = std::fs::read(self.record_file(instance))
             .ok()
             .and_then(|b| serde_json::from_slice::<InstallRecord>(&b).ok())
         else {
@@ -487,10 +487,11 @@ impl Core {
             .paths
             .version_dir(&record.version_id)
             .join(format!("{}.json", record.version_id));
-        let game_files = record.java_executable.is_file()
-            && version_json.is_file()
-            && self.stamp_file(instance).is_file();
-        if !game_files {
+        let Some(java) = self.recorded_java(&record.java_executable) else {
+            return Local::NotInstalled;
+        };
+        record.java_executable = java;
+        if !(version_json.is_file() && self.stamp_file(instance).is_file()) {
             return Local::NotInstalled;
         }
         // Another mode of the shared directory has its set in place: Play swaps it in from the
@@ -542,6 +543,25 @@ impl Core {
             .meta()
             .join("launcher")
             .join(format!("{}.json", instance.id()))
+    }
+
+    /// The record's Java, or the same runtime under this data folder when the record names
+    /// another one: the folder moved (from Roaming to Local on Windows, `srl_core::paths`), and
+    /// the next install records the new path.
+    fn recorded_java(&self, recorded: &Path) -> Option<PathBuf> {
+        if recorded.is_file() {
+            return Some(recorded.to_path_buf());
+        }
+        let parts: Vec<_> = recorded.components().collect();
+        (0..parts.len())
+            .rev()
+            .filter(|&i| parts[i].as_os_str() == "java")
+            .map(|i| {
+                parts[i + 1..]
+                    .iter()
+                    .fold(self.paths.java(), |p, c| p.join(c))
+            })
+            .find(|p| p.is_file())
     }
 
     /// srl-game's verification record of the instance's game files.
@@ -1579,7 +1599,7 @@ A potential solution has been determined, this may resolve your problem:
             version_id: id.into(),
             fabric_loader: "0.20.1".into(),
             java_version: "21".into(),
-            java_executable: java,
+            java_executable: java.clone(),
             mods: vec![RecordedJar {
                 file_name: "a.jar".into(),
                 size: 3,
@@ -1616,7 +1636,21 @@ A potential solution has been determined, this may resolve your problem:
             std::fs::create_dir_all(path.parent().unwrap()).unwrap();
             std::fs::write(path, body).unwrap();
         }
+        assert_eq!(core.local_state(custom), Local::Ready(record.clone()));
+        // A record written before the data folder moved names Java under the old folder: the
+        // same runtime under this one counts, and the old path doesn't.
+        let moved = InstallRecord {
+            java_executable: root.with_extension("old").join("java/bin/java"),
+            ..record.clone()
+        };
+        std::fs::write(
+            root.join("meta/launcher/custom-1.json"),
+            serde_json::to_vec(&moved).unwrap(),
+        )
+        .unwrap();
         assert_eq!(core.local_state(custom), Local::Ready(record));
+        std::fs::remove_file(&java).unwrap();
+        assert_eq!(core.local_state(custom), Local::NotInstalled);
         std::fs::remove_dir_all(&root).unwrap();
     }
 }

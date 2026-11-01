@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- SignPath artifact configuration for the installer (slug `installer`), the second signing request of
+     the `launcher` workflow (.github/workflows/launcher.yml). Like the exe, the installer is uploaded with
+     actions/upload-artifact, which wraps it in a zip. Inno Setup puts the product name in its version
+     resource (VersionInfoProductName in installer.iss). Paste this into a second artifact configuration
+     of the project on signpath.io; see SIGNPATH.md. -->
+<artifact-configuration xmlns="http://signpath.io/artifact-configuration/v1">
+  <zip-file>
+    <pe-file path="speedrunning-launcher-setup.exe" product-name="Speedrunning Launcher">
+      <authenticode-sign />
+    </pe-file>
+  </zip-file>
+</artifact-configuration>

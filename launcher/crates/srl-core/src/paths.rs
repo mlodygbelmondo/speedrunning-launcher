@@ -24,9 +24,12 @@
 //!   logs/                    launcher log and the last game log of each mode
 //! ```
 //!
-//! The root is `$SRL_HOME` if set (tests and agents always set it), else the OS data directory:
-//! `%APPDATA%\SpeedrunningLauncher\data` on Windows, `~/.local/share/speedrunninglauncher` on Linux.
-//! Data from before the rename (the `Speedrunluncher` folders) is moved there on the first start.
+//! The root is `$SRL_HOME` if set (tests and agents always set it), else the OS's local data
+//! directory: `%LOCALAPPDATA%\SpeedrunningLauncher\data` on Windows (not Roaming: the game, Java and
+//! the instances are gigabytes that must not follow the player through a roaming profile),
+//! `~/.local/share/speedrunninglauncher` on Linux. Older places are moved there on the first start
+//! (`adopt_old_data`): the Roaming folder the launcher used until 0.2.3, and the `Speedrunluncher`
+//! folders from before the rename.
 use std::path::{Path, PathBuf};
 
 use anyhow::{Context, Result};
@@ -43,7 +46,7 @@ impl Paths {
         Self { root: root.into() }
     }
 
-    /// `$SRL_HOME`, else the OS data directory.
+    /// `$SRL_HOME`, else the OS's local data directory.
     pub fn from_env() -> Result<Self> {
         if let Some(dir) = std::env::var_os("SRL_HOME").filter(|v| !v.is_empty()) {
             return Ok(Self::new(dir));
@@ -51,10 +54,13 @@ impl Paths {
         let dirs = directories::ProjectDirs::from("", "", "SpeedrunningLauncher")
             .context("no home directory to put the launcher data in")?;
         let old = directories::ProjectDirs::from("", "", "Speedrunluncher");
-        Ok(Self::new(adopt_old_data(
-            old.as_ref().map(|d| d.data_dir()),
-            dirs.data_dir(),
-        )))
+        // Newest first: Roaming under the current name, then the pre-rename folder. Only Windows
+        // tells the roaming and the local data directory apart; elsewhere they are one folder.
+        let olds: Vec<&Path> = [Some(dirs.data_dir()), old.as_ref().map(|d| d.data_dir())]
+            .into_iter()
+            .flatten()
+            .collect();
+        Ok(Self::new(adopt_old_data(&olds, dirs.data_local_dir())))
     }
 
     pub fn root(&self) -> &Path {
@@ -130,12 +136,17 @@ impl Paths {
     }
 }
 
-/// The launcher was called Speedrunluncher until 2026-10-26. If only the old data folder exists, move
-/// it to the new place, so nobody downloads Java and the game again. When the move fails (a game
-/// from the old folder still holds its files open on Windows), keep using the old folder for now;
-/// the next start tries again.
-fn adopt_old_data(old: Option<&Path>, new: &Path) -> PathBuf {
-    let Some(old) = old.filter(|old| old.is_dir() && !new.exists()) else {
+/// Until 0.2.3 the data was in the roaming data directory (`%APPDATA%` on Windows), and until
+/// 2026-10-26 the launcher was called Speedrunluncher. If `new` doesn't exist yet, move the first
+/// of `olds` that does to it, so nobody downloads Java and the game again. When the move fails (a
+/// game from the old folder still holds its files open on Windows, or Roaming is redirected to
+/// another drive, where a folder can't be renamed), keep using the old folder for now; the next
+/// start tries again.
+fn adopt_old_data(olds: &[&Path], new: &Path) -> PathBuf {
+    if new.exists() {
+        return new.to_path_buf();
+    }
+    let Some(old) = olds.iter().find(|old| **old != new && old.is_dir()) else {
         return new.to_path_buf();
     };
     if let Some(parent) = new.parent() {
@@ -143,10 +154,11 @@ fn adopt_old_data(old: Option<&Path>, new: &Path) -> PathBuf {
     }
     match std::fs::rename(old, new) {
         Ok(()) => {
-            // On Windows the data sits in `Speedrunluncher\data`; drop the parent if it is now empty.
+            // On Windows the data sits in `<name>\data`; drop `<name>` if it is now empty. Never a
+            // folder without that `data` level (`~/.local/share` on Linux).
             if let Some(parent) = old
                 .parent()
-                .filter(|p| p.file_name() == Some("Speedrunluncher".as_ref()))
+                .filter(|p| old.file_name() == Some("data".as_ref()) && Some(*p) != new.parent())
             {
                 let _ = std::fs::remove_dir(parent);
             }
@@ -186,23 +198,89 @@ mod tests {
         );
     }
 
-    #[test]
-    fn old_data_moves_once() {
-        let base = std::env::temp_dir().join(format!("srl-paths-test-{}", std::process::id()));
+    /// An empty folder under the system's temp directory, one per test.
+    fn temp(name: &str) -> PathBuf {
+        let base = std::env::temp_dir().join(format!("srl-paths-{name}-{}", std::process::id()));
         let _ = std::fs::remove_dir_all(&base);
-        let (old, new) = (
-            base.join("Speedrunluncher").join("data"),
-            base.join("SpeedrunningLauncher").join("data"),
-        );
-        std::fs::create_dir_all(old.join("java")).unwrap();
-        assert_eq!(adopt_old_data(Some(&old), &new), new);
-        assert!(new.join("java").is_dir());
-        assert!(!base.join("Speedrunluncher").exists());
-        // Nothing old any more, or the new folder already exists: the new one is used as is.
+        std::fs::create_dir_all(&base).unwrap();
+        base
+    }
+
+    /// Windows' three places: Roaming under the current name, Roaming under the old name, Local.
+    fn windows_places(base: &Path) -> (PathBuf, PathBuf, PathBuf) {
+        (
+            base.join("Roaming/SpeedrunningLauncher/data"),
+            base.join("Roaming/Speedrunluncher/data"),
+            base.join("Local/SpeedrunningLauncher/data"),
+        )
+    }
+
+    #[test]
+    fn roaming_data_moves_to_local_once() {
+        let base = temp("roaming");
+        let (roaming, renamed, local) = windows_places(&base);
+        std::fs::create_dir_all(roaming.join("java")).unwrap();
+        std::fs::create_dir_all(&renamed).unwrap();
+        assert_eq!(adopt_old_data(&[&roaming, &renamed], &local), local);
+        assert!(local.join("java").is_dir());
+        assert!(!base.join("Roaming/SpeedrunningLauncher").exists());
+        // The new place exists now, so the pre-rename folder stays where it is.
+        assert!(renamed.is_dir());
+        // A Roaming folder again (an older launcher started once more): Local is kept as is.
+        std::fs::create_dir_all(&roaming).unwrap();
+        assert_eq!(adopt_old_data(&[&roaming, &renamed], &local), local);
+        assert!(roaming.is_dir());
+        assert!(local.join("java").is_dir());
+        std::fs::remove_dir_all(&base).unwrap();
+    }
+
+    #[test]
+    fn old_name_moves_without_a_roaming_folder() {
+        let base = temp("rename");
+        let (roaming, renamed, local) = windows_places(&base);
+        std::fs::create_dir_all(renamed.join("java")).unwrap();
+        assert_eq!(adopt_old_data(&[&roaming, &renamed], &local), local);
+        assert!(local.join("java").is_dir());
+        assert!(!base.join("Roaming/Speedrunluncher").exists());
+        // Nothing old any more: the new folder is used as is.
+        assert_eq!(adopt_old_data(&[&roaming, &renamed], &local), local);
+        assert_eq!(adopt_old_data(&[], &local), local);
+        std::fs::remove_dir_all(&base).unwrap();
+    }
+
+    #[test]
+    fn same_place_stays_put() {
+        // Linux and macOS: the roaming and the local data directory are one folder.
+        let base = temp("same");
+        let data = base.join("share/speedrunninglauncher");
+        assert_eq!(adopt_old_data(&[&data], &data), data);
+        assert!(!data.exists());
+        std::fs::create_dir_all(data.join("java")).unwrap();
+        assert_eq!(adopt_old_data(&[&data], &data), data);
+        assert!(data.join("java").is_dir());
+        // A folder without the `data` level keeps its parent even when the move empties it.
+        std::fs::remove_dir_all(&data).unwrap();
+        let old = base.join("old/speedrunluncher");
         std::fs::create_dir_all(&old).unwrap();
-        assert_eq!(adopt_old_data(Some(&old), &new), new);
-        assert!(old.is_dir());
-        assert_eq!(adopt_old_data(None, &new), new);
+        assert_eq!(adopt_old_data(&[&old], &data), data);
+        assert!(base.join("old").is_dir());
+        std::fs::remove_dir_all(&base).unwrap();
+    }
+
+    #[test]
+    fn failed_move_keeps_the_old_folder() {
+        let base = temp("fail");
+        let (roaming, renamed, local) = windows_places(&base);
+        std::fs::create_dir_all(roaming.join("java")).unwrap();
+        // The new place can't be made (its parent is a file), so the rename fails like one
+        // across drives or with a file held open.
+        std::fs::write(base.join("Local"), b"").unwrap();
+        assert_eq!(adopt_old_data(&[&roaming, &renamed], &local), roaming);
+        assert!(roaming.join("java").is_dir());
+        // The next start tries again and gets through once the way is free.
+        std::fs::remove_file(base.join("Local")).unwrap();
+        assert_eq!(adopt_old_data(&[&roaming, &renamed], &local), local);
+        assert!(local.join("java").is_dir());
         std::fs::remove_dir_all(&base).unwrap();
     }
 }

@@ -1,10 +1,17 @@
 Speedrunning Launcher for Windows
 
+Install
+  speedrunning-launcher-setup.exe installs the launcher for your Windows user, without admin
+  rights, in %LOCALAPPDATA%\Programs\Speedrunning Launcher, with a Start menu entry. Uninstall
+  it from Settings, Apps; that keeps your data (below).
+  Or use the portable zip: unzip it anywhere you can write to (not Program Files) and
+  double-click speedrunning-launcher.exe. Both are the same launcher with the same data.
+
 Run
-  Unzip anywhere and double-click speedrunning-launcher.exe. Enter a player name, pick a mode
-  (Ranked, RSG, FSG, SSG or Draftout) and press Download. The launcher installs Java,
-  Minecraft, Fabric Loader, the mode's legal mods and its tools, then starts the game. The
-  first install downloads about 500 MB; after that Play starts the game at once.
+  Enter a player name, pick a mode (Ranked, RSG, FSG, SSG or Draftout) and press Install. The
+  launcher installs Java, Minecraft, Fabric Loader, the mode's legal mods and its tools, then
+  starts the game. The first install downloads about 500 MB; after that Play starts the game
+  at once.
 
   The account is offline: singleplayer works (RSG, FSG, SSG). Ranked and Draftout start with
   their mods, but playing them online needs a Microsoft account, which comes later.
@@ -18,13 +25,15 @@ Updates
   On start the launcher looks for a newer release on GitHub, downloads it, checks its SHA-256
   and puts it in place of speedrunning-launcher.exe (the previous one is kept as
   speedrunning-launcher.old.exe until the next start). Settings, About: Restart to update,
-  Check now, and a switch to turn the automatic check off. Keep this folder somewhere you can
-  write to (not Program Files), or update by hand from the releases page.
+  Check now, and a switch to turn the automatic check off. This works in the installed launcher
+  and in an unzipped one kept somewhere you can write to; from Program Files, update by hand
+  from the releases page.
 
 Where things are
-  Game, mods, tools and settings: %APPDATA%\SpeedrunningLauncher\data
-  The launcher's log:             %APPDATA%\SpeedrunningLauncher\data\logs\launcher.log
-  The game's log:                 %APPDATA%\SpeedrunningLauncher\data\logs\<mode>-latest.log
+  Game, mods, tools and settings: %LOCALAPPDATA%\SpeedrunningLauncher\data
+  The launcher's log:             %LOCALAPPDATA%\SpeedrunningLauncher\data\logs\launcher.log
+  The game's log:                 %LOCALAPPDATA%\SpeedrunningLauncher\data\logs\<mode>-latest.log
+  Up to 0.2.3 the data was in %APPDATA% (Roaming); a newer launcher moves it on its first start.
   To start over, close the launcher and delete that folder.
 
 Command line (no window), for checks and bug reports:

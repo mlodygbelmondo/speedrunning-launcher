@@ -920,6 +920,7 @@ impl Launcher {
                 Tab::Mods | Tab::Settings => return None,
             })
         };
+        let grow = self.mode_fade().text;
         div()
             // Room for the install progress that hangs under Play.
             .mt(px(44.))
@@ -934,16 +935,28 @@ impl Launcher {
                     .filter(|tab| !(key == InstKey::Practice && *tab == Tab::Mods))
                     .map(|tab| {
                         let on = tab == self.instances.tab;
+                        // The selected tab's underline grows out from its middle while the tab's
+                        // content fades in.
+                        let inset = (1.0 - grow) / 2.0;
+                        let bar = on.then(|| {
+                            div()
+                                .absolute()
+                                .bottom_0()
+                                .h(px(2.))
+                                .left(gpui::relative(inset))
+                                .right(gpui::relative(inset))
+                                .bg(accent2())
+                        });
                         div()
                             .id(SharedString::from(format!("inst-tab-{}", tab.key())))
                             .group("inst-tab")
+                            .relative()
                             .flex()
                             .flex_row()
                             .items_baseline()
                             .gap(px(6.))
-                            .pb(px(10.))
-                            .border_b_2()
-                            .border_color(if on { accent2() } else { text3a(0.0) })
+                            .pb(px(12.))
+                            .children(bar)
                             .cursor_pointer()
                             .on_click(cx.listener(move |this, _, _, cx| this.select_tab(tab, cx)))
                             .child(

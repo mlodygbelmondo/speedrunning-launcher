@@ -225,7 +225,8 @@ Potem:
 
 - **Ruch na Instancjach:** tło strony (grafika instancji) przechodzi płynnie przy zmianie instancji, jak grafika
   trybu na Starcie (420 ms, potem 0 klatek; zmierzone `SRL_TRACE_RENDERS`). Komunikat pod kartami („Instancja
-  usunięta…”) wsuwa się i rozjaśnia przez 220 ms; po nim 0 klatek przez 2 s (zmierzone).
+  usunięta…”) wsuwa się i rozjaśnia przez 220 ms; po nim 0 klatek przez 2 s (zmierzone). Podkreślenie wybranej
+  karty rośnie od środka, gdy jej zawartość się pojawia (ten sam zegar 280 ms).
 
 - **Przeniesienie instancji z innego launchera jako własnej:** w formularzu „Nowa instancja”, pod „Na start”,
   instancje znalezione przez import (MultiMC, Prism, MCSR Launcher…) w tej samej wersji gry; wybrana daje nazwę

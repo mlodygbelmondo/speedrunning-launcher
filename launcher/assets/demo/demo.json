@@ -45,13 +45,13 @@
     "tier": "diamond",
     "season_w": 18,
     "season_l": 11,
-    "best": "12:48.302",
+    "best": "15:48.210",
     "matches": [
       {
         "opponent": "Dracored",
         "avatar": "002",
         "won": true,
-        "time": "12:48.302",
+        "time": "15:48.210",
         "elo": "+14"
       },
       {
@@ -65,7 +65,7 @@
         "opponent": "Etherdoogcour",
         "avatar": "011",
         "won": true,
-        "time": "15:02.117",
+        "time": "16:02.117",
         "elo": "+12"
       }
     ],

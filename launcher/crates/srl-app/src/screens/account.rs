@@ -282,8 +282,10 @@ impl Launcher {
                 );
             }
         }
-        // The steps show once the chain is under way: before that they'd be four grey names.
-        let steps = view.step.is_some().then(|| Self::login_steps(&view));
+        // The steps show while the chain runs and when it fails: before, they'd be four grey names,
+        // and after success "Signed in as …" says it all.
+        let steps = (view.step.is_some() && !matches!(view.outcome, LoginOutcome::Done(_)))
+            .then(|| Self::login_steps(&view));
         let panel = div()
             .w(px(W))
             .flex()

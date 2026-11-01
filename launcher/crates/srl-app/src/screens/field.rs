@@ -231,7 +231,8 @@ impl Launcher {
         } else if which == Field::Rename {
             t("inst.new.name_placeholder")
         } else {
-            t("name.placeholder")
+            // "Pick a name" and "Player name" say it already.
+            SharedString::default()
         };
         let focus = field.focus.clone();
         div()

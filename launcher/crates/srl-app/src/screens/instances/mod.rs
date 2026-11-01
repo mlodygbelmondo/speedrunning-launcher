@@ -511,6 +511,24 @@ impl Launcher {
     }
 
     /// The selected instance's game runs (or installs): its files must not change under it.
+    /// What keeps the instance busy, for its row: "running" when its game runs (for the shared
+    /// instance, any of its modes), else "installing".
+    fn inst_busy_text(&self, key: InstKey) -> SharedString {
+        let running = match key {
+            InstKey::Shared => Mode::SHARED
+                .iter()
+                .any(|m| matches!(self.state(index(*m)), ModeState::Running)),
+            InstKey::Draftout => matches!(self.state(index(Mode::Draftout)), ModeState::Running),
+            InstKey::Practice => matches!(self.practice.game.state, ModeState::Running),
+            InstKey::Custom(_) => matches!(self.custom_state(key), Some(ModeState::Running)),
+        };
+        t(if running {
+            "v3.status.running"
+        } else {
+            "v3.status.installing"
+        })
+    }
+
     fn inst_busy(&self, key: InstKey) -> bool {
         match key {
             InstKey::Shared => Mode::SHARED.iter().any(|m| {
@@ -710,7 +728,7 @@ impl Launcher {
             .flex_col()
             .gap(px(8.))
             .bottom(px(28.))
-            .child(section_head(&t("inst.list")).pb(px(4.)))
+            .pt(px(14.))
             .child(
                 // Rows hidden above or below fade out at the edge, as the tabs' lists do.
                 div()
@@ -808,7 +826,7 @@ impl Launcher {
                         text3(),
                     ))
                     .child(if busy {
-                        status_text(&t("inst.in_use"), accent2()).mt(px(9.))
+                        status_text(&self.inst_busy_text(key), accent2()).mt(px(9.))
                     } else {
                         inter(12., FontWeight::MEDIUM, 1.)
                             .mt(px(9.))
@@ -1055,16 +1073,15 @@ impl Launcher {
         }
     }
 
-    /// How many of the catalogue's mods are on.
-    fn mods_on(info: &crate::backend::ModeInfo) -> Option<usize> {
-        info.catalogue
-            .as_ref()
-            .map(|cat| cat.iter().filter(|a| a.on).count())
+    /// How many mods the catalogue has: the tab counts items like the others, and the Mods page
+    /// says how many are on.
+    fn mods_count(info: &crate::backend::ModeInfo) -> Option<usize> {
+        info.catalogue.as_ref().map(Vec::len)
     }
 
     fn inst_tabs(&self, key: InstKey, cx: &mut Context<Self>) -> Div {
         let c = self.instances.content.as_ref();
-        let mods = self.inst_info(key).and_then(Self::mods_on);
+        let mods = self.inst_info(key).and_then(Self::mods_count);
         let count = |tab: Tab| -> Option<usize> {
             if tab == Tab::Mods {
                 return mods;
@@ -1153,24 +1170,17 @@ impl Launcher {
                 .into_any_element();
         };
         if !c.exists {
+            // Only the practice instance says why it's empty: the others have Install right above.
+            let why = (key == InstKey::Practice).then(|| t("inst.practice.empty"));
             return div()
                 .pt(px(18.))
                 .w(px(560.))
-                .child(
+                .children(why.map(|why| {
                     inter(14., FontWeight::NORMAL, 1.5)
                         .whitespace_nowrap()
                         .text_color(muted3())
-                        .child(wrap(
-                            &match key {
-                                InstKey::Custom(_) => t("inst.custom.empty"),
-                                _ => t(&format!("inst.{}.empty", key.id())),
-                            },
-                            INTER,
-                            FontWeight::NORMAL,
-                            14.,
-                            560.,
-                        )),
-                )
+                        .child(wrap(&why, INTER, FontWeight::NORMAL, 14., 560.))
+                }))
                 .into_any_element();
         }
         let busy = self.inst_busy(key);

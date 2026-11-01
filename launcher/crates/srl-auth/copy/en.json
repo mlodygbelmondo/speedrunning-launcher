@@ -1,7 +1,7 @@
 {
   "_comment": "srl-auth texts, to merge into launcher/assets/copy.json when the account UI lands. Error keys are AuthError::copy_key(); {code} is the XErr number.",
   "auth.title": "Microsoft account",
-  "auth.why": "Needed once, with an account that owns Minecraft: Java Edition. After that you can also play under your offline name, except in Ranked and Draftout matches.",
+  "auth.why": "Sign in once with an account that owns Minecraft: Java Edition. After that, your offline name works everywhere except Ranked and Draftout matches.",
   "auth.login": "Sign in with Microsoft",
   "auth.logout": "Sign out",
   "auth.add_account": "Add another account",

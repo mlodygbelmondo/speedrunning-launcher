@@ -317,10 +317,7 @@ impl Launcher {
         let local = self.stats.local.as_deref();
         let history = local.map(|l| l.mode(mode));
         let pb_body = |h: &RunHistory| match h.headline_pb() {
-            Some(pb) => TileBody::Value(
-                fmt_igt(pb.record.igt_ms),
-                fmt_date(pb.record.date_ms),
-            ),
+            Some(pb) => TileBody::Value(fmt_igt(pb.record.igt_ms), fmt_date(pb.record.date_ms)),
             None if h.run_count > 0 => {
                 TileBody::Text(tn("stats.runs_none_finished", u64::from(h.run_count)))
             }
@@ -328,7 +325,7 @@ impl Launcher {
         };
         let mut corner: Option<Div> = None;
         let body = match mode {
-            Mode::Draftout => self.draftout_body(&mut corner),
+            Mode::Draftout => self.draftout_body(),
             Mode::Ranked => {
                 let api_best = self
                     .stats
@@ -452,18 +449,13 @@ impl Launcher {
 
     /// Draftout's tile from the Draftout API: elo and rank band, or why there is none. `corner`
     /// gets the source. Cached data that could not be refreshed shows its age under the elo.
-    fn draftout_body(&self, corner: &mut Option<Div>) -> TileBody {
+    fn draftout_body(&self) -> TileBody {
         let Some(l) = &self.stats.draftout else {
             return TileBody::Text(t("stats.draftout_set_name"));
         };
         match (&l.value, &l.error) {
             (Some(c), _) => {
                 let p = &c.value.profile;
-                *corner = Some(
-                    plex(11., FontWeight::MEDIUM)
-                        .text_color(faint3())
-                        .child(t("stats.draftout_src")),
-                );
                 let Some(elo) = p.elo else {
                     return TileBody::Text(t("stats.draftout_no_elo"));
                 };

@@ -1,7 +1,7 @@
 {
   "_comment": "Teksty srl-auth do dołączenia do launcher/assets/copy.pl.json razem z ekranem konta. Klucze błędów to AuthError::copy_key(); {code} to numer XErr.",
   "auth.title": "Konto Microsoft",
-  "auth.why": "Potrzebne raz, kontem z Minecraft: Java Edition. Potem zagrasz też pod nickiem offline, poza meczami w Ranked i Draftout.",
+  "auth.why": "Zaloguj się raz kontem z Minecraft: Java Edition. Potem nick offline działa wszędzie poza meczami w Ranked i Draftout.",
   "auth.login": "Zaloguj się przez Microsoft",
   "auth.logout": "Wyloguj",
   "auth.add_account": "Dodaj kolejne konto",

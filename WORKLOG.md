@@ -226,6 +226,16 @@ Potem:
 
 ### 2026-11-01
 
+- **Pętla tekstów, runda 6** (r5: **8,5 i 8,5**). Jedna nazwa na te same pliki: „ustawienia gry i modów”
+  (jak w imporcie) zamiast „klawisze, opcje, konfiguracja”. Bez nadtytułu „MCSR Ranked” nad „Ranked” (z sezonem:
+  „Sezon N”), bez nagłówków „Tryby” i „Instancje”, bez „z SpeedRunIGT” i rogu „draftoutmc.com”, bez „Jeszcze
+  nie zainstalowana” pod Zainstaluj, bez podpowiedzi pustej instancji, bez placeholdera nicku. Kroki logowania
+  znikają po sukcesie. Zajęta instancja mówi „działa” albo „instaluje się”. Zakładka Mody liczy wszystkie mody
+  (jak inne zakładki), strona mówi, ile włączonych. Przycisk kopii po imporcie mówi, czego to kopia. Okna
+  Resetu i Aktualizacji map bez zdania powtarzającego wybory; Usuń mówi „na dobre”. Krótsze: kosz („kosz
+  w folderze danych”), import, ręczna aktualizacja, błąd logowania. Dane przykładowe: najlepszy mecz Ranked
+  w sezonie = lokalny PB (15:48.210), więc zrzuty nie pokazują dwóch sprzecznych „najlepszych”.
+
 - **Pętla tekstów, runda 5** (r4: **8,5 i 8,5**). Kosz: każdy komunikat mówi, gdzie on jest (w folderze danych),
   a podpowiedź folderu danych go wymienia. Panel Ranked bez elo i bez meczów pokazuje tylko „jeszcze bez meczów”
   (bez wielkiej kreski i „bez elo”). Przerwany mecz Ranked to „Koniec: …”, nie „Reset: …”. Kafle PB pokazują

@@ -518,7 +518,7 @@ impl Launcher {
                 .flex()
                 .flex_col()
                 .gap(px(12.))
-                .child(Self::band_head(&t("v3.strip"), Some(&t("v3.strip_src"))))
+                .child(Self::band_head(&t("v3.strip"), None))
                 .child(
                     div()
                         .h(px(66.))
@@ -633,15 +633,12 @@ impl Launcher {
             .flex()
             .flex_col()
             .gap(px(14.))
-            .child(match customs {
-                Some(links) => div()
-                    .flex()
-                    .flex_row()
-                    .justify_between()
-                    .items_end()
-                    .child(section_head(&t("v3.modes")))
-                    .child(links),
-                None => Self::band_head(&t("v3.modes"), shared.as_deref()),
+            // No "Modes" head: the tiles say what they are. Its row keeps the links to custom
+            // instances (or the demo's shared-instance line) at the right.
+            .children(match (customs, shared) {
+                (Some(links), _) => Some(div().flex().flex_row().justify_end().child(links)),
+                (None, Some(s)) => Some(div().flex().flex_row().justify_end().child(label(&s))),
+                (None, None) => None,
             })
             .child(div().flex().flex_row().gap(px(14.)).children(tiles))
     }
@@ -766,7 +763,8 @@ impl Launcher {
                 "v3.eyebrow.ranked",
                 &[("season", &d.season.to_string()), ("mc", mc)],
             ),
-            (Mode::Ranked, None) => tf("v3.eyebrow.ranked_offline", &[("mc", mc)]),
+            // "MCSR Ranked" over "Ranked" would only repeat the title.
+            (Mode::Ranked, None) => SharedString::default(),
             _ => tf(&format!("v3.eyebrow.{}", mode.id()), &[("mc", mc)]),
         }
     }

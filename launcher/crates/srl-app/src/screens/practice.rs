@@ -923,8 +923,11 @@ impl Launcher {
         let keep_what = |id: &str| t(&format!("practice.keep.{id}"));
         let (title, mut lines, buttons): (SharedString, Vec<Div>, Div) = match &ask.question {
             Question::Reset { id, plan } => {
-                let title = tf("practice.ask.reset.title", &[("map", &map_name(id))]);
-                let mut lines = vec![body(tf("practice.ask.reset.body", &[("v", &plan.version)]))];
+                let title = tf(
+                    "practice.ask.reset.title",
+                    &[("map", &map_name(id)), ("v", &plan.version)],
+                );
+                let mut lines = Vec::new();
                 let played: Vec<WorldView> = plan
                     .worlds
                     .iter()
@@ -1005,16 +1008,9 @@ impl Launcher {
                 )
             }
             Question::Update {
-                id,
-                to,
-                played,
-                carry_over,
-                ..
+                id, to, carry_over, ..
             } => {
-                let lines = vec![body(tf(
-                    "practice.ask.update.body",
-                    &[("worlds", &names(played))],
-                ))];
+                let lines = Vec::new();
                 let choices = [
                     (UpdateChoice::ReplaceWorlds, "practice.ask.update.replace"),
                     (UpdateChoice::KeepBoth, "practice.ask.update.both"),

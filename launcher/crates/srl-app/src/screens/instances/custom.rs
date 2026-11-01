@@ -424,7 +424,7 @@ impl Launcher {
                 tf("inst.new.start_import_hint", &[("from", &from)])
             }
             None if form.copy => tf("inst.new.start_copy_hint", &[("from", &from_name)]),
-            None => t("inst.new.blank_hint"),
+            None => SharedString::default(),
         };
         let worlds = form.source.is_some().then(|| {
             self.tick_line("inst-new-worlds", &t("inst.copy.worlds"), form.worlds)

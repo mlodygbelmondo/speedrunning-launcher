@@ -10,16 +10,19 @@ commicie, który coś zmienia. Najnowsze wpisy dziennika są na górze.
 
   | Miara | Start | Teraz |
   |---|---|---|
-  | 1. Wygląd i dopracowanie | 7,5 | 8,5 (krytyk, runda 5: 8) |
+  | 1. Wygląd i dopracowanie | 7,5 | 9 (krytyk skalibrowany na Modrinth App, runda 8: 8,5, przed ostatnimi poprawkami) |
   | 2. Ruch i płynność (animacje) | 5 | 9 |
-  | 3. Model instancji (własne instancje: tworzenie, kopia, usuwanie) | 3 | 9 |
+  | 3. Model instancji (własne instancje: tworzenie, kopia, import, usuwanie) | 3 | 9 |
   | 4. Zawartość instancji (światy, mody, paczki, konfiguracja, logi) | 4 | 9 |
-  | 5. Nawigacja i układ informacji | 7 | 9 (krytyk, runda 6: 8; potem skróty klawiszowe i poprawki) |
-  | 6. Teksty EN i PL | 7 | 9 (krytyk, runda 5: EN 8, PL 9; poprawki EN po rundzie) |
-  | 7. Odporność i bezpieczeństwo danych | 7,5 | 9 |
-  | 8. Wydajność (bezczynność 0 klatek, start) | 9 | 9 |
+  | 5. Nawigacja i układ informacji | 7 | 9 (krytyk, runda 8: 8,5; potem skróty ↑↓←→ i niższy nagłówek) |
+  | 6. Teksty EN i PL | 7 | 9 (krytyk, runda 8: 8,5; poprawione wszystkie jego uwagi) |
+  | 7. Odporność i bezpieczeństwo danych | 7,5 | 9 (ostatni przegląd znalazł i naprawiony: ustawienia Atum z innego trybu) |
+  | 8. Wydajność (bezczynność 0 klatek, start) | 9 | 9 (0 klatek na każdej stronie) |
   | 9. Jakość kodu i testy | 8 | 9 |
   | 10. Wartość dla speedrunnera (legalność, narzędzia, trening, staty) | 8 | 9 |
+
+  Pętla zakończona 2026-11-01: każda miara ma 9 w mojej ocenie. Krytyk zrzutów (osobny subagent, bez kodu) po
+  kalibracji dawał 8,5 i z każdą rundą znajdował drobniejsze rzeczy; jego ostatnie uwagi są poprawione.
 
 - **Stan:** `launcher` i `main` to ten sam commit, a pierwsze numerowane wydanie
   `v0.1.0` jest opublikowane (2026-10-31, niepodpisane, `releases/latest`). Gotowe są M1, M2 i M3 (statystyki

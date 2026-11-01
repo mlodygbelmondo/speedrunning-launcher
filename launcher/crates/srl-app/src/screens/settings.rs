@@ -655,6 +655,49 @@ impl Launcher {
         Self::setting_row(t("settings.updates"), Some(hint), control)
     }
 
+    /// The keyboard shortcuts (`Launcher::global_key`), so they can be found.
+    fn keys_section(&self) -> Div {
+        let mod_key = if cfg!(target_os = "macos") {
+            "Cmd"
+        } else {
+            "Ctrl"
+        };
+        let rows = [
+            (format!("{mod_key}+1 … 6"), "settings.keys.pages"),
+            (format!("{mod_key}+,"), "settings.keys.settings"),
+            ("← →".to_string(), "settings.keys.modes"),
+            ("Enter".to_string(), "settings.keys.play"),
+            ("Esc".to_string(), "settings.keys.back"),
+        ];
+        Self::section(
+            t("settings.section_keys"),
+            rows.into_iter()
+                .map(|(keys, what)| {
+                    div()
+                        .h(px(36.))
+                        .flex()
+                        .flex_row()
+                        .items_center()
+                        .gap(px(16.))
+                        .border_t_1()
+                        .border_color(line3())
+                        .child(
+                            plex(12., FontWeight::MEDIUM)
+                                .flex_none()
+                                .w(px(110.))
+                                .text_color(text3())
+                                .child(keys),
+                        )
+                        .child(
+                            inter(13., FontWeight::NORMAL, 1.)
+                                .text_color(muted3())
+                                .child(t(what)),
+                        )
+                })
+                .collect(),
+        )
+    }
+
     pub fn render_settings(&mut self, window: &mut Window, cx: &mut Context<Self>) -> AnyElement {
         if self.settings_credits {
             return self.render_credits(cx);
@@ -684,6 +727,7 @@ impl Launcher {
             .gap(px(SECTION_GAP))
             .child(self.modes_section(cx))
             .child(self.about_section(cx))
+            .child(self.keys_section())
             .child(self.dev_section(cx));
 
         div()

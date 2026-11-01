@@ -911,5 +911,11 @@
   "inst.worlds.seed": "seed {seed}",
   "inst.worlds.copy_seed": "Copy seed",
   "inst.worlds.copied": "Copied",
-  "inst.busy": "The game is running in this instance, so nothing was changed. Try again once it's closed."
+  "inst.busy": "The game is running in this instance, so nothing was changed. Try again once it's closed.",
+  "settings.section_keys": "Keyboard shortcuts",
+  "settings.keys.pages": "Play, Instances, Practice, Learn, Tools, Stats",
+  "settings.keys.settings": "Settings",
+  "settings.keys.modes": "Previous or next mode, on Play",
+  "settings.keys.play": "Play the selected mode, on Play",
+  "settings.keys.back": "Close a question, or leave the game screen"
 }

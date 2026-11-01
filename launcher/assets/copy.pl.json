@@ -963,5 +963,11 @@
   "inst.worlds.seed": "seed {seed}",
   "inst.worlds.copy_seed": "Kopiuj seed",
   "inst.worlds.copied": "Skopiowany",
-  "inst.busy": "W tej instancji działa gra, więc nic się nie zmieniło. Spróbuj ponownie, gdy ją zamkniesz."
+  "inst.busy": "W tej instancji działa gra, więc nic się nie zmieniło. Spróbuj ponownie, gdy ją zamkniesz.",
+  "settings.section_keys": "Skróty klawiszowe",
+  "settings.keys.pages": "Graj, Instancje, Trening, Nauka, Narzędzia, Statystyki",
+  "settings.keys.settings": "Ustawienia",
+  "settings.keys.modes": "Poprzedni albo następny tryb, na stronie Graj",
+  "settings.keys.play": "Graj w wybrany tryb, na stronie Graj",
+  "settings.keys.back": "Zamknij pytanie albo wyjdź z ekranu gry"
 }

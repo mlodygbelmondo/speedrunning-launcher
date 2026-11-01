@@ -41,6 +41,9 @@ const IN_MS: f32 = 220.0;
 /// A mode switch: the new key art fades in over the old one, the hero text and numbers rise in.
 const MODE_MS: f32 = 420.0;
 const MODE_TEXT_MS: f32 = 280.0;
+/// A Home mode tile's key art zooms in this much (a fraction of its size) under the pointer.
+const TILE_ZOOM: f32 = 0.07;
+const TILE_MS: f32 = 180.0;
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum Page {
@@ -159,6 +162,10 @@ pub struct Launcher {
     /// When the selected mode last changed by a click: the key art cross-fades and the hero
     /// rises in for `MODE_MS` after it (`mode_fade`). `None` once it's over.
     mode_switched: Option<Instant>,
+    /// The Home mode tile under the pointer and since when, and the one it just left: their art
+    /// zooms in and back out (`tile_zoom`).
+    tile_in: Option<(usize, Instant)>,
+    tile_out: Option<(usize, Instant)>,
     pub practice_sel: PracticeSel,
     /// The selected Learn topic, an index into `catalog::learn().topics`.
     pub learn_topic: usize,
@@ -318,6 +325,8 @@ impl Launcher {
             mode_sel: index(start.mode),
             prev_mode: None,
             mode_switched: None,
+            tile_in: None,
+            tile_out: None,
             practice_sel: start.practice,
             learn_topic: start.learn,
             learn_scroll: gpui::ScrollHandle::new(),
@@ -861,6 +870,44 @@ impl Launcher {
 
     /// Where the mode switch is: the new key art's opacity, then the hero text's opacity and how
     /// far below its place it still is (px). All settled (1, 1, 0) when no switch runs.
+    /// The pointer entered (`true`) or left a Home mode tile.
+    pub fn hover_tile(&mut self, i: usize, hovered: bool, cx: &mut Context<Self>) {
+        let now = Instant::now();
+        // A zoom picks up from where the art is, so a quick in-out-in never jumps.
+        let from = self.tile_zoom_at(i, now) / TILE_ZOOM;
+        let back = |f: f32| now - std::time::Duration::from_secs_f32(f * TILE_MS / 1000.0);
+        if hovered {
+            if let Some((j, _)) = self.tile_in.filter(|(j, _)| *j != i) {
+                let z = self.tile_zoom_at(j, now) / TILE_ZOOM;
+                self.tile_out = Some((j, back(1.0 - z)));
+            } else if self.tile_out.is_some_and(|(j, _)| j == i) {
+                self.tile_out = None;
+            }
+            self.tile_in = Some((i, back(from)));
+        } else if self.tile_in.is_some_and(|(j, _)| j == i) {
+            self.tile_in = None;
+            self.tile_out = Some((i, back(1.0 - from)));
+        }
+        cx.notify();
+    }
+
+    /// How far tile `i`'s art is zoomed in now (0 to `TILE_ZOOM`).
+    pub fn tile_zoom(&self, i: usize) -> f32 {
+        self.tile_zoom_at(i, Instant::now())
+    }
+
+    fn tile_zoom_at(&self, i: usize, now: Instant) -> f32 {
+        match (self.tile_in, self.tile_out) {
+            (Some((j, at)), _) if j == i => {
+                TILE_ZOOM * ease_out((ms_since(at, now) / TILE_MS).min(1.0))
+            }
+            (_, Some((j, at))) if j == i => {
+                TILE_ZOOM * (1.0 - ease_out((ms_since(at, now) / TILE_MS).min(1.0)))
+            }
+            _ => 0.0,
+        }
+    }
+
     /// Starts the switch animation without a mode change (an Instances tab or instance): the
     /// content rises in the way Home's hero does.
     pub fn kick_fade(&mut self) {
@@ -982,6 +1029,20 @@ impl Render for Launcher {
 
         if !matches!(self.anim, Anim::Idle) {
             window.request_animation_frame();
+        }
+        // A tile still zooming: in for TILE_MS, out for TILE_MS, then idle again.
+        if self.shown == Page::Home {
+            let moving =
+                |t: Option<(usize, Instant)>| t.is_some_and(|(_, at)| ms_since(at, now) < TILE_MS);
+            if moving(self.tile_in) || moving(self.tile_out) {
+                window.request_animation_frame();
+            }
+        }
+        if self
+            .tile_out
+            .is_some_and(|(_, at)| ms_since(at, now) >= TILE_MS)
+        {
+            self.tile_out = None;
         }
         if let Some(start) = self.mode_switched {
             if ms_since(start, now) < MODE_MS {

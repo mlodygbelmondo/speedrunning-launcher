@@ -11,7 +11,7 @@
 //! the page on their own over the key art.
 use gpui::{
     AnyElement, Context, Div, FontWeight, IntoElement, ObjectFit, ParentElement, SharedString,
-    Styled, div, img, prelude::*, px,
+    Styled, div, img, prelude::*, px, relative,
 };
 use srl_core::Mode;
 use srl_stats::SplitKind;
@@ -603,64 +603,78 @@ impl Launcher {
     }
 
     fn home_modes(&self, cx: &mut Context<Self>) -> Div {
-        let tiles = catalog::MODES.iter().enumerate().map(|(i, d)| {
-            let on = i == self.mode_sel;
-            let status = self.status(i);
-            // Only what needs a look: not installed is the normal start, and installing has its
-            // bar.
-            let badge = match status {
-                Status::Update | Status::Running | Status::Failed => {
-                    Some(Self::tile_badge(&t(status.key()), status.color()))
-                }
-                _ => None,
-            };
-            let bar = match self.state(i) {
-                crate::backend::ModeState::Installing(p) => Some(
-                    div()
-                        .absolute()
-                        .left_0()
-                        .right_0()
-                        .bottom_0()
-                        .child(thin_progress(super::play::bar_fraction(p), 2.)),
-                ),
-                _ => None,
-            };
-            div()
-                .id(("home-mode", i))
-                .group("home-tile")
-                .relative()
-                .flex_1()
-                .min_w(px(0.))
-                .h(px(116.))
-                .cursor_pointer()
-                .on_click(cx.listener(move |this, _, _, cx| this.select_mode(i, cx)))
-                .child(overlay(tile_bg()))
-                .child(art_fill(card_path(d.art)))
-                .when(!on, |d| d.child(overlay(bg3a(0.5))))
-                .child(shade_up(0.9, 0.0, 0.7))
-                .children(badge)
-                .child(
-                    div()
-                        .absolute()
-                        .left(px(14.))
-                        .bottom(px(12.))
-                        .flex()
-                        .flex_col()
-                        .child(
-                            arch(17., FontWeight::BOLD)
-                                .text_color(text3())
-                                .child(d.short),
+        let tiles =
+            catalog::MODES.iter().enumerate().map(|(i, d)| {
+                let on = i == self.mode_sel;
+                let status = self.status(i);
+                // Only what needs a look: not installed is the normal start, and installing has its
+                // bar.
+                let badge = match status {
+                    Status::Update | Status::Running | Status::Failed => {
+                        Some(Self::tile_badge(&t(status.key()), status.color()))
+                    }
+                    _ => None,
+                };
+                let bar = match self.state(i) {
+                    crate::backend::ModeState::Installing(p) => Some(
+                        div()
+                            .absolute()
+                            .left_0()
+                            .right_0()
+                            .bottom_0()
+                            .child(thin_progress(super::play::bar_fraction(p), 2.)),
+                    ),
+                    _ => None,
+                };
+                div()
+                    .id(("home-mode", i))
+                    .group("home-tile")
+                    .relative()
+                    .flex_1()
+                    .min_w(px(0.))
+                    .h(px(116.))
+                    .cursor_pointer()
+                    .on_click(cx.listener(move |this, _, _, cx| this.select_mode(i, cx)))
+                    .on_hover(cx.listener(move |this, hovered: &bool, _, cx| {
+                        this.hover_tile(i, *hovered, cx)
+                    }))
+                    .child(overlay(tile_bg()))
+                    // The art zooms inside its own clip; the selection ring sits outside the tile.
+                    .child({
+                        let z = self.tile_zoom(i);
+                        div().absolute().size_full().overflow_hidden().child(
+                            art_fill(card_path(d.art))
+                                .left(relative(-z / 2.))
+                                .top(relative(-z / 2.))
+                                .w(relative(1. + z))
+                                .h(relative(1. + z)),
                         )
-                        .child(
-                            plex(11., FontWeight::MEDIUM)
-                                .mt(px(6.))
-                                .text_color(muted3())
-                                .child(d.mode.minecraft_version()),
-                        ),
-                )
-                .children(bar)
-                .child(if on { ring() } else { hover_ring("home-tile") })
-        });
+                    })
+                    .when(!on, |d| d.child(overlay(bg3a(0.5))))
+                    .child(shade_up(0.9, 0.0, 0.7))
+                    .children(badge)
+                    .child(
+                        div()
+                            .absolute()
+                            .left(px(14.))
+                            .bottom(px(12.))
+                            .flex()
+                            .flex_col()
+                            .child(
+                                arch(17., FontWeight::BOLD)
+                                    .text_color(text3())
+                                    .child(d.short),
+                            )
+                            .child(
+                                plex(11., FontWeight::MEDIUM)
+                                    .mt(px(6.))
+                                    .text_color(muted3())
+                                    .child(d.mode.minecraft_version()),
+                            ),
+                    )
+                    .children(bar)
+                    .child(if on { ring() } else { hover_ring("home-tile") })
+            });
         let shared = demo::get().map(|d| tf("v3.modes_shared", &[("size", &d.disk_saved)]));
         div()
             .absolute()

@@ -1,6 +1,7 @@
 //! Home (REDESIGN.md "Home"): one layout per selected mode over the mode's key art. Every number is
-//! a position in the 1280×800 window. Picking a mode tile switches instantly (no transition, no
-//! animation), so idle stays idle.
+//! a position in the 1280×800 window. Picking a mode tile cross-fades the key art and lets the
+//! hero, the numbers and the band rise in (`Launcher::mode_fade`, a few hundred ms of frames, then
+//! idle again).
 //!
 //! Without `SRL_DEMO` the numbers come from the stats the launcher has (`Launcher::stats`): a run
 //! mode's PB, sum of best, runs this month and the PB's split strip from the SpeedRunIGT records;
@@ -748,11 +749,13 @@ impl Launcher {
         let mode = self.mode(mi);
         let d = catalog::def(mode);
         let status = self.status(mi);
+        let fade = self.mode_fade();
 
         let hero = div()
             .absolute()
             .left(px(64.))
-            .top(px(116.))
+            .top(px(116. + fade.rise))
+            .when(fade.text < 1.0, |d| d.opacity(fade.text))
             .w(px(560.))
             .flex()
             .flex_col()
@@ -806,14 +809,25 @@ impl Launcher {
             .child(hero)
             .children(
                 self.home_right(mode)
-                    .filter(|_| !matches!(status, Status::Missing | Status::Installing)),
+                    .filter(|_| !matches!(status, Status::Missing | Status::Installing))
+                    .map(|r| {
+                        // The numbers follow the hero a beat later.
+                        let late = (fade.text * 1.25 - 0.25).max(0.0);
+                        div()
+                            .absolute()
+                            .top(px(fade.rise * 0.6))
+                            .size_full()
+                            .when(late < 1.0, |d| d.opacity(late))
+                            .child(r)
+                    }),
             )
             .children(band.map(|b| {
                 div()
                     .absolute()
                     .left(px(64.))
                     .right(px(48.))
-                    .top(px(494.))
+                    .top(px(494. + fade.rise * 0.6))
+                    .when(fade.text < 1.0, |d| d.opacity(fade.text))
                     .child(b)
             }))
             .child(self.home_modes(cx))

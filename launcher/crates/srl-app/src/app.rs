@@ -38,6 +38,9 @@ use crate::{
 /// SPEC.md's page transition: outgoing 150 ms ease-in, then incoming 220 ms ease-out.
 const OUT_MS: f32 = 150.0;
 const IN_MS: f32 = 220.0;
+/// A mode switch: the new key art fades in over the old one, the hero text and numbers rise in.
+const MODE_MS: f32 = 420.0;
+const MODE_TEXT_MS: f32 = 280.0;
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum Page {
@@ -64,6 +67,22 @@ impl Page {
     pub fn full_window(self) -> bool {
         matches!(self, Page::Game | Page::Name | Page::Import)
     }
+}
+
+/// See `Launcher::mode_fade`.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct ModeFade {
+    pub art: f32,
+    pub text: f32,
+    pub rise: f32,
+}
+
+impl ModeFade {
+    const SETTLED: ModeFade = ModeFade {
+        art: 1.0,
+        text: 1.0,
+        rise: 0.0,
+    };
 }
 
 #[derive(Clone, Copy)]
@@ -132,6 +151,9 @@ pub struct Launcher {
     pub mode_sel: usize,
     /// The mode selected before it, whose hero stays drawn under the new one (`hero_images`).
     pub prev_mode: Option<usize>,
+    /// When the selected mode last changed by a click: the key art cross-fades and the hero
+    /// rises in for `MODE_MS` after it (`mode_fade`). `None` once it's over.
+    mode_switched: Option<Instant>,
     pub practice_sel: PracticeSel,
     /// The selected Learn topic, an index into `catalog::learn().topics`.
     pub learn_topic: usize,
@@ -284,6 +306,7 @@ impl Launcher {
             },
             mode_sel: index(start.mode),
             prev_mode: None,
+            mode_switched: None,
             practice_sel: start.practice,
             learn_topic: start.learn,
             learn_scroll: gpui::ScrollHandle::new(),
@@ -610,6 +633,7 @@ impl Launcher {
         if self.mode_sel != mi {
             self.prev_mode = Some(self.mode_sel);
             self.mode_sel = mi;
+            self.mode_switched = Some(Instant::now());
             let settings = Settings {
                 last_mode: Some(self.mode(mi)),
                 ..self.settings.clone()
@@ -727,6 +751,8 @@ impl Launcher {
     /// hero on first use in the background and draws nothing until it's done, so on the first
     /// switch to a mode the old hero fills those frames instead of bare background (commit
     /// 747c3a5). Both are opaque and already in the atlas, so the extra layer costs nothing.
+    /// While a mode switch runs, the new hero fades in over the old one (one opaque image's
+    /// opacity, so none of the group-opacity trouble of `fade_veil`).
     pub fn hero_images(&self) -> Vec<gpui::Img> {
         let hero = |mi: usize| {
             img(embedded(&hero_path(catalog::MODES[mi].art)))
@@ -742,8 +768,24 @@ impl Launcher {
             .map(hero)
             .into_iter()
             .collect();
-        v.push(hero(self.mode_sel));
+        let fade = self.mode_fade().art;
+        v.push(hero(self.mode_sel).when(fade < 1.0, |i| i.opacity(fade)));
         v
+    }
+
+    /// Where the mode switch is: the new key art's opacity, then the hero text's opacity and how
+    /// far below its place it still is (px). All settled (1, 1, 0) when no switch runs.
+    pub fn mode_fade(&self) -> ModeFade {
+        let Some(start) = self.mode_switched else {
+            return ModeFade::SETTLED;
+        };
+        let ms = ms_since(start, Instant::now());
+        let text = ease_out((ms / MODE_TEXT_MS).min(1.0));
+        ModeFade {
+            art: ease_out((ms / MODE_MS).min(1.0)),
+            text,
+            rise: 10.0 * (1.0 - text),
+        }
     }
 
     fn page(&mut self, window: &mut Window, cx: &mut Context<Self>) -> AnyElement {
@@ -849,6 +891,13 @@ impl Render for Launcher {
 
         if !matches!(self.anim, Anim::Idle) {
             window.request_animation_frame();
+        }
+        if let Some(start) = self.mode_switched {
+            if ms_since(start, now) < MODE_MS {
+                window.request_animation_frame();
+            } else {
+                self.mode_switched = None;
+            }
         }
 
         div()

@@ -207,6 +207,11 @@ Potem:
 
 ### 2026-11-01
 
+- **Przejście między trybami na Starcie** (prośba Piotra: „brakuje animacji”). Klik w kafelek trybu: nowa grafika
+  przenika starą przez 420 ms, a tytuł, opis, Graj, liczby po prawej i pasek pod spodem wjeżdżają 10 px z dołu
+  z przezroczystości (280 ms, liczby chwilę później). Klatki tylko w czasie przejścia: w Xvfb 28 klatek na
+  przełączenie, potem 0 przez 3 s bezczynności.
+
 - **Wydanie `v0.1.4`** (decyzja Piotra): poprawka wstrzykiwania Toolscreen poniżej. Katalog testowy
   `%LOCALAPPDATA%\srl-test` na Windowsie Piotra usunięty.
 

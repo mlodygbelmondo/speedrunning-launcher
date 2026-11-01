@@ -20,7 +20,7 @@
   "auth.step_minecraft": "Signing in to Minecraft…",
   "auth.step_profile": "Loading your profile…",
   "auth.renew_warning": "Couldn't renew the sign-in. It is valid until {time}.",
-  "auth.error.not_available": "Ranked and Draftout need a Microsoft account, and this build has no Microsoft sign-in. RSG, FSG and SSG play offline.",
+  "auth.error.not_available": "Online matches in Ranked and Draftout need a Microsoft account. This build can't sign in yet, so everything plays offline.",
   "auth.error.declined": "The sign-in was declined.",
   "auth.error.timed_out": "The sign-in took too long and timed out. Start it again when you are ready.",
   "auth.error.device_code_expired": "The code expired before it was used. Start the sign-in again for a new one.",

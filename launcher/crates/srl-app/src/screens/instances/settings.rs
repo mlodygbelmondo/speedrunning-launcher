@@ -33,6 +33,16 @@ impl Launcher {
         }
         if let Some(mode) = self.inst_mode(key).or(custom.as_ref().map(|c| c.base)) {
             let now = self.settings.memory_mb_of(self.inst_instance(key));
+            // The four 1.16.1 modes share one instance, so one memory for all of them, as the
+            // Settings page sets it.
+            let set_for: Vec<Mode> = if key == InstKey::Shared {
+                Mode::SHARED.to_vec()
+            } else {
+                vec![mode]
+            };
+            let all_same = set_for
+                .iter()
+                .all(|m| self.settings.memory_mb(*m) == self.settings.memory_mb(set_for[0]));
             let own = custom.as_ref().and_then(|c| c.memory_mb);
             let custom_id = custom.as_ref().map(|c| c.id);
             let floor = crate::backend::mode_needs(mode).min_memory_mb;
@@ -57,15 +67,13 @@ impl Launcher {
                     .flex()
                     .flex_col()
                     .gap(px(10.))
-                    .child(section_head(&if custom_id.is_some() {
-                        t("inst.custom.memory")
-                    } else {
-                        tf("inst.memory", &[("mode", short)])
-                    }))
+                    .child(section_head(&t("inst.custom.memory")))
                     .child(div().flex().flex_row().gap(px(6.)).children(same).children(
                         MEMORY_CHOICES_MB.into_iter().map(|mb| {
                             let text = format!("{} GB", mb / 1024);
-                            let on = mb == now && (custom_id.is_none() || own.is_some());
+                            let on =
+                                mb == now && all_same && (custom_id.is_none() || own.is_some());
+                            let set_for = set_for.clone();
                             if mb < floor {
                                 chip_off(&text).into_any_element()
                             } else {
@@ -74,7 +82,11 @@ impl Launcher {
                                         let mut s = this.settings.clone();
                                         match custom_id.and_then(|id| s.custom_mut(id)) {
                                             Some(c) => c.memory_mb = Some(mb),
-                                            None => s.set_memory_mb(mode, mb),
+                                            None => {
+                                                for m in &set_for {
+                                                    s.set_memory_mb(*m, mb);
+                                                }
+                                            }
                                         }
                                         this.save_settings(s, cx);
                                     }))
@@ -92,6 +104,8 @@ impl Launcher {
                                     "inst.memory_hint_floor",
                                     &[("mode", short), ("n", &floor.div_ceil(1024).to_string())],
                                 )
+                            } else if key == InstKey::Shared {
+                                t("inst.memory_hint_shared")
                             } else {
                                 t("inst.memory_hint")
                             }),
@@ -137,7 +151,6 @@ impl Launcher {
         if key != InstKey::Practice {
             col = col.child(self.copy_section(key, cx));
         }
-        let instance = self.inst_instance(key);
         let shown = self.inst_dir(key).display().to_string();
         col = col.child(
             div()
@@ -157,10 +170,7 @@ impl Launcher {
                             PANE_W,
                             Cut::Middle,
                         )),
-                )
-                .child(tertiary("inst-folder-2", &t("inst.open_folder")).on_click(
-                    cx.listener(move |this, _, _, _| this.backend().open_game_folder(instance)),
-                )),
+                ),
         );
         if let Some(c) = custom {
             let id = c.id;
@@ -200,13 +210,21 @@ impl Launcher {
                     .child(body),
             );
         }
+        // Fades at the edges while more is hidden, as the tabs' lists do.
         div()
-            .id("inst-settings")
             .flex_1()
             .min_h(px(0.))
-            .overflow_y_scroll()
-            .track_scroll(&self.instances.scroll)
-            .child(col.pb(px(24.)))
+            .relative()
+            .child(
+                div()
+                    .id("inst-settings")
+                    .size_full()
+                    .overflow_y_scroll()
+                    .track_scroll(&self.instances.scroll)
+                    .child(col.pb(px(24.))),
+            )
+            .child(fade_above(self.instances.scroll.clone(), 24.))
+            .child(fade_below(self.instances.scroll.clone(), 36.))
             .into_any_element()
     }
 

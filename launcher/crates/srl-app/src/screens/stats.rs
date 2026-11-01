@@ -365,6 +365,8 @@ impl Launcher {
             },
         };
         let lit = matches!(body, TileBody::Value(..) | TileBody::Aged(..));
+        // The Draftout tile asks for a name: its line is the action, in the link colour.
+        let ask_name = mode == Mode::Draftout && self.stats.draftout.is_none();
         let bottom = match body {
             TileBody::Loading => div()
                 .flex()
@@ -406,12 +408,11 @@ impl Launcher {
                 .child((*line).mt(px(5.))),
             TileBody::Text(s) => inter(13., FontWeight::MEDIUM, 1.25)
                 .whitespace_nowrap()
-                .text_color(muted3())
-                .child(wrap(&s, INTER, FontWeight::MEDIUM, 13., 190.)),
+                .text_color(if ask_name { accent2() } else { muted3() })
+                .child(wrap_even(&s, INTER, FontWeight::MEDIUM, 13., 190.)),
         };
         let has_runs = history.is_some_and(|h| h.run_count > 0);
         let selected = self.stats_mode == Some(mode);
-        let ask_name = mode == Mode::Draftout && self.stats.draftout.is_none();
         let clickable = (has_runs && mode != Mode::Draftout) || ask_name;
         let group: SharedString = format!("stats-tile-{}", mode.id()).into();
         div()
@@ -430,7 +431,7 @@ impl Launcher {
                     .absolute()
                     .left(px(14.))
                     .top(px(12.))
-                    .text_color(if lit { text3() } else { muted3() })
+                    .text_color(text3())
                     .child(def.short),
             )
             .children(corner.map(|c| div().absolute().right(px(12.)).top(px(13.)).child(c)))

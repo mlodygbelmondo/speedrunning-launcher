@@ -10,12 +10,12 @@ commicie, który coś zmienia. Najnowsze wpisy dziennika są na górze.
 
   | Miara | Start | Teraz |
   |---|---|---|
-  | 1. Wygląd i dopracowanie | 7,5 | 8 (krytyk, runda 2: 7) |
+  | 1. Wygląd i dopracowanie | 7,5 | 8 (krytyk, runda 3: 7) |
   | 2. Ruch i płynność (animacje) | 5 | 8,5 |
   | 3. Model instancji (własne instancje: tworzenie, kopia, usuwanie) | 3 | 9 |
   | 4. Zawartość instancji (światy, mody, paczki, konfiguracja, logi) | 4 | 9 |
-  | 5. Nawigacja i układ informacji | 7 | 8 (krytyk, runda 2: 7) |
-  | 6. Teksty EN i PL | 7 | 8 (krytyk, runda 2: EN 7, PL 7) |
+  | 5. Nawigacja i układ informacji | 7 | 8 (krytyk, runda 3: 7) |
+  | 6. Teksty EN i PL | 7 | 8 (krytyk, runda 3: EN 7, PL 8) |
   | 7. Odporność i bezpieczeństwo danych | 7,5 | 9 |
   | 8. Wydajność (bezczynność 0 klatek, start) | 9 | 9 |
   | 9. Jakość kodu i testy | 8 | 9 |
@@ -222,6 +222,20 @@ Potem:
 ## Dziennik
 
 ### 2026-11-01
+
+- **Trzecia runda krytyka zrzutów (oceny: wygląd 7, nawigacja 7, EN 7, PL 8), poprawki:**
+  - Pamięć wspólnej instancji jest jedna dla Ranked, RSG, FSG i SSG także na stronie Instancje (tak jak
+    w Ustawieniach); wcześniej Instancje zmieniały ją tylko wybranemu trybowi. Nagłówek „Pamięć”, podpowiedź
+    „Wspólna dla Ranked, RSG, FSG i SSG…”.
+  - Karta Ustawienia instancji ma wygaszenie u góry i u dołu jak listy; zniknął drugi „Otwórz folder”.
+  - Pola wyboru mają ✓ zamiast kwadracika; paczki bez zbędnego „włączona”.
+  - Statystyki: nazwy trybów na kafelkach zawsze jasne, prośba o nick z Draftoutu w kolorze linku i bez
+    samotnego słowa; zastrzeżenie Mojanga w Ustawieniach w dwóch równych liniach.
+  - Teksty: komunikat o koncie Microsoft („Mecze online w Ranked i Draftout wymagają konta Microsoft…”, też
+    w `srl-auth`), „about 500 MB”/„około 500 MB” pod Pobierz, „Practice mods”/„Mody treningowe” zamiast drugiego
+    „Narzędzia”, „Weekly Race” zamiast „trening na seedach tygodnia”, „All 1.16.1 modes”, opis Mikeyboie,
+    automatyczne aktualizacje, kropka w podpisie Ustawień, PL „zresetowane światy” z odmianą, „Zasady trybu”
+    i „Własna · zasady RSG”, nowe podpowiedzi formularza.
 
 - **Nowa instancja wjeżdża na listę:** wiersz utworzonej (albo skopiowanej, zaimportowanej) instancji wsuwa się
   z lewej i rozjaśnia w 320 ms. Lista pamięta pokazane id (`rows_drawn`), więc przy pierwszym wejściu na stronę nic

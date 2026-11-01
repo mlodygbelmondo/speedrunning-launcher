@@ -246,11 +246,8 @@ impl Launcher {
                                 .into_any_element(),
                         );
                     }
-                    let tags = if on {
-                        vec![(t("inst.packs.on"), ok3())]
-                    } else {
-                        Vec::new()
-                    };
+                    // The tick box already says whether it's on.
+                    let tags = Vec::new();
                     row(
                         ("inst-pack", i),
                         p.item.rel.trim_end_matches(".zip"),

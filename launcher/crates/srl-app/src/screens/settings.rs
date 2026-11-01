@@ -542,7 +542,7 @@ impl Launcher {
                     .border_color(line3())
                     .whitespace_nowrap()
                     .text_color(faint3())
-                    .child(wrap(
+                    .child(wrap_even(
                         &t("settings.disclaimer"),
                         INTER,
                         FontWeight::NORMAL,

@@ -868,7 +868,10 @@ pub(crate) fn tick(on: bool, live: bool) -> Div {
         .flex()
         .items_center()
         .justify_center()
-        .when(on, |d| d.bg(accent2()).child(div().size(px(8.)).bg(ink())))
+        .when(on, |d| {
+            d.bg(accent2())
+                .child(spaced("✓", INTER, FontWeight::BOLD, 12., 0., 1., ink()))
+        })
         .when(!on, |d| {
             d.border_1()
                 .border_color(if live { text3a(0.35) } else { text3a(0.12) })

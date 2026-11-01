@@ -20,7 +20,7 @@
   "auth.step_minecraft": "Loguję do Minecrafta…",
   "auth.step_profile": "Wczytuję profil…",
   "auth.renew_warning": "Nie udało się odnowić logowania. Jest ważne do {time}.",
-  "auth.error.not_available": "Ranked i Draftout wymagają konta Microsoft, a ta wersja nie obsługuje logowania kontem Microsoft. RSG, FSG i SSG działają offline.",
+  "auth.error.not_available": "Mecze online w Ranked i Draftout wymagają konta Microsoft. Ta wersja jeszcze nie loguje, więc wszystko działa offline.",
   "auth.error.declined": "Logowanie zostało odrzucone.",
   "auth.error.timed_out": "Logowanie trwało za długo. Zacznij je jeszcze raz, kiedy będziesz gotów.",
   "auth.error.device_code_expired": "Kod wygasł, zanim go użyto. Zacznij logowanie jeszcze raz, żeby dostać nowy.",

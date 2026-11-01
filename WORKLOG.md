@@ -223,6 +223,9 @@ Potem:
 
 ### 2026-11-01
 
+- **Home: własne instancje jako małe chipy** (24 px, jasne tło po najechaniu) obok „Twoje instancje”, nie jako
+  podkreślone linki; kafelki trybów zostają na swoim miejscu.
+
 - **Czwarta runda krytyka zrzutów (oceny: 8 we wszystkich czterech), poprawki:**
   - „Na start” w formularzu nowej instancji to jeden wybór w jednym rzędzie: Ustawienia domyślne · Speedrun 1.16.1 ·
     instancje innych launcherów, a pod nim zdanie, co dokładnie się skopiuje („…z „RSG” (MultiMC)…”).

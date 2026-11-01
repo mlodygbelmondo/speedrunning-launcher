@@ -709,29 +709,47 @@ impl Launcher {
             return None;
         }
         const SHOWN: usize = 3;
+        // A small chip per instance, so they read as things to open rather than a sentence.
+        let small = |id: gpui::ElementId, text: &str| {
+            div()
+                .id(id)
+                .flex_none()
+                .h(px(24.))
+                .px(px(10.))
+                .flex()
+                .items_center()
+                .cursor_pointer()
+                .bg(text3a(0.07))
+                .hover(|s| s.bg(text3a(0.14)))
+                .child(
+                    inter(12., FontWeight::SEMIBOLD, 1.)
+                        .whitespace_nowrap()
+                        .text_color(text3())
+                        .child(SharedString::from(text.to_string())),
+                )
+        };
         let mut row = div()
             .flex()
             .flex_row()
             .items_center()
-            .gap(px(18.))
-            .child(label(&t("home.customs")));
+            .gap(px(6.))
+            .child(label(&t("home.customs")).mr(px(6.)));
         for c in list.iter().take(SHOWN) {
             let id = c.id;
             row = row.child(
-                tertiary_in(("home-custom", id.0 as usize), &c.name, muted3()).on_click(
-                    cx.listener(move |this, _, _, cx| {
+                small(("home-custom", id.0 as usize).into(), &c.name).on_click(cx.listener(
+                    move |this, _, _, cx| {
                         this.select_instance(super::instances::InstKey::Custom(id), cx);
                         this.navigate(Page::Instances, cx);
-                    }),
-                ),
+                    },
+                )),
             );
         }
         if list.len() > SHOWN {
             row = row.child(
-                tertiary_in(
-                    "home-custom-more",
+                small(
+                    "home-custom-more".into(),
                     &format!("+{}", list.len() - SHOWN),
-                    muted3(),
                 )
                 .on_click(cx.listener(|this, _, _, cx| this.navigate(Page::Instances, cx))),
             );

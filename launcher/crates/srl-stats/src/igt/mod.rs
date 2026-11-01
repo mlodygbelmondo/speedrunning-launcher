@@ -138,7 +138,8 @@ pub fn mode_of_world_in(
     let in_extra = extra.iter().find_map(|(dir, mode)| {
         let saves = normalize(&dir.join("saves"));
         let rest = world.strip_prefix(&saves)?.strip_prefix('/')?;
-        (!rest.is_empty() && !rest.contains('/')).then(|| (*mode, rest.to_string()))
+        // The name as written on disk: `normalize` folds case on Windows.
+        (!rest.is_empty() && !rest.contains('/')).then(|| (*mode, world_name(world_path, rest)))
     });
     if in_extra.is_some() {
         return in_extra;
@@ -148,10 +149,7 @@ pub fn mode_of_world_in(
         let rest = world.strip_prefix(&saves)?;
         let rest = rest.strip_prefix('/')?;
         (!rest.is_empty() && !rest.contains('/')).then(|| {
-            let name = world_path
-                .file_name()
-                .map(|n| n.to_string_lossy().into_owned())
-                .unwrap_or_else(|| rest.to_string());
+            let name = world_name(world_path, rest);
             let mode = if dir_mode.is_shared() {
                 WorldModes::load(paths)
                     .mode_of(&paths.instance(dir_mode).join("saves").join(&name), None)
@@ -161,6 +159,14 @@ pub fn mode_of_world_in(
             (mode, name)
         })
     })
+}
+
+/// The world folder's own name, else `rest` (the normalised one).
+fn world_name(world_path: &Path, rest: &str) -> String {
+    world_path
+        .file_name()
+        .map(|n| n.to_string_lossy().into_owned())
+        .unwrap_or_else(|| rest.to_string())
 }
 
 /// One mode per game directory: RSG stands for the shared one.

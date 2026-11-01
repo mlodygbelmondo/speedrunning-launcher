@@ -37,7 +37,7 @@ commicie, który coś zmienia. Najnowsze wpisy dziennika są na górze.
 - **Samoaktualizacja launchera** jest zrobiona i wypchnięta (2026-10-31, szczegóły w dzienniku), CI zielone,
   wydanie `v0.1.0` opublikowane, suma SHA-256 sprawdzona po pobraniu. Nikt jej jeszcze nie uruchomił na Windowsie.
   Kolejne wydanie: podbij wersję w `launcher/Cargo.toml`, commit, tag `vX.Y.Z`, push tagu (`launcher/README.md`,
-  „Releasing a version”). Najnowsze jest `v0.2.0` (własne instancje i strona Instancje). Test na
+  „Releasing a version”). Najnowsze jest `v0.2.1` (własne instancje i strona Instancje). Test na
   Windowsie: Piotr ma 0.1.3, więc launcher ma sam pobrać 0.1.4, a potem Ranked i FSG z Toolscreen mają dojść do
   ekranu tytułowego.
 - **Logowanie Microsoft** jest wyłączone, dopóki Mojang nie zatwierdzi naszego client ID. Poradnik dla Piotra:
@@ -226,8 +226,11 @@ Potem:
 
 ### 2026-11-01
 
-- **Wydanie `v0.2.0`** (decyzja Piotra po filmie przed i po, `~/.cache/srl-loop/video/before-after.mp4`):
-  własne instancje, strona Instancje z zakładkami, animacje Home i poprawki z pętli ulepszeń poniżej.
+- **Wydanie `v0.2.1`** (decyzja Piotra po filmie przed i po, `~/.cache/srl-loop/video/before-after.mp4`):
+  własne instancje, strona Instancje z zakładkami, animacje Home i poprawki z pętli ulepszeń poniżej. Tag `v0.2.0`
+  nie dał wydania: na Windowsie padł test `extra_game_dirs_count_for_their_mode`, bo `mode_of_world_in` brał nazwę
+  świata z ścieżki znormalizowanej do małych liter. Runy z własnych instancji miałyby na Windowsie nazwy świata
+  małymi literami. Teraz nazwa zawsze pochodzi z dysku (`world_name`). Tagu nie używam ponownie (README).
 
 - **Poprawki po przeglądzie kodu (świeży subagent, zakres 8117be9..HEAD):**
   1. **Błąd sprzed tej serii:** „Na start: Speedrun 1.16.1” kopiował pliki trybu wybranego na Home, nie trybu

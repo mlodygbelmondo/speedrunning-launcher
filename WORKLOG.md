@@ -223,6 +223,19 @@ Potem:
 
 ### 2026-11-01
 
+- **Szósta runda krytyka zrzutów (8 we wszystkich czterech; krytyk co rundę znajduje ~12 drobiazgów, część
+  sprzecznych z wcześniejszymi rundami), poprawki:**
+  - Home: „Co się zainstaluje” to obrysowane etykiety, nie wypełnione chipy (wyglądały na przyciski), z jaśniejszymi
+    nazwami: „Mody do resetów”, „Timer i mody do runów”, „Mody wydajnościowe”.
+  - Trening: duży kafelek „Wszystko w jednym” pokazuje liczbę map jak reszta, zamiast powtarzać pierwszy wiersz
+    listy; przypis o MCSR Ranked mówi, po co tam iść („Chcesz ścigać się ze znajomym…”).
+  - Nauka: kolumna autora 166 px, rodzaju 112 px, więc tytuły rzadziej się łamią (koniec z samotnym „/RSG”).
+  - „Nowa instancja” zaznaczona białą krawędzią przycisku zamiast podwójnej obwódki.
+  - Teksty: „nick offline” zamiast „nazwa offline” (PL), „not the player name above” (EN), podpowiedź trybu
+    („światy nie trafią na złą wersję gry”), opis Draftoutu bez powtórzeń, PL waywall „rebindy”, „Narzędzia
+    uruchamiane z grą”, „Zmiana działa od razu”, „pobierze się w tle i zadziała od następnego uruchomienia”.
+  - Odrzucone: przeniesienie prośby o nick z Draftoutu do prawego panelu (runda 3 chciała ją na kafelku jako link).
+
 - **Piąta runda krytyka zrzutów (wygląd 8, nawigacja 8, EN 8, PL 9), poprawki:**
   - Ustawienia: zdanie o koncie Microsoft w wersji bez logowania jest teraz podpowiedzią przy Nicku („Twój nick
     w grze offline. Mecze online…”), nie osobną linią pod „Importuj ustawienia”. `account_unavailable_line`

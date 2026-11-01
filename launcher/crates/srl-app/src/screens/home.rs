@@ -550,7 +550,9 @@ impl Launcher {
                 .flex_col()
                 .justify_center()
                 .gap(px(4.))
-                .bg(text3a(0.05))
+                // Outlined, not filled: these say what comes with the mode, they aren't buttons.
+                .border_1()
+                .border_color(line3())
                 .child(
                     inter(13., FontWeight::SEMIBOLD, 1.)
                         .text_color(if tag.is_some() { muted3() } else { text3() })

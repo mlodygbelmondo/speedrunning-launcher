@@ -1189,10 +1189,6 @@ impl Launcher {
             PracticeSel::Tools => Self::practice_art(0),
         };
 
-        let big_sub = catalog::maps_in(&cats[0].id)
-            .next()
-            .map(|m| format!("{} · {}", m.name, t(&format!("map.{}", m.id))))
-            .unwrap_or_default();
         let tool_names = p
             .tools
             .iter()
@@ -1240,7 +1236,8 @@ impl Launcher {
                 d.child(self.cat_tile(
                     PracticeSel::Category(0),
                     Self::cat_name(0),
-                    big_sub.into(),
+                    // A count like every tile: the list right below names the maps.
+                    Self::practice_count(count(0)),
                     Some(Self::practice_art(0)),
                     true,
                     cx,

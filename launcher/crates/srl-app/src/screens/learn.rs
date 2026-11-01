@@ -202,7 +202,7 @@ impl Launcher {
             .child(
                 div()
                     .flex_none()
-                    .w(px(176.))
+                    .w(px(166.))
                     .flex()
                     .flex_col()
                     .gap(px(5.))
@@ -222,7 +222,7 @@ impl Launcher {
             .child(
                 div()
                     .flex_none()
-                    .w(px(124.))
+                    .w(px(112.))
                     .flex()
                     .flex_col()
                     .items_end()

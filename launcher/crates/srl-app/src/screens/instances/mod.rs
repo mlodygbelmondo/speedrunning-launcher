@@ -667,10 +667,11 @@ impl Launcher {
             )
             .child(
                 div().flex_none().pt(px(8.)).child(
-                    // Ringed like a selected row while its form is the one shown.
+                    // A white edge, as on a selected row, while its form is the one shown.
                     secondary("inst-new", &t("inst.new.open"))
-                        .relative()
-                        .when(self.instances.creating.is_some(), |d| d.child(ring()))
+                        .when(self.instances.creating.is_some(), |d| {
+                            d.border_2().border_color(text3())
+                        })
                         .on_click(cx.listener(|this, _, window, cx| {
                             this.open_new_instance(cx);
                             window.focus(&this.inst_new_name.focus, cx);

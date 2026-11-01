@@ -431,9 +431,10 @@ impl Launcher {
         let choice = self.import.choice;
         let busy = self.import.progress.is_some();
         let all = versions();
+        // Nothing picked yet: the full lists, not another version's cut-down ones.
         let same = source
             .as_ref()
-            .is_some_and(|s| all.iter().any(|v| s.runs(v)));
+            .is_none_or(|s| all.iter().any(|v| s.runs(v)));
         let c = source
             .as_ref()
             .map(|s| s.contents.clone())

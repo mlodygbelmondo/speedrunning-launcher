@@ -1,7 +1,7 @@
 {
   "_comment": "srl-auth texts, to merge into launcher/assets/copy.json when the account UI lands. Error keys are AuthError::copy_key(); {code} is the XErr number.",
   "auth.title": "Microsoft account",
-  "auth.why": "Sign in once with an account that owns Minecraft: Java Edition. After that, offline play works too; Ranked and Draftout matches always need the account.",
+  "auth.why": "Sign in once with an account that owns Minecraft: Java Edition. After that you can also play offline; Ranked and Draftout matches need it signed in.",
   "auth.login": "Sign in with Microsoft",
   "auth.logout": "Sign out",
   "auth.add_account": "Add another account",
@@ -19,13 +19,13 @@
   "auth.step_xbox": "Xbox Live",
   "auth.step_minecraft": "Minecraft",
   "auth.step_profile": "Profile",
-  "auth.renew_warning": "Couldn't renew the sign-in. It works until {time}; sign in again before then.",
+  "auth.renew_warning": "Couldn't renew the sign-in. It works until {time}; sign in again in Settings before then.",
   "auth.error.not_available": "Online matches in Ranked and Draftout need a Microsoft account. This build can't sign in yet, so everything plays offline.",
   "auth.error.declined": "The sign-in was declined.",
   "auth.error.timed_out": "The sign-in took too long and timed out. Start it again when you are ready.",
   "auth.error.device_code_expired": "The code expired before it was used. Start the sign-in again for a new one.",
   "auth.error.state_mismatch": "The browser returned a sign-in we didn't start. Start the sign-in again.",
-  "auth.error.app_misconfigured": "Our Microsoft app registration is set up wrong. It's a bug in this build, not your account.",
+  "auth.error.app_misconfigured": "Our Microsoft app registration is set up wrong, a bug in this build. Check for an update in Settings.",
   "auth.error.relogin_required": "Your Microsoft sign-in has expired. Sign in again.",
   "auth.error.xbox_no_account": "This Microsoft account has no Xbox profile yet. Sign in once at xbox.com (or minecraft.net) to create one, then try again.",
   "auth.error.xbox_country": "Xbox Live isn't available in this account's region, so it can't sign in to Minecraft. A VPN won't help.",
@@ -42,7 +42,7 @@
   "auth.error.rate_limited": "Too many sign-in requests. Wait a moment and try again.",
   "auth.error.network": "Couldn't reach the sign-in servers. Check your internet connection.",
   "auth.error.service": "The sign-in service answered with an error. Try again later.",
-  "auth.error.keystore": "The system keyring is locked or not answering. Unlock it and try again. If it's gone for good, sign out of every account here and sign in again.",
+  "auth.error.keystore": "The system keyring is locked or not answering. Unlock it and try again. If it's gone for good, sign out of every account in Settings and sign in again.",
   "auth.error.storage": "Couldn't save or read the account list.",
   "auth.error.unknown_account": "This account isn't on the list any more."
 }

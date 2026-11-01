@@ -226,6 +226,16 @@ Potem:
 
 ### 2026-11-01
 
+- **Pętla tekstów, runda 3** (r2: **8 i 8**). Błąd: zakładka Paczki zasobów pokazywała dosłowne „{all}”
+  (kod podawał tylko `on`), naprawione. Pierwsze logowanie to krok, nie błąd: bez czerwieni i „nie udało się”, kafel
+  mówi „zaloguj się raz, żeby grać”. Wersja bez logowania mówi na Home, że mecze wymagają konta, a ta wersja jeszcze
+  nie umie się logować. „Pobierz” → „Zainstaluj” wszędzie (status i postęp mówiły już „instaluje”). „Najlepszy mecz
+  w sezonie” zamiast „Najlepszy w sezonie” (kłóciło się z odznaką PB w ostatnich runach). Podpowiedzi nicków
+  w Ustawieniach mówią, czym nick jest, nie czym nie jest. Własna instancja: „Narzędzia startujące z grą (jak
+  w RSG)”. „Użyj 3 GB” → „Graj z 3 GB” (przycisk też uruchamia grę). „{other} działa na tej instancji. Najpierw go
+  zamknij.” zamiast obietnicy kolejki, której nie ma. Import bez wybranego źródła pokazuje pełne listy. Kolejne
+  opisy poradników powtarzające tytuł usunięte; `tool.*.what` takie same jak opisy na stronie Narzędzia.
+
 - **Pętla tekstów, runda 2** (r1: **7,5 i 7,5**). Zgodne uwagi obu recenzentów:
   - Zasada pierwszego logowania opisana zgodnie z `play_as`: w wersji z logowaniem Home pokazuje „zaloguj się
     raz, żeby grać” przed pierwszym logowaniem; `name.body_msa` i `auth.why` mówią to samo.

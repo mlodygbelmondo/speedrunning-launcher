@@ -481,6 +481,12 @@ impl Launcher {
         let w = max_w - 14.;
         // A sign-in failure's detail is our own sentence, not the game's log line.
         let prose = f.kind == FailKind::SignIn;
+        // A first sign-in is a step to take, not something that went wrong: no red.
+        let color = if matches!(self.fix(mi), Some(Fix::SignInFirst)) {
+            muted3()
+        } else {
+            behind3()
+        };
         Some(
             div()
                 .mt(px(18.))
@@ -493,7 +499,7 @@ impl Launcher {
                         .size(px(6.))
                         .mt(px(6.))
                         .mr(px(8.))
-                        .bg(behind3()),
+                        .bg(color),
                 )
                 .child(
                     div()
@@ -503,7 +509,7 @@ impl Launcher {
                         .child(
                             inter(13., FontWeight::MEDIUM, 1.4)
                                 .whitespace_nowrap()
-                                .text_color(behind3())
+                                .text_color(color)
                                 .child(wrap(&head, INTER, FontWeight::MEDIUM, 13., w)),
                         )
                         .children(detail.map(|d| {

@@ -1,7 +1,7 @@
 {
   "_comment": "Teksty srl-auth do dołączenia do launcher/assets/copy.pl.json razem z ekranem konta. Klucze błędów to AuthError::copy_key(); {code} to numer XErr.",
   "auth.title": "Konto Microsoft",
-  "auth.why": "Zaloguj się raz kontem z Minecraft: Java Edition. Potem zagrasz też offline; mecze w Ranked i Draftout zawsze wymagają konta.",
+  "auth.why": "Zaloguj się raz kontem z Minecraft: Java Edition. Potem zagrasz też offline; mecze w Ranked i Draftout wymagają zalogowanego konta.",
   "auth.login": "Zaloguj się przez Microsoft",
   "auth.logout": "Wyloguj",
   "auth.add_account": "Dodaj kolejne konto",
@@ -19,13 +19,13 @@
   "auth.step_xbox": "Xbox Live",
   "auth.step_minecraft": "Minecraft",
   "auth.step_profile": "Profil",
-  "auth.renew_warning": "Nie udało się odnowić logowania. Działa do {time}; zaloguj się ponownie przed tym czasem.",
+  "auth.renew_warning": "Nie udało się odnowić logowania. Działa do {time}; zaloguj się ponownie w Ustawieniach przed tym czasem.",
   "auth.error.not_available": "Mecze online w Ranked i Draftout wymagają konta Microsoft. Ta wersja nie obsługuje jeszcze logowania, więc wszystko działa offline.",
   "auth.error.declined": "Logowanie zostało odrzucone.",
   "auth.error.timed_out": "Logowanie trwało za długo. Zacznij je jeszcze raz, kiedy będziesz gotów.",
   "auth.error.device_code_expired": "Kod wygasł, zanim go użyto. Zacznij logowanie jeszcze raz, żeby dostać nowy.",
   "auth.error.state_mismatch": "Przeglądarka zwróciła logowanie, którego nie zaczęliśmy. Zacznij logowanie jeszcze raz.",
-  "auth.error.app_misconfigured": "Nasza rejestracja aplikacji Microsoft jest źle ustawiona. To błąd tej wersji, nie twojego konta.",
+  "auth.error.app_misconfigured": "Nasza rejestracja aplikacji Microsoft jest źle ustawiona, to błąd tej wersji. Sprawdź aktualizację w Ustawieniach.",
   "auth.error.relogin_required": "Logowanie Microsoft wygasło. Zaloguj się ponownie.",
   "auth.error.xbox_no_account": "To konto Microsoft nie ma jeszcze profilu Xbox. Zaloguj się raz na xbox.com (albo minecraft.net), żeby go założyć, i spróbuj ponownie.",
   "auth.error.xbox_country": "Xbox Live nie działa w regionie tego konta, więc nie zaloguje się do Minecrafta. VPN nie pomoże.",
@@ -42,7 +42,7 @@
   "auth.error.rate_limited": "Za dużo prób logowania. Odczekaj chwilę i spróbuj ponownie.",
   "auth.error.network": "Nie udało się połączyć z serwerami logowania. Sprawdź internet.",
   "auth.error.service": "Usługa logowania zwróciła błąd. Spróbuj później.",
-  "auth.error.keystore": "Systemowy magazyn haseł jest zablokowany albo nie odpowiada. Odblokuj go i spróbuj ponownie. Jeśli zniknął na dobre, wyloguj tu wszystkie konta i zaloguj się ponownie.",
+  "auth.error.keystore": "Systemowy magazyn haseł jest zablokowany albo nie odpowiada. Odblokuj go i spróbuj ponownie. Jeśli zniknął na dobre, wyloguj wszystkie konta w Ustawieniach i zaloguj się ponownie.",
   "auth.error.storage": "Nie udało się zapisać ani odczytać listy kont.",
   "auth.error.unknown_account": "Tego konta nie ma już na liście."
 }

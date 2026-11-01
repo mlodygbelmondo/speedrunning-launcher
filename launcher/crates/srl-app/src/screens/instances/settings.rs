@@ -114,7 +114,11 @@ impl Launcher {
                     .flex()
                     .flex_col()
                     .gap(px(10.))
-                    .child(section_head(&t("inst.tools")))
+                    // A custom instance starts the tools of the mode it plays like.
+                    .child(section_head(&match custom_id {
+                        Some(_) => tf("inst.tools_like", &[("mode", short)]),
+                        None => t("inst.tools"),
+                    }))
                     .child(
                         inter(13., FontWeight::NORMAL, 1.4)
                             .text_color(muted3())

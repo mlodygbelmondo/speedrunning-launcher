@@ -544,81 +544,86 @@ impl Launcher {
 
     fn home_modes(&self, cx: &mut Context<Self>) -> Div {
         let customs = self.home_customs(cx);
-        let tiles =
-            catalog::MODES.iter().enumerate().map(|(i, d)| {
-                let on = i == self.mode_sel;
-                let status = self.status(i);
-                // Only what needs a look: not installed is the normal start, and installing has its
-                // bar.
-                let badge = match status {
-                    Status::Update | Status::Running | Status::Failed => {
-                        Some(Self::tile_badge(&t(status.key()), status.color()))
-                    }
-                    _ => None,
-                };
-                let bar = match self.state(i) {
-                    crate::backend::ModeState::Installing(p) => Some(
-                        div()
-                            .absolute()
-                            .left_0()
-                            .right_0()
-                            .bottom_0()
-                            .child(thin_progress(
-                                self.eased_bar(format!("tile-{i}"), super::play::bar_fraction(p)),
-                                2.,
-                            )),
-                    ),
-                    _ => None,
-                };
-                div()
-                    .id(("home-mode", i))
-                    .group("home-tile")
-                    .relative()
-                    .flex_1()
-                    .min_w(px(0.))
-                    .h(px(116.))
-                    .cursor_pointer()
-                    .on_click(cx.listener(move |this, _, _, cx| this.select_mode(i, cx)))
-                    .on_hover(cx.listener(move |this, hovered: &bool, _, cx| {
+        let tiles = catalog::MODES.iter().enumerate().map(|(i, d)| {
+            let on = i == self.mode_sel;
+            let status = self.status(i);
+            // Only what needs a look: not installed is the normal start, and installing has its
+            // bar.
+            let badge = match status {
+                // Not a failure: the first sign-in is still to do.
+                Status::Failed if matches!(self.fix(i), Some(super::play::Fix::SignInFirst)) => {
+                    Some(Self::tile_badge(&t("v3.sign_in_once"), muted3()))
+                }
+                Status::Update | Status::Running | Status::Failed => {
+                    Some(Self::tile_badge(&t(status.key()), status.color()))
+                }
+                _ => None,
+            };
+            let bar = match self.state(i) {
+                crate::backend::ModeState::Installing(p) => Some(
+                    div()
+                        .absolute()
+                        .left_0()
+                        .right_0()
+                        .bottom_0()
+                        .child(thin_progress(
+                            self.eased_bar(format!("tile-{i}"), super::play::bar_fraction(p)),
+                            2.,
+                        )),
+                ),
+                _ => None,
+            };
+            div()
+                .id(("home-mode", i))
+                .group("home-tile")
+                .relative()
+                .flex_1()
+                .min_w(px(0.))
+                .h(px(116.))
+                .cursor_pointer()
+                .on_click(cx.listener(move |this, _, _, cx| this.select_mode(i, cx)))
+                .on_hover(
+                    cx.listener(move |this, hovered: &bool, _, cx| {
                         this.hover_tile(i, *hovered, cx)
-                    }))
-                    .child(overlay(tile_bg()))
-                    // The art zooms inside its own clip; the selection ring sits outside the tile.
-                    .child({
-                        let z = self.tile_zoom(i);
-                        div().absolute().size_full().overflow_hidden().child(
-                            art_fill(card_path(d.art))
-                                .left(relative(-z / 2.))
-                                .top(relative(-z / 2.))
-                                .w(relative(1. + z))
-                                .h(relative(1. + z)),
-                        )
-                    })
-                    .when(!on, |d| d.child(overlay(bg3a(0.5))))
-                    .child(shade_up(0.9, 0.0, 0.7))
-                    .children(badge)
-                    .child(
-                        div()
-                            .absolute()
-                            .left(px(14.))
-                            .bottom(px(12.))
-                            .flex()
-                            .flex_col()
-                            .child(
-                                arch(17., FontWeight::BOLD)
-                                    .text_color(text3())
-                                    .child(d.short),
-                            )
-                            .child(
-                                plex(11., FontWeight::MEDIUM)
-                                    .mt(px(6.))
-                                    .text_color(muted3())
-                                    .child(d.mode.minecraft_version()),
-                            ),
+                    }),
+                )
+                .child(overlay(tile_bg()))
+                // The art zooms inside its own clip; the selection ring sits outside the tile.
+                .child({
+                    let z = self.tile_zoom(i);
+                    div().absolute().size_full().overflow_hidden().child(
+                        art_fill(card_path(d.art))
+                            .left(relative(-z / 2.))
+                            .top(relative(-z / 2.))
+                            .w(relative(1. + z))
+                            .h(relative(1. + z)),
                     )
-                    .children(bar)
-                    .child(if on { ring() } else { hover_ring("home-tile") })
-            });
+                })
+                .when(!on, |d| d.child(overlay(bg3a(0.5))))
+                .child(shade_up(0.9, 0.0, 0.7))
+                .children(badge)
+                .child(
+                    div()
+                        .absolute()
+                        .left(px(14.))
+                        .bottom(px(12.))
+                        .flex()
+                        .flex_col()
+                        .child(
+                            arch(17., FontWeight::BOLD)
+                                .text_color(text3())
+                                .child(d.short),
+                        )
+                        .child(
+                            plex(11., FontWeight::MEDIUM)
+                                .mt(px(6.))
+                                .text_color(muted3())
+                                .child(d.mode.minecraft_version()),
+                        ),
+                )
+                .children(bar)
+                .child(if on { ring() } else { hover_ring("home-tile") })
+        });
         let shared = demo::get().map(|d| tf("v3.modes_shared", &[("size", &d.disk_saved)]));
         div()
             .absolute()
@@ -716,6 +721,10 @@ impl Launcher {
                 // The top bar names the account that plays.
                 (_, None, Some(_)) => None,
                 (Mode::Ranked, Some(d), _) => Some(tf("v3.online", &[("n", &d.online)])),
+                // A build that can't sign in says so: Settings has nowhere to do it.
+                (Mode::Ranked | Mode::Draftout, None, None) if !self.account.available => {
+                    Some(t("v3.online_needs_ms_unavailable"))
+                }
                 (Mode::Ranked | Mode::Draftout, None, None) => Some(t("v3.online_needs_ms")),
                 (_, Some(d), _) if status != Status::Missing => {
                     d.key_tools.get(mode.id()).map(|s| s.clone().into())

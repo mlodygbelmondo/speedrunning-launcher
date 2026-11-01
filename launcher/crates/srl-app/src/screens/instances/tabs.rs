@@ -185,7 +185,10 @@ impl Launcher {
                     if c.packs.is_empty() {
                         t("inst.packs.none")
                     } else {
-                        tf("inst.packs.summary", &[("on", &on.to_string())])
+                        tf(
+                            "inst.packs.summary",
+                            &[("on", &on.to_string()), ("all", &c.packs.len().to_string())],
+                        )
                     },
                     vec![
                         if busy {

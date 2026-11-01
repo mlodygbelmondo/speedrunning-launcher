@@ -803,7 +803,11 @@ impl Launcher {
     /// pick the instance and ← and → the tab; Esc closes the Instances page's question, or goes
     /// back from the game screen.
     fn global_key(&mut self, ev: &gpui::KeyDownEvent, window: &mut Window, cx: &mut Context<Self>) {
-        if !self.root_focus.is_focused(window) || self.data_error.is_some() {
+        // Nothing behind the login dialog moves either.
+        if !self.root_focus.is_focused(window)
+            || self.data_error.is_some()
+            || self.account.login.is_some()
+        {
             return;
         }
         let k = &ev.keystroke;

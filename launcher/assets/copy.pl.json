@@ -1012,7 +1012,7 @@
   "inst.new.start": "Na start",
   "inst.new.blank": "Ustawienia domyślne",
   "inst.new.blank_hint": "Domyślne klawisze i opcje Minecrafta.",
-  "inst.new.start_copy_hint": "Kopiuje klawisze, opcje i paczki z instancji {from}. Jej światy zostają na miejscu.",
+  "inst.new.start_copy_hint": "Kopiuje klawisze, opcje, konfigurację i paczki z instancji {from}. Jej światy zostają na miejscu.",
   "inst.new.start_import_hint": "Kopiuje klawisze, opcje, konfigurację i paczki z {from}. Mody zawsze instalujemy stąd.",
   "inst.new.create": "Utwórz",
   "inst.new.made": "Instancja „{name}” jest gotowa. Wybierz mody i naciśnij „Pobierz”.",

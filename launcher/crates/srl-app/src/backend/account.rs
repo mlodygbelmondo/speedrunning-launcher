@@ -5,7 +5,8 @@
 //! tokio runtime.
 //!
 //! - **Off without a client ID** (`AuthConfig::detect()` is `None`, the shipped build today):
-//!   `AccountSnapshot::available` is false, Settings shows one line, Play is offline.
+//!   `AccountSnapshot::available` is false, Settings says so in the player name's hint, Play is
+//!   offline.
 //! - **Who plays** is decided in one place, `play_as` (Piotr, 2026-10-26): the active Microsoft
 //!   account when there is one, else the offline name, for every mode. A build that can log in
 //!   opens offline play only after someone has signed in here once.

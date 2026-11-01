@@ -960,7 +960,7 @@
   "inst.new.start": "Start with",
   "inst.new.blank": "Default settings",
   "inst.new.blank_hint": "Minecraft's own default keys and options.",
-  "inst.new.start_copy_hint": "Copies keys, options and packs from {from}. Its worlds stay there.",
+  "inst.new.start_copy_hint": "Copies keys, options, configs and packs from {from}. Its worlds stay there.",
   "inst.new.start_import_hint": "Copies keys, options, configs and packs from {from}. Mods always come from this launcher.",
   "inst.new.create": "Create",
   "inst.new.made": "“{name}” is ready. Pick its mods, then press Download.",

@@ -410,9 +410,37 @@ impl Launcher {
             .unwrap_or(0);
         let n = keys.len();
         let next = if down { (at + 1) % n } else { (at + n - 1) % n };
-        // The rows are the list's children in this order: keep the picked one in view.
-        self.instances.list_scroll.scroll_to_item(next);
+        self.reveal_row(next, n);
         self.select_instance(keys[next], cx);
+    }
+
+    /// Scrolls the instance list so row `ix` (of `n`, the list's children in order) is in view
+    /// clear of the edge fades and with room for its ring: the first and last rows go all the
+    /// way to their end.
+    fn reveal_row(&self, ix: usize, n: usize) {
+        let h = &self.instances.list_scroll;
+        let Some(row) = h.bounds_for_item(ix) else {
+            h.scroll_to_item(ix);
+            return;
+        };
+        // The list's padding for the ring, and the fade over the edge.
+        const MARGIN: f32 = 6. + 24.;
+        let view = h.bounds();
+        let (off, max) = (f32::from(h.offset().y), f32::from(h.max_offset().y));
+        let (top, bottom) = (f32::from(row.top()), f32::from(row.bottom()));
+        let (v_top, v_bottom) = (f32::from(view.top()), f32::from(view.bottom()));
+        let y = if ix == 0 {
+            0.
+        } else if ix + 1 == n {
+            -max
+        } else if top + off - MARGIN < v_top {
+            v_top + MARGIN - top
+        } else if bottom + off + MARGIN > v_bottom {
+            v_bottom - MARGIN - bottom
+        } else {
+            off
+        };
+        h.set_offset(gpui::point(h.offset().x, px(y.clamp(-max, 0.))));
     }
 
     /// ← and → on the page: the tab before or after the selected one, wrapping round (Practice

@@ -223,6 +223,17 @@ Potem:
 
 ### 2026-11-01
 
+- **Poprawki po przeglądzie kodu (świeży subagent, zakres 8117be9..HEAD):**
+  1. **Błąd sprzed tej serii:** „Na start: Speedrun 1.16.1” kopiował pliki trybu wybranego na Home, nie trybu
+     formularza, więc nowa instancja „jak RSG” mogła dostać ustawienia Atum (seed) z SSG. Teraz
+     `copy_settings_from` to zawsze `Instance::Mode(form.base)`.
+  2. Strzałki przewijają listę instancji tak, że wybrany wiersz stoi poza wygaszeniem i z całą obwódką
+     (`reveal_row`; pierwszy i ostatni do samego końca), zamiast `scroll_to_item`, które dosuwało go pod fade.
+  3. Zmiana trybu na inną wersję Minecrafta przy wybranej instancji z innego launchera wraca do startu formularza
+     (Speedrun 1.16.1, bez światów), zamiast do przypadkowego wcześniejszego wyboru.
+  4. Strzałki i skróty nie działają pod oknem logowania. Podpowiedź kopii mówi też o konfiguracji (kopiuje
+     `config/`). Komentarz w `backend/account.rs` zaktualizowany.
+
 - **Ósma runda (skalibrowana, znów 8,5 we wszystkich, ale z coraz drobniejszymi uwagami), poprawki:**
   - Niższy nagłówek instancji: opis na prawie całą szerokość panelu (fakty są obok tytułu, nie obok opisu), więc
     mieści się w dwóch liniach, a miejsce zarezerwowane na dwie zamiast trzech; na liście światów mieści się

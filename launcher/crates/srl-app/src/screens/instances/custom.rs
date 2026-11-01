@@ -177,11 +177,12 @@ impl Launcher {
             return;
         }
         self.instances.submitting = true;
-        let from = Self::settings_source(form.base);
+        // The form's own mode, not the one picked on Home: the shared instance's per-mode files
+        // (Atum's seed settings) must come from the mode the new instance plays like.
         self.backend().create_instance(NewInstance {
             name,
             base: form.base,
-            copy_settings_from: form.copy.then(|| self.inst_instance(from)),
+            copy_settings_from: form.copy.then_some(Instance::Mode(form.base)),
         });
     }
 
@@ -356,8 +357,13 @@ impl Launcher {
                         return;
                     }
                     if let Some(f) = &mut this.instances.creating {
-                        if f.base.minecraft_version() != m.minecraft_version() {
+                        // The picked instance can't run the other version: back to the start
+                        // the form opens with.
+                        if f.source.is_some() && f.base.minecraft_version() != m.minecraft_version()
+                        {
                             f.source = None;
+                            f.copy = true;
+                            f.worlds = false;
                         }
                         f.base = m;
                     }

@@ -15,10 +15,13 @@
 //!   (`account::play_as`).
 //! - **Cancel** drops an install where it is (downloads go to `.part` files, so nothing broken is
 //!   left behind) or asks the running game to quit.
+//! - **Custom instances** go through the same Play, keyed by `Instance::Custom`, with their state
+//!   in `Snapshot::customs`. Creating, duplicating and deleting them runs on the blocking pool
+//!   (`instances.rs` for the files); the backend owns which exist and saves the settings itself.
 //!
 //! Everything it does is logged to stderr and `logs/launcher.log`, with seconds since start.
 use std::{
-    collections::HashMap,
+    collections::{HashMap, HashSet},
     fmt::Display,
     io::Write,
     path::PathBuf,
@@ -27,18 +30,20 @@ use std::{
     time::{Duration, Instant},
 };
 
-use anyhow::Result;
-use srl_core::{Mode, Paths, Progress, ProgressFn, Stage, Unit};
+use anyhow::{Context, Result};
+use srl_core::{CustomId, Instance, Mode, Paths, Progress, ProgressFn, Stage, Unit};
 use tokio::sync::watch;
 
 use super::{
-    Backend, Event, Events, FailDetail, FailKind, Failure, ModeInfo, ModeSnapshot, ModeState,
-    Settings, Snapshot,
+    Backend, CustomInstance, Event, Events, FailDetail, FailKind, Failure, ModeInfo, ModeSnapshot,
+    ModeState, Settings, Snapshot,
     account::{self, Accounts, RealAccounts},
     importer::{Importer, RealImport},
-    index,
+    info_event,
+    instances::{self, CopyPlan, CopyProgress, CopyWhat, Created, NewInstance},
     pipeline::{self, Core, Local, Startup},
     practice::{Host, PracticeMaps, RealPractice},
+    state_event,
     stats::{RealStats, StatsService},
     tools::{RealTools, Tools},
     update::{RealUpdates, Updates},
@@ -79,8 +84,16 @@ struct Inner {
     accounts: RealAccounts,
     snap: Mutex<Snapshot>,
     events: Events,
-    /// Modes with a `play` under way (installing or running), and the switch that cancels it.
-    runs: Mutex<HashMap<Mode, watch::Sender<bool>>>,
+    /// Instances (modes and custom ones) with a `play` under way (installing or running), and
+    /// the switch that cancels it. A custom instance being deleted is in it too, so no Play can
+    /// start while its directory moves.
+    runs: Mutex<HashMap<Instance, watch::Sender<bool>>>,
+    /// Instances a duplicate is copying from right now: they can't be deleted meanwhile.
+    copying: Mutex<HashSet<Instance>>,
+    /// One new custom instance number at a time (`instances::reserve`, then its definition).
+    new_ids: Mutex<()>,
+    /// The runtime, for work a blocking task starts (the update check after a create).
+    rt: tokio::runtime::Handle,
     settings_file: PathBuf,
     /// Serialises settings writes, so the last change is also the last one on disk.
     settings_write: Mutex<()>,
@@ -95,7 +108,12 @@ impl RealBackend {
     /// (`data_error`) so the window can say so, instead of a launcher that accepts a name it
     /// can't save and fails every Play with a raw path error.
     pub fn new(events: Events) -> Result<Self> {
-        let paths = Paths::from_env()?;
+        Self::open(Paths::from_env()?, events, true)
+    }
+
+    /// [`RealBackend::new`] on `paths`. Without `start_checks` (tests) nothing reaches the
+    /// network on its own: no update check on start, no launcher update check.
+    fn open(paths: Paths, events: Events, start_checks: bool) -> Result<Self> {
         let data_error = writable(paths.root())
             .err()
             .map(|e| format!("{}: {e}", paths.root().display()));
@@ -114,24 +132,12 @@ impl RealBackend {
             )),
         }
         let core = Core::new(paths)?;
-        let modes = std::array::from_fn(|i| {
-            let local = core.local_state(Mode::ALL[i]);
-            let (state, record) = match local {
-                Local::NotInstalled => (ModeState::NotInstalled, None),
-                Local::Ready(r) => (ModeState::Ready, Some(r)),
-                // Play puts the missing jars back first.
-                Local::Damaged(r) => (ModeState::UpdateAvailable, Some(r)),
-            };
-            ModeSnapshot {
-                state,
-                info: ModeInfo {
-                    mods: record.as_ref().map(|r| r.mods.len() as u32),
-                    disk: record.as_ref().map(|r| r.disk),
-                    java: record.as_ref().map(|r| r.java_version.clone()),
-                    ..ModeInfo::default()
-                },
-            }
-        });
+        let modes = std::array::from_fn(|i| local_snapshot(&core, Mode::ALL[i].into()));
+        let customs: std::collections::BTreeMap<CustomId, ModeSnapshot> = settings
+            .custom_instances
+            .iter()
+            .map(|c| (c.id, local_snapshot(&core, c.instance())))
+            .collect();
         log(format_args!(
             "data in {}; modes: {}",
             core.paths().root().display(),
@@ -139,6 +145,7 @@ impl RealBackend {
                 .iter()
                 .zip(&modes)
                 .map(|(m, s): (&Mode, &ModeSnapshot)| format!("{} {:?}", m.id(), s.state))
+                .chain(customs.iter().map(|(id, s)| format!("{id} {:?}", s.state)))
                 .collect::<Vec<_>>()
                 .join(", ")
         ));
@@ -194,17 +201,21 @@ impl RealBackend {
             accounts,
             snap: Mutex::new(Snapshot {
                 modes,
+                customs,
                 settings,
                 data_dir,
                 data_error: data_error.clone(),
             }),
             events,
             runs: Mutex::new(HashMap::new()),
+            copying: Mutex::new(HashSet::new()),
+            new_ids: Mutex::new(()),
+            rt: rt.clone(),
             settings_file,
             settings_write: Mutex::new(()),
             check_lock: tokio::sync::Mutex::new(()),
         });
-        if data_error.is_none() {
+        if data_error.is_none() && start_checks {
             rt.spawn(check_updates(inner.clone(), std::time::Duration::ZERO));
             // A Ninjabrain Bot an earlier session started and left behind (it closed or crashed
             // while a game ran): ours again, and stopped once that game is gone.
@@ -240,7 +251,7 @@ impl RealBackend {
                 instance
                     .siblings()
                     .into_iter()
-                    .any(|i| i.mode().is_some_and(|m| inner.busy(m)) || inner.core.game_running(i))
+                    .any(|i| inner.busy(i) || inner.core.game_running(i))
             })
         };
         let import = RealImport::new(
@@ -255,7 +266,7 @@ impl RealBackend {
             inner.events.clone(),
             rt.clone(),
         );
-        if data_error.is_none() {
+        if data_error.is_none() && start_checks {
             let auto = inner.snap.lock().unwrap().settings.auto_update;
             updates.start(auto);
         }
@@ -276,49 +287,33 @@ impl Backend for RealBackend {
     }
 
     fn play(&self, mode: Mode) {
-        let clicked = Instant::now();
-        let (cancel, cancelled) = watch::channel(false);
-        {
-            let mut runs = self.inner.runs.lock().unwrap();
-            // One Play per game directory: between one 1.16.1 mode's install and its game's
-            // start, another's install would swap the shared mods/ and Atum settings under it.
-            // The Play button waits too (`sibling_busy`).
-            let dir = srl_core::Instance::Mode(mode).dir_id();
-            if let Some(other) = runs
-                .keys()
-                .find(|m| srl_core::Instance::Mode(**m).dir_id() == dir)
-            {
-                if *other != mode {
-                    log(format_args!(
-                        "{}: play refused, {} runs",
-                        mode.id(),
-                        other.id()
-                    ));
-                }
-                return;
-            }
-            runs.insert(mode, cancel);
-        }
-        let before = self.inner.state(mode);
-        log(format_args!("{}: play", mode.id()));
-        self.inner
-            .set_state(mode, ModeState::Installing(stage_only(Stage::Metadata)));
-        self.rt
-            .spawn(play(self.inner.clone(), mode, before, cancelled, clicked));
+        self.start(mode.into());
     }
 
     fn cancel(&self, mode: Mode) {
-        if let Some(cancel) = self.inner.runs.lock().unwrap().get(&mode) {
-            log(format_args!("{}: cancel", mode.id()));
-            cancel.send_replace(true);
-        }
+        self.stop(mode.into());
     }
 
     fn set_settings(&self, settings: Settings) {
         let mods_changed = {
             let mut snap = self.inner.snap.lock().unwrap();
+            let mut settings = settings;
+            // The custom instances that exist are the backend's to say (a create can be on its
+            // way while the UI sends older settings); the UI's changes to them are taken.
+            let fixed = snap.settings.adopt_customs(&mut settings);
             let changed = snap.settings.mod_rules() != settings.mod_rules();
             snap.settings = settings;
+            if fixed {
+                // Under the lock, so it can't overtake a newer list from a create or delete.
+                log(format_args!(
+                    "settings: kept the custom instances as they are, sent back to the UI"
+                ));
+                let list = snap.settings.custom_instances.clone();
+                let _ = self
+                    .inner
+                    .events
+                    .unbounded_send(Event::CustomInstances(list));
+            }
             changed
         };
         // Another set of optional mods changes what the installed modes need: check again, from
@@ -328,18 +323,7 @@ impl Backend for RealBackend {
                 .spawn(check_updates(self.inner.clone(), pipeline::META_FRESH));
         }
         let inner = self.inner.clone();
-        self.rt.spawn_blocking(move || {
-            let _one_at_a_time = inner.settings_write.lock().unwrap();
-            // The newest settings, not the ones this write was queued with: writes may run in
-            // any order, and the last one must leave the newest on disk.
-            let latest = inner.snap.lock().unwrap().settings.clone();
-            if let Err(e) = latest.save(&inner.settings_file) {
-                log(format_args!(
-                    "could not save settings to {}: {e}",
-                    inner.settings_file.display()
-                ));
-            }
-        });
+        self.rt.spawn_blocking(move || inner.write_settings());
     }
 
     fn open_data_folder(&self) {
@@ -387,102 +371,517 @@ impl Backend for RealBackend {
     fn add_jar(&self, mode: Mode, path: std::path::PathBuf) {
         let inner = self.inner.clone();
         self.rt.spawn_blocking(move || {
-            let answer = inner.core.add_custom_jar(&path).map_err(|e| {
-                log(format_args!(
-                    "{}: adding {}: {e:#}",
-                    mode.id(),
-                    path.display()
-                ));
-                format!("{e:#}")
-            });
-            if let Ok(jar) = &answer {
-                log(format_args!(
-                    "{}: added {} ({})",
-                    mode.id(),
-                    jar.file_name,
-                    jar.name
-                ));
-            }
+            let answer = inner.add_jar(mode.into(), &path);
             let _ = inner.events.unbounded_send(Event::JarAdded(mode, answer));
         });
+    }
+
+    fn play_custom(&self, id: CustomId) {
+        self.start(Instance::Custom(id));
+    }
+
+    fn cancel_custom(&self, id: CustomId) {
+        self.stop(Instance::Custom(id));
+    }
+
+    fn create_instance(&self, spec: NewInstance) {
+        let inner = self.inner.clone();
+        self.rt.spawn_blocking(move || {
+            let answer = inner.create(spec).map_err(|e| format!("{e:#}"));
+            inner.created(answer);
+        });
+    }
+
+    fn duplicate_instance(&self, from: Instance, name: String, with_worlds: bool) {
+        // Marked before the task starts, so a delete right after this call is refused.
+        self.inner.copying.lock().unwrap().insert(from);
+        let inner = self.inner.clone();
+        self.rt.spawn_blocking(move || {
+            let answer = inner
+                .duplicate(from, &name, with_worlds)
+                .map_err(|e| format!("{e:#}"));
+            inner.copying.lock().unwrap().remove(&from);
+            inner.created(answer);
+        });
+    }
+
+    fn delete_instance(&self, id: CustomId) {
+        let instance = Instance::Custom(id);
+        let refused = {
+            let mut runs = self.inner.runs.lock().unwrap();
+            if !self.inner.snap.lock().unwrap().customs.contains_key(&id) {
+                Some(format!("there is no instance {id}"))
+            } else if runs.contains_key(&instance) || self.inner.core.game_running(instance) {
+                Some(format!("{id} is installing or running; stop it first"))
+            } else if self.inner.copying.lock().unwrap().contains(&instance) {
+                Some(format!("{id} is being copied; wait for the copy"))
+            } else {
+                // Taken like a Play, so none starts while the directory moves.
+                runs.insert(instance, watch::channel(false).0);
+                None
+            }
+        };
+        if let Some(why) = refused {
+            log(format_args!("delete refused: {why}"));
+            let _ = self
+                .inner
+                .events
+                .unbounded_send(Event::InstanceDeleted(Err(why)));
+            return;
+        }
+        let inner = self.inner.clone();
+        self.rt.spawn_blocking(move || {
+            let answer = inner.delete(id).map_err(|e| format!("{e:#}"));
+            inner.runs.lock().unwrap().remove(&instance);
+            if let Err(e) = &answer {
+                log(format_args!("{id}: not deleted: {e}"));
+            }
+            let _ = inner.events.unbounded_send(Event::InstanceDeleted(answer));
+        });
+    }
+
+    fn add_instance_jar(&self, id: CustomId, path: std::path::PathBuf) {
+        let inner = self.inner.clone();
+        self.rt.spawn_blocking(move || {
+            let answer = inner.add_jar(Instance::Custom(id), &path);
+            let _ = inner
+                .events
+                .unbounded_send(Event::InstanceJarAdded(id, answer));
+        });
+    }
+
+    fn open_game_folder(&self, instance: Instance) {
+        // Opening creates the folder: never for a custom instance that is gone.
+        if let Instance::Custom(id) = instance
+            && !self.inner.snap.lock().unwrap().customs.contains_key(&id)
+        {
+            return;
+        }
+        let dir = self.inner.core.paths().game_dir(instance);
+        log(format_args!(
+            "opening {} in the file manager",
+            dir.display()
+        ));
+        super::open_folder(&dir);
+    }
+}
+
+impl RealBackend {
+    /// Play for a mode or a custom instance: one per game directory, nothing for a custom
+    /// instance that doesn't exist.
+    fn start(&self, instance: Instance) {
+        let clicked = Instant::now();
+        let id = instance.id();
+        if let Instance::Custom(c) = instance
+            && !self.inner.snap.lock().unwrap().customs.contains_key(&c)
+        {
+            log(format_args!("{id}: play refused, no such instance"));
+            return;
+        }
+        let (cancel, cancelled) = watch::channel(false);
+        {
+            let mut runs = self.inner.runs.lock().unwrap();
+            // One Play per game directory: between one 1.16.1 mode's install and its game's
+            // start, another's install would swap the shared mods/ and Atum settings under it.
+            // The Play button waits too (`sibling_busy`).
+            let dir = instance.dir_id();
+            if let Some(other) = runs.keys().find(|i| i.dir_id() == dir) {
+                if *other != instance {
+                    log(format_args!("{id}: play refused, {} runs", other.id()));
+                }
+                return;
+            }
+            runs.insert(instance, cancel);
+        }
+        let before = self.inner.state(instance);
+        log(format_args!("{id}: play"));
+        self.inner
+            .set_state(instance, ModeState::Installing(stage_only(Stage::Metadata)));
+        self.rt.spawn(play(
+            self.inner.clone(),
+            instance,
+            before,
+            cancelled,
+            clicked,
+        ));
+    }
+
+    fn stop(&self, instance: Instance) {
+        if let Some(cancel) = self.inner.runs.lock().unwrap().get(&instance) {
+            log(format_args!("{}: cancel", instance.id()));
+            cancel.send_replace(true);
+        }
+    }
+}
+
+/// An instance's state on start, from its install record and the files it names (no network).
+fn local_snapshot(core: &Core, instance: Instance) -> ModeSnapshot {
+    let (state, record) = match core.local_state(instance) {
+        Local::NotInstalled => (ModeState::NotInstalled, None),
+        Local::Ready(r) => (ModeState::Ready, Some(r)),
+        // Play puts the missing jars back first.
+        Local::Damaged(r) => (ModeState::UpdateAvailable, Some(r)),
+    };
+    ModeSnapshot {
+        state,
+        info: ModeInfo {
+            mods: record.as_ref().map(|r| r.mods.len() as u32),
+            disk: record.as_ref().map(|r| r.disk),
+            java: record.as_ref().map(|r| r.java_version.clone()),
+            ..ModeInfo::default()
+        },
     }
 }
 
 impl Inner {
-    fn state(&self, mode: Mode) -> ModeState {
-        self.snap.lock().unwrap().modes[index(mode)].state.clone()
+    fn state(&self, instance: Instance) -> ModeState {
+        self.snap
+            .lock()
+            .unwrap()
+            .instance(instance)
+            .map_or(ModeState::NotInstalled, |s| s.state.clone())
     }
 
-    fn busy(&self, mode: Mode) -> bool {
-        self.runs.lock().unwrap().contains_key(&mode)
+    fn busy(&self, instance: Instance) -> bool {
+        self.runs.lock().unwrap().contains_key(&instance)
     }
 
     /// Sets the state and tells the UI, if it changed. The event is sent under the lock, so the
     /// UI sees the states in the order they were set.
-    fn set_state(&self, mode: Mode, state: ModeState) {
-        self.set_state_if(mode, |_| true, state);
+    fn set_state(&self, instance: Instance, state: ModeState) {
+        self.set_state_if(instance, |_| true, state);
     }
 
-    fn set_state_if(&self, mode: Mode, when: impl FnOnce(&ModeState) -> bool, state: ModeState) {
+    fn set_state_if(
+        &self,
+        instance: Instance,
+        when: impl FnOnce(&ModeState) -> bool,
+        state: ModeState,
+    ) {
         let mut snap = self.snap.lock().unwrap();
-        let slot = &mut snap.modes[index(mode)].state;
+        let Some(slot) = snap.instance_mut(instance).map(|s| &mut s.state) else {
+            return;
+        };
         if *slot != state && when(slot) {
             *slot = state.clone();
-            let _ = self.events.unbounded_send(Event::State(mode, state));
+            if let Some(ev) = state_event(instance, state) {
+                let _ = self.events.unbounded_send(ev);
+            }
         }
     }
 
-    fn set_info(&self, mode: Mode, f: impl FnOnce(&mut ModeInfo)) {
+    fn set_info(&self, instance: Instance, f: impl FnOnce(&mut ModeInfo)) {
         let mut snap = self.snap.lock().unwrap();
-        let info = &mut snap.modes[index(mode)].info;
+        let Some(info) = snap.instance_mut(instance).map(|s| &mut s.info) else {
+            return;
+        };
         let before = info.clone();
         f(info);
-        if *info != before {
-            let _ = self.events.unbounded_send(Event::Info(mode, info.clone()));
+        if *info != before
+            && let Some(ev) = info_event(instance, info.clone())
+        {
+            let _ = self.events.unbounded_send(ev);
         }
     }
 
-    /// Ends a `play`: the mode is free again, then it shows `state`. In that order, so a Play
-    /// pressed as soon as the UI shows the new state is not ignored.
-    fn finish(&self, mode: Mode, state: ModeState) {
-        self.runs.lock().unwrap().remove(&mode);
-        self.set_state(mode, state);
+    /// Ends a `play`: the instance is free again, then it shows `state`. In that order, so a
+    /// Play pressed as soon as the UI shows the new state is not ignored.
+    fn finish(&self, instance: Instance, state: ModeState) {
+        self.runs.lock().unwrap().remove(&instance);
+        self.set_state(instance, state);
     }
 
     /// Progress from the pipeline, throttled and with the parallel download stages combined.
-    fn progress_sink(self: &Arc<Self>, mode: Mode) -> ProgressFn {
+    fn progress_sink(self: &Arc<Self>, instance: Instance) -> ProgressFn {
         let inner = self.clone();
         let mux = Mutex::new(Mux::default());
         Arc::new(move |p: Progress| {
             let shown = mux.lock().unwrap().update(p, Instant::now());
             if let Some(shown) = shown {
-                inner.set_state(mode, ModeState::Installing(shown));
+                inner.set_state(instance, ModeState::Installing(shown));
             }
         })
     }
+
+    /// Writes the newest settings (blocking). Writes run one at a time and each takes the
+    /// settings as they are when it runs, so the last one leaves the newest on disk.
+    fn write_settings(&self) {
+        let _one_at_a_time = self.settings_write.lock().unwrap();
+        let latest = self.snap.lock().unwrap().settings.clone();
+        if let Err(e) = latest.save(&self.settings_file) {
+            log(format_args!(
+                "could not save settings to {}: {e}",
+                self.settings_file.display()
+            ));
+        }
+    }
+
+    /// Copies a jar the player picked into the store (blocking), for a mode's or a custom
+    /// instance's Mods page.
+    fn add_jar(
+        &self,
+        instance: Instance,
+        path: &std::path::Path,
+    ) -> Result<srl_mods::CustomJar, String> {
+        let id = instance.id();
+        let answer = self.core.add_custom_jar(path).map_err(|e| {
+            log(format_args!("{id}: adding {}: {e:#}", path.display()));
+            format!("{e:#}")
+        });
+        if let Ok(jar) = &answer {
+            log(format_args!("{id}: added {} ({})", jar.file_name, jar.name));
+        }
+        answer
+    }
+
+    /// `create_instance` (blocking): reserves the directory, copies the settings asked for,
+    /// then adds the definition.
+    fn create(self: &Arc<Self>, spec: NewInstance) -> Result<Created> {
+        let name = self
+            .snap
+            .lock()
+            .unwrap()
+            .settings
+            .validate_instance_name(&spec.name, None)
+            .map_err(|p| anyhow::anyhow!("{p}"))?;
+        let paths = self.core.paths();
+        let _one_at_a_time = self.new_ids.lock().unwrap();
+        let first = self.snap.lock().unwrap().settings.next_custom_id();
+        let id = instances::reserve(paths, first)?;
+        let dir = paths.game_dir(Instance::Custom(id));
+        let mut skipped = Vec::new();
+        if let Some(from) = spec.copy_settings_from {
+            let src = paths.game_dir(from);
+            skipped = CopyPlan::new(&src, CopyWhat::Settings).run(&src, &dir, |_, _| {});
+            if let Err(e) = instances::fix_per_mode_files(paths, from, &dir) {
+                instances::discard(paths, id);
+                return Err(e);
+            }
+        }
+        let def = CustomInstance {
+            id,
+            name,
+            base: spec.base,
+            memory_mb: None,
+            mods: srl_mods::ModChoice::default(),
+            jvm_args: Vec::new(),
+            created_ms: now_ms(),
+        };
+        log(format_args!(
+            "{id}: created \"{}\" on {}{}",
+            def.name,
+            def.base.id(),
+            spec.copy_settings_from
+                .map(|f| format!(", settings from {}", f.id()))
+                .unwrap_or_default()
+        ));
+        Ok(self.add_custom(def, skipped))
+    }
+
+    /// `duplicate_instance` (blocking): the source's definition (a mode's memory and mods, a
+    /// custom instance's whole definition), its directory copied with progress, then the new
+    /// definition. A failed copy leaves nothing behind.
+    fn duplicate(self: &Arc<Self>, from: Instance, name: &str, worlds: bool) -> Result<Created> {
+        let (name, base, memory_mb, mods, jvm_args) = {
+            let snap = self.snap.lock().unwrap();
+            let s = &snap.settings;
+            let name = s
+                .validate_instance_name(name, None)
+                .map_err(|p| anyhow::anyhow!("{p}"))?;
+            match from {
+                // The shared directory's copy plays like the mode it was duplicated from (Ranked
+                // stays Ranked); the mode's own memory and mod changes come along.
+                Instance::Mode(m) => (
+                    name,
+                    m,
+                    s.mode_memory_mb.get(&m).copied(),
+                    s.mod_choices.get(&m).cloned().unwrap_or_default(),
+                    Vec::new(),
+                ),
+                // Practice is a 1.16.1 game played like RSG; its fixed practice mods don't come
+                // along (a custom instance starts from its base's set).
+                Instance::Practice => (
+                    name,
+                    super::practice::TOOLS_LIKE,
+                    None,
+                    srl_mods::ModChoice::default(),
+                    Vec::new(),
+                ),
+                Instance::Custom(c) => {
+                    let def = s
+                        .custom(c)
+                        .with_context(|| format!("there is no instance {c}"))?;
+                    (
+                        name,
+                        def.base,
+                        def.memory_mb,
+                        def.mods.clone(),
+                        def.jvm_args.clone(),
+                    )
+                }
+            }
+        };
+        let paths = self.core.paths();
+        let id = {
+            let _one_at_a_time = self.new_ids.lock().unwrap();
+            let first = self.snap.lock().unwrap().settings.next_custom_id();
+            instances::reserve(paths, first)?
+        };
+        let (src, dir) = (paths.game_dir(from), paths.game_dir(Instance::Custom(id)));
+        let started = Instant::now();
+        let plan = CopyPlan::new(&src, CopyWhat::Everything { worlds });
+        let (files_total, bytes_total) = (plan.files(), plan.bytes());
+        log(format_args!(
+            "{id}: copying {} into \"{name}\" ({files_total} files, {} MB{})",
+            from.id(),
+            bytes_total / 1_000_000,
+            if worlds { ", worlds too" } else { "" }
+        ));
+        let progress = |files, bytes| CopyProgress {
+            id,
+            name: name.clone(),
+            files,
+            files_total,
+            bytes,
+            bytes_total,
+        };
+        let _ = self
+            .events
+            .unbounded_send(Event::InstanceCopy(progress(0, 0)));
+        let mut last = Instant::now();
+        let skipped = plan.run(&src, &dir, |files, bytes| {
+            if files == files_total || last.elapsed() >= PROGRESS_EVERY {
+                last = Instant::now();
+                let _ = self
+                    .events
+                    .unbounded_send(Event::InstanceCopy(progress(files, bytes)));
+            }
+        });
+        if let Err(e) = instances::fix_per_mode_files(paths, from, &dir) {
+            instances::discard(paths, id);
+            return Err(e);
+        }
+        for s in &skipped {
+            log(format_args!("{id}: left out of the copy: {s}"));
+        }
+        log(format_args!(
+            "{id}: copied in {:.1}s, {} left out",
+            started.elapsed().as_secs_f64(),
+            skipped.len()
+        ));
+        let def = CustomInstance {
+            id,
+            // Another instance may have taken the name while this one copied.
+            name: self
+                .snap
+                .lock()
+                .unwrap()
+                .settings
+                .unique_instance_name(&name),
+            base,
+            memory_mb,
+            mods,
+            jvm_args,
+            created_ms: now_ms(),
+        };
+        Ok(self.add_custom(def, skipped))
+    }
+
+    /// Adds a new instance's definition and its snapshot (not installed), saves the settings,
+    /// tells the UI the new list and state, and fills in its Mods page in the background.
+    fn add_custom(self: &Arc<Self>, def: CustomInstance, skipped: Vec<String>) -> Created {
+        let created = Created {
+            id: def.id,
+            name: def.name.clone(),
+            skipped,
+        };
+        {
+            let mut snap = self.snap.lock().unwrap();
+            snap.settings.custom_instances.push(def);
+            snap.customs.insert(
+                created.id,
+                ModeSnapshot {
+                    state: ModeState::NotInstalled,
+                    info: ModeInfo::default(),
+                },
+            );
+            let list = snap.settings.custom_instances.clone();
+            let _ = self.events.unbounded_send(Event::CustomInstances(list));
+            let _ = self
+                .events
+                .unbounded_send(Event::CustomState(created.id, ModeState::NotInstalled));
+        }
+        self.write_settings();
+        self.rt
+            .spawn(check_updates(self.clone(), pipeline::META_FRESH));
+        created
+    }
+
+    /// Tells the UI how a create or duplicate ended.
+    fn created(&self, answer: Result<Created, String>) {
+        if let Err(e) = &answer {
+            log(format_args!("new instance failed: {e}"));
+        }
+        let _ = self.events.unbounded_send(Event::InstanceCreated(answer));
+    }
+
+    /// `delete_instance` (blocking, with the instance held in `runs`): the directory to the
+    /// trash first, and only then the definition, so a directory that can't be moved leaves the
+    /// instance as it was.
+    fn delete(&self, id: CustomId) -> Result<CustomId> {
+        let moved = instances::move_to_trash(self.core.paths(), id)?;
+        log(format_args!(
+            "{id}: deleted; its directory is {}",
+            moved
+                .as_ref()
+                .map_or("gone already".to_string(), |p| format!(
+                    "in {}",
+                    p.display()
+                ))
+        ));
+        {
+            let mut snap = self.snap.lock().unwrap();
+            snap.settings.custom_instances.retain(|c| c.id != id);
+            snap.customs.remove(&id);
+            let list = snap.settings.custom_instances.clone();
+            let _ = self.events.unbounded_send(Event::CustomInstances(list));
+        }
+        self.write_settings();
+        Ok(id)
+    }
+}
+
+/// Milliseconds since the Unix epoch, for `CustomInstance::created_ms`.
+fn now_ms() -> i64 {
+    std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map(|d| d.as_millis() as i64)
+        .unwrap_or(0)
 }
 
 /// One Play, from the click to the game's exit.
 async fn play(
     inner: Arc<Inner>,
-    mode: Mode,
+    instance: Instance,
     before: ModeState,
     mut cancelled: watch::Receiver<bool>,
     clicked: Instant,
 ) {
-    let id = mode.id();
+    let id = instance.id().into_owned();
     let (rules, tools) = {
         let snap = inner.snap.lock().unwrap();
         (
             snap.settings.mod_rules(),
-            snap.settings.tool_selection(mode),
+            snap.settings.tool_selection_of(instance),
         )
     };
     let prepared = tokio::select! {
-        r = inner.core.prepare(mode, &rules, &tools, Some(inner.progress_sink(mode))) => r,
+        r = inner.core.prepare_instance(
+            instance, &rules, &tools, Some(inner.progress_sink(instance)),
+        ) => r,
         () = wait_cancel(&mut cancelled) => {
             log(format_args!("{id}: install cancelled"));
-            inner.finish(mode, before);
+            inner.finish(instance, before);
             return;
         }
     };
@@ -502,7 +901,7 @@ async fn play(
                 installed: was_installed,
                 log: None,
             };
-            inner.finish(mode, ModeState::Failed(failure));
+            inner.finish(instance, ModeState::Failed(failure));
             return;
         }
     };
@@ -528,7 +927,7 @@ async fn play(
     }
     // Play may have installed or updated a tool: the Tools page shows it.
     inner.tools.refresh();
-    inner.set_info(mode, |info| {
+    inner.set_info(instance, |info| {
         info.mods = Some(prepared.mods.mods.len() as u32);
         info.disk = Some(prepared.record.disk);
         info.download = None;
@@ -543,11 +942,11 @@ async fn play(
         r = account::launch_account(
             inner.accounts.auth(),
             pipeline::offline_account(&settings),
-            || inner.set_state(mode, ModeState::Installing(stage_only(Stage::SigningIn))),
+            || inner.set_state(instance, ModeState::Installing(stage_only(Stage::SigningIn))),
         ) => r,
         () = wait_cancel(&mut cancelled) => {
             log(format_args!("{id}: cancelled while signing in"));
-            inner.finish(mode, ModeState::Ready);
+            inner.finish(instance, ModeState::Ready);
             return;
         }
     };
@@ -562,7 +961,7 @@ async fn play(
                 installed: true,
                 log: None,
             };
-            inner.finish(mode, ModeState::Failed(failure));
+            inner.finish(instance, ModeState::Failed(failure));
             if relogin {
                 // The saved sign-in is gone: the login dialog opens; Play again after it.
                 inner.accounts.login();
@@ -584,7 +983,10 @@ async fn play(
         ));
     }
 
-    inner.set_state(mode, ModeState::Installing(stage_only(Stage::Launching)));
+    inner.set_state(
+        instance,
+        ModeState::Installing(stage_only(Stage::Launching)),
+    );
     let mut game = match inner
         .core
         .launch(&prepared, &settings, signed_in.account)
@@ -599,7 +1001,7 @@ async fn play(
                 installed: true,
                 log: None,
             };
-            inner.finish(mode, ModeState::Failed(failure));
+            inner.finish(instance, ModeState::Failed(failure));
             return;
         }
     };
@@ -632,14 +1034,15 @@ async fn play(
     for note in &game.launched.tool_notes {
         log(format_args!("{id}: tools: {note}"));
     }
-    inner.set_info(mode, |info| info.launched = Some(game.launched.clone()));
-    inner.set_state(mode, ModeState::Running);
+    inner.set_info(instance, |info| info.launched = Some(game.launched.clone()));
+    inner.set_state(instance, ModeState::Running);
 
     // Stop (cancel while running): ask the game to quit the way its window's close button does,
     // so it saves; SIGTERM, then a kill, only if it doesn't.
     let stopper = {
         let process = game.process.clone();
         let mut cancelled = cancelled.clone();
+        let id = id.clone();
         tokio::spawn(async move {
             wait_cancel(&mut cancelled).await;
             let asked = Instant::now();
@@ -706,8 +1109,8 @@ async fn play(
         }
         _ => ModeState::Ready,
     };
-    inner.set_info(mode, |info| info.launched = None);
-    inner.finish(mode, end);
+    inner.set_info(instance, |info| info.launched = None);
+    inner.finish(instance, end);
 }
 
 /// The background check: mod lists no older than `max_age` (on start: fresh ones), every mode's
@@ -729,31 +1132,38 @@ async fn check_updates(inner: Arc<Inner>, max_age: Duration) {
     for note in &meta.notes {
         log(format_args!("update check: {note}"));
     }
-    for mode in Mode::ALL {
-        if inner.busy(mode) {
+    // Every mode, then every custom instance (against its base mode's set).
+    let customs: Vec<Instance> = inner
+        .snap
+        .lock()
+        .unwrap()
+        .customs
+        .keys()
+        .map(|c| Instance::Custom(*c))
+        .collect();
+    for instance in Mode::ALL.into_iter().map(Instance::Mode).chain(customs) {
+        if inner.busy(instance) {
             continue;
         }
-        let (own, set) = match inner.core.mode_set(&meta, mode, &rules.opts) {
-            Ok(own) => {
-                let set = srl_mods::apply(&meta, own.clone(), &rules.choice(mode));
-                (own, set)
-            }
+        let id = instance.id();
+        let pipeline::Sets { base, own, set } = match inner.core.sets(&meta, instance, &rules) {
+            Ok(sets) => sets,
             Err(e) => {
-                log(format_args!("update check: {}: {e:#}", mode.id()));
+                log(format_args!("update check: {id}: {e:#}"));
                 continue;
             }
         };
-        let catalogue = srl_mods::catalogue(&meta, &own, &set, mode);
-        let concerns = srl_mods::concerns(&meta, &set, mode);
+        let catalogue = srl_mods::catalogue(&meta, &own, &set, base);
+        let concerns = srl_mods::concerns(&meta, &set, base);
         let installed = matches!(
-            inner.state(mode),
+            inner.state(instance),
             ModeState::Ready | ModeState::UpdateAvailable
         );
         let plan = if installed {
             match inner.core.mods_plan(&set).await {
                 Ok(p) => p,
                 Err(e) => {
-                    log(format_args!("update check: {}: {e:#}", mode.id()));
+                    log(format_args!("update check: {id}: {e:#}"));
                     continue;
                 }
             }
@@ -761,11 +1171,11 @@ async fn check_updates(inner: Arc<Inner>, max_age: Duration) {
             None
         };
         // A Play that started meanwhile installs the set itself.
-        if inner.busy(mode) {
+        if inner.busy(instance) {
             continue;
         }
         let download = plan.as_ref().map(|p| inner.core.plan_download(p));
-        inner.set_info(mode, |info| {
+        inner.set_info(instance, |info| {
             info.mods = Some(set.mods.len() as u32);
             info.catalogue = Some(catalogue);
             info.concerns = concerns;
@@ -777,15 +1187,22 @@ async fn check_updates(inner: Arc<Inner>, max_age: Duration) {
         match &plan {
             Some(plan) => {
                 log(format_args!(
-                    "update check: {}: {} to add or update, {} to remove",
-                    mode.id(),
+                    "update check: {id}: {} to add or update, {} to remove",
                     plan.add.len() + plan.update.len(),
                     plan.remove.len()
                 ));
-                inner.set_state_if(mode, |s| *s == ModeState::Ready, ModeState::UpdateAvailable);
+                inner.set_state_if(
+                    instance,
+                    |s| *s == ModeState::Ready,
+                    ModeState::UpdateAvailable,
+                );
             }
             None if installed => {
-                inner.set_state_if(mode, |s| *s == ModeState::UpdateAvailable, ModeState::Ready);
+                inner.set_state_if(
+                    instance,
+                    |s| *s == ModeState::UpdateAvailable,
+                    ModeState::Ready,
+                );
             }
             None => {}
         }
@@ -907,6 +1324,207 @@ pub fn log(msg: impl Display) {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// Waits for the first event `pick` takes, or panics after `secs`.
+    fn next_event<T>(
+        rx: &mut futures::channel::mpsc::UnboundedReceiver<Event>,
+        secs: u64,
+        mut pick: impl FnMut(Event) -> Option<T>,
+    ) -> T {
+        let deadline = Instant::now() + Duration::from_secs(secs);
+        loop {
+            match rx.try_recv() {
+                Ok(ev) => {
+                    if let Some(t) = pick(ev) {
+                        return t;
+                    }
+                }
+                Err(futures::channel::mpsc::TryRecvError::Closed) => panic!("the backend is gone"),
+                Err(futures::channel::mpsc::TryRecvError::Empty) => {
+                    assert!(Instant::now() < deadline, "timed out");
+                    thread::sleep(Duration::from_millis(5));
+                }
+            }
+        }
+    }
+
+    fn write(path: &std::path::Path, text: &str) {
+        std::fs::create_dir_all(path.parent().unwrap()).unwrap();
+        std::fs::write(path, text).unwrap();
+    }
+
+    /// Create, duplicate, change and delete custom instances through the real backend, on a
+    /// temp data folder and the built-in mod lists (no network, no game).
+    #[test]
+    fn custom_instances_from_create_to_trash() {
+        let root = std::env::temp_dir().join(format!("srl-real-customs-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&root);
+        let paths = Paths::new(&root);
+        // The shared directory as a player left it, last played as SSG.
+        let shared = paths.instance(Mode::Rsg);
+        let atum = srl_core::shared::PER_MODE_FILES[0];
+        write(&shared.join(atum), "rsg");
+        srl_core::shared::switch_to(&paths, Mode::Rsg).unwrap();
+        srl_core::shared::switch_to(&paths, Mode::Ssg).unwrap();
+        write(&shared.join(atum), "ssg seed");
+        for f in [
+            "options.txt",
+            "config/sodium.json",
+            "resourcepacks/p.zip",
+            "saves/W/level.dat",
+            "mods/sodium.jar",
+            "logs/latest.log",
+        ] {
+            write(&shared.join(f), f);
+        }
+        let mut saved = Settings {
+            player_name: Some("Violet_Runner".into()),
+            ..Settings::default()
+        };
+        saved.set_memory_mb(Mode::Ssg, 4096);
+        saved.save(&Settings::file(&paths)).unwrap();
+
+        let (tx, mut rx) = futures::channel::mpsc::unbounded();
+        let b = RealBackend::open(paths.clone(), tx, false).unwrap();
+        b.rt.block_on(
+            b.inner
+                .core
+                .seed_mod_meta(super::super::fake::fake_meta().clone()),
+        );
+
+        // Create with RSG's settings.
+        b.create_instance(NewInstance {
+            name: " Bastion grind ".into(),
+            base: Mode::Rsg,
+            copy_settings_from: Some(Instance::Mode(Mode::Rsg)),
+        });
+        let one = next_event(&mut rx, 10, |e| match e {
+            Event::InstanceCreated(r) => Some(r.unwrap()),
+            _ => None,
+        });
+        assert_eq!((one.id, one.name.as_str()), (CustomId(1), "Bastion grind"));
+        let dir1 = paths.game_dir(Instance::Custom(one.id));
+        assert!(dir1.join("options.txt").is_file() && dir1.join("resourcepacks/p.zip").is_file());
+        assert!(!dir1.join("saves").exists() && !dir1.join("mods").exists());
+        // RSG's own Atum settings, not SSG's that were in place.
+        assert_eq!(std::fs::read_to_string(dir1.join(atum)).unwrap(), "rsg");
+        let snap = b.snapshot();
+        assert_eq!(snap.customs[&one.id].state, ModeState::NotInstalled);
+        assert_eq!(snap.settings.custom(one.id).unwrap().base, Mode::Rsg);
+        // The update check fills in its Mods page from the mod lists.
+        let info = next_event(&mut rx, 10, |e| match e {
+            Event::CustomInfo(id, info) if id == one.id && info.catalogue.is_some() => Some(info),
+            _ => None,
+        });
+        assert!(info.mods.unwrap() > 0);
+
+        // A taken name fails at once.
+        b.create_instance(NewInstance {
+            name: "BASTION GRIND".into(),
+            base: Mode::Fsg,
+            copy_settings_from: None,
+        });
+        let err = next_event(&mut rx, 10, |e| match e {
+            Event::InstanceCreated(r) => Some(r.unwrap_err()),
+            _ => None,
+        });
+        assert!(err.contains("another instance"), "{err}");
+
+        // Duplicate SSG with its worlds: SSG's memory and Atum settings come along.
+        b.duplicate_instance(Instance::Mode(Mode::Ssg), "Seeds".into(), true);
+        let mut progress = 0;
+        let two = next_event(&mut rx, 20, |e| match e {
+            Event::InstanceCopy(p) => {
+                assert_eq!(p.files_total, 5);
+                progress += 1;
+                None
+            }
+            Event::InstanceCreated(r) => Some(r.unwrap()),
+            _ => None,
+        });
+        assert!(progress >= 2, "a start and an end");
+        assert_eq!(two.id, CustomId(2));
+        assert!(two.skipped.is_empty(), "{:?}", two.skipped);
+        let dir2 = paths.game_dir(Instance::Custom(two.id));
+        assert!(dir2.join("saves/W/level.dat").is_file());
+        assert!(!dir2.join("mods").exists() && !dir2.join("logs").exists());
+        assert!(!dir2.join(".srl-modes").exists());
+        assert_eq!(
+            std::fs::read_to_string(dir2.join(atum)).unwrap(),
+            "ssg seed"
+        );
+        let def = b.snapshot().settings.custom(two.id).cloned().unwrap();
+        assert_eq!((def.base, def.memory_mb), (Mode::Ssg, Some(4096)));
+
+        // Older settings from the UI (no custom instances, a rename the other way): the
+        // backend keeps its list and says so.
+        let mut ui = saved.clone();
+        ui.language = super::super::Language::Pl;
+        b.set_settings(ui);
+        let list = next_event(&mut rx, 10, |e| match e {
+            Event::CustomInstances(list) => Some(list),
+            _ => None,
+        });
+        assert_eq!(list.len(), 2);
+        let mut ui = b.snapshot().settings;
+        assert_eq!(ui.language, super::super::Language::Pl);
+        ui.rename_custom(two.id, "Set seeds").unwrap();
+        b.set_settings(ui);
+        assert_eq!(
+            b.snapshot().settings.custom(two.id).unwrap().name,
+            "Set seeds"
+        );
+
+        // Delete: the directory goes to the trash, the definition and its state go.
+        b.delete_instance(one.id);
+        let deleted = next_event(&mut rx, 10, |e| match e {
+            Event::InstanceDeleted(r) => Some(r),
+            _ => None,
+        });
+        assert_eq!(deleted, Ok(one.id));
+        assert!(!dir1.exists());
+        let trashed: Vec<_> = std::fs::read_dir(paths.trash())
+            .unwrap()
+            .flatten()
+            .collect();
+        assert_eq!(trashed.len(), 1);
+        assert!(trashed[0].path().join("options.txt").is_file());
+        let snap = b.snapshot();
+        assert!(!snap.customs.contains_key(&one.id));
+        assert!(snap.settings.custom(one.id).is_none());
+        b.delete_instance(one.id);
+        let again = next_event(&mut rx, 10, |e| match e {
+            Event::InstanceDeleted(r) => Some(r),
+            _ => None,
+        });
+        assert!(again.is_err());
+
+        // The settings file has what the backend has, once its writes are done.
+        let deadline = Instant::now() + Duration::from_secs(5);
+        loop {
+            let on_disk = Settings::load(&Settings::file(&paths)).unwrap();
+            if on_disk.custom_instances == b.snapshot().settings.custom_instances {
+                assert_eq!(on_disk.custom_instances.len(), 1);
+                break;
+            }
+            assert!(Instant::now() < deadline, "settings never written");
+            thread::sleep(Duration::from_millis(20));
+        }
+        // A new instance never gets a number whose directory is still there.
+        std::fs::create_dir_all(paths.game_dir(Instance::Custom(CustomId(3)))).unwrap();
+        b.create_instance(NewInstance {
+            name: "Next".into(),
+            base: Mode::Draftout,
+            copy_settings_from: None,
+        });
+        let next = next_event(&mut rx, 10, |e| match e {
+            Event::InstanceCreated(r) => Some(r.unwrap()),
+            _ => None,
+        });
+        assert_eq!(next.id, CustomId(4));
+        drop(b);
+        std::fs::remove_dir_all(&root).unwrap();
+    }
 
     fn p(stage: Stage, done: u64, total: u64, unit: Unit) -> Progress {
         Progress {

@@ -230,8 +230,11 @@ impl Category {
     pub(crate) fn of(instance: Instance) -> Self {
         match instance {
             Instance::Mode(Mode::Ssg) => Category::Ssg,
+            // A custom instance's set is its base mode's, resolved as that mode (and re-tagged
+            // after); on its own it counts as RSG like practice.
             Instance::Mode(Mode::Ranked | Mode::Rsg | Mode::Fsg | Mode::Draftout)
-            | Instance::Practice => Category::Rsg,
+            | Instance::Practice
+            | Instance::Custom(_) => Category::Rsg,
         }
     }
 }
@@ -283,7 +286,7 @@ const FORBIDDEN_EVERYWHERE: &[&str] = &["fabric-api", "fabric"];
 pub(crate) fn forbidden_in(instance: Instance) -> &'static [&'static str] {
     match instance {
         Instance::Mode(mode) => forbidden(mode),
-        Instance::Practice => FORBIDDEN_EVERYWHERE,
+        Instance::Practice | Instance::Custom(_) => FORBIDDEN_EVERYWHERE,
     }
 }
 

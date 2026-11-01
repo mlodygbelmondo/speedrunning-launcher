@@ -17,6 +17,10 @@
 //!   instances/old-<mode>/    a mode's own directory from before the shared one (`shared::migrate`)
 //!   tools/<tool>/<version>/  speedrun tools the launcher installs (Ninjabrain Bot, Toolscreen)
 //!   instances/practice/      the practice instance: practice maps in saves/ (srl-practice)
+//!   instances/custom-<n>/    a custom instance the player created (its definition is in
+//!                            settings.json)
+//!   trash/                   deleted custom instances, `custom-<n>-<unix time>/`, until the
+//!                            player removes them
 //!   logs/                    launcher log and the last game log of each mode
 //! ```
 //!
@@ -89,7 +93,13 @@ impl Paths {
     /// The game directory of a mode, passed to the game as `--gameDir`: `instances/mcsr` for the
     /// four 1.16.1 modes, `instances/draftout` for Draftout.
     pub fn instance(&self, mode: Mode) -> PathBuf {
-        self.instances().join(crate::Instance::Mode(mode).dir_id())
+        self.game_dir(crate::Instance::Mode(mode))
+    }
+    /// The game directory of any instance, passed to the game as `--gameDir`: `instances/mcsr`
+    /// for the four 1.16.1 modes, else `instances/<id>` (`draftout`, `practice`, `custom-<n>`).
+    /// The one place that maps an instance to its directory.
+    pub fn game_dir(&self, instance: impl Into<crate::Instance>) -> PathBuf {
+        self.instances().join(&*instance.into().dir_id())
     }
     /// `instances/`.
     pub fn instances(&self) -> PathBuf {
@@ -103,15 +113,17 @@ impl Paths {
     /// that practice maps and practice-only mods never end up in a run setup (research/04 §3).
     /// `practice` is not a `Mode` id, so it can't collide with one.
     pub fn practice_instance(&self) -> PathBuf {
-        self.root.join("instances").join("practice")
+        self.game_dir(crate::Instance::Practice)
     }
-    /// The game directory of a mode (`instance`) or of the practice instance
-    /// (`practice_instance`).
+    /// The same as [`Paths::game_dir`], under its older name.
     pub fn instance_dir(&self, instance: impl Into<crate::Instance>) -> PathBuf {
-        match instance.into() {
-            crate::Instance::Mode(mode) => self.instance(mode),
-            crate::Instance::Practice => self.practice_instance(),
-        }
+        self.game_dir(instance)
+    }
+    /// Where a deleted custom instance's directory goes (`trash/`), so a mistake can be undone
+    /// by moving it back by hand. On the same file system as `instances/`, so the move is a
+    /// rename.
+    pub fn trash(&self) -> PathBuf {
+        self.root.join("trash")
     }
     pub fn logs(&self) -> PathBuf {
         self.root.join("logs")
@@ -168,6 +180,10 @@ mod tests {
             p.practice_instance()
         );
         assert_eq!(p.instance_dir(Mode::Rsg), p.instance(Mode::Rsg));
+        assert_eq!(
+            p.game_dir(crate::Instance::Custom(crate::CustomId(2))),
+            Path::new("/srl/instances/custom-2")
+        );
     }
 
     #[test]

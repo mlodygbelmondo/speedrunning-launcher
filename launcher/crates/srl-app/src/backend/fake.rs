@@ -3,6 +3,7 @@
 //! `srl-mods` are wired in. It touches no network and no game files; the only file it writes is
 //! the settings file, in the same place the real backend will keep it.
 use std::{
+    collections::HashSet,
     path::{Path, PathBuf},
     sync::{
         Arc, Mutex,
@@ -12,15 +13,16 @@ use std::{
     time::{Duration, Instant},
 };
 
-use srl_core::{Mode, Progress, Stage, Unit};
+use srl_core::{CustomId, Instance, Mode, Progress, Stage, Unit};
 
 use super::{
-    Backend, Event, Events, FailDetail, FailKind, Failure, Launched, ModeInfo, ModeSnapshot,
-    ModeState, Settings, Snapshot,
+    Backend, CopyProgress, Created, CustomInstance, Event, Events, FailDetail, FailKind, Failure,
+    Launched, ModeInfo, ModeSnapshot, ModeState, NewInstance, Settings, Snapshot,
     account::{AccountProblem, AccountSnapshot, Accounts, AccountsPreset, FakeAccounts},
     importer::{FakeImport, ImportPreset, Importer},
-    index,
+    index, info_event,
     practice::{FakePractice, PracticeMaps, PracticePreset},
+    state_event,
     stats::StatsService,
     stats_sample::{FakeStats, StatsPreset},
     tools::{FakeTools, ToolId, Tools, ToolsPreset},
@@ -68,6 +70,8 @@ pub struct FakeOptions {
 pub struct FakeBackend {
     shared: Arc<Mutex<Snapshot>>,
     cmds: mpsc::Sender<Cmd>,
+    /// For answers sent right from a call (`set_settings`), in order with it.
+    events: Events,
     tools: FakeTools,
     stats: FakeStats,
     accounts: FakeAccounts,
@@ -77,15 +81,21 @@ pub struct FakeBackend {
 }
 
 enum Cmd {
-    Play(Mode),
-    Cancel(Mode),
-    Settings(Settings),
+    Play(Instance),
+    Cancel(Instance),
+    /// The settings changed: save them and refresh the Mods pages.
+    Settings,
     AddJar(Mode, PathBuf),
+    AddInstanceJar(CustomId, PathBuf),
+    Create(NewInstance),
+    Duplicate(Instance, String, bool),
+    Delete(CustomId),
 }
 
 /// The mod lists the fake's Mods page is built from: srl-mods' test snapshot of the real
-/// manifests (2026-10-26), built into the binary so the fake needs no network or cache.
-fn fake_meta() -> &'static srl_mods::ModMeta {
+/// manifests (2026-10-26), built into the binary so the fake needs no network or cache. The
+/// real backend's tests resolve with it too.
+pub(super) fn fake_meta() -> &'static srl_mods::ModMeta {
     static META: std::sync::OnceLock<srl_mods::ModMeta> = std::sync::OnceLock::new();
     META.get_or_init(|| {
         macro_rules! fixture {
@@ -108,22 +118,38 @@ fn fake_meta() -> &'static srl_mods::ModMeta {
     })
 }
 
-/// The Mods page of `mode` for `settings`, as the real update check fills it in.
+/// The Mods page of a mode or a custom instance for `settings`, as the real update check fills
+/// it in (a custom instance's against its base mode's set).
 fn fake_mods(
-    mode: Mode,
+    instance: Instance,
     settings: &Settings,
 ) -> (Vec<srl_mods::Available>, Vec<srl_mods::Concern>) {
     let meta = fake_meta();
     let rules = settings.mod_rules();
     let os = srl_mods::Os::current();
-    let Ok(own) = srl_mods::resolve(meta, mode, os, &rules.opts) else {
+    let Some(base) = rules.base(instance) else {
         return (Vec::new(), Vec::new());
     };
-    let set = srl_mods::apply(meta, own.clone(), &rules.choice(mode));
+    let Ok(own) = srl_mods::resolve(meta, base, os, &rules.opts) else {
+        return (Vec::new(), Vec::new());
+    };
+    let set = srl_mods::apply(meta, own.clone(), &rules.choice_of(instance));
     (
-        srl_mods::catalogue(meta, &own, &set, mode),
-        srl_mods::concerns(meta, &set, mode),
+        srl_mods::catalogue(meta, &own, &set, base),
+        srl_mods::concerns(meta, &set, base),
     )
+}
+
+/// How long the fake's duplicate "copies".
+const FAKE_COPY_SECS: f32 = 2.5;
+
+/// A simulated duplicate: the definition it will add once its copy is done.
+struct CopyJob {
+    def: CustomInstance,
+    start: Instant,
+    /// Folders the fake pretends to copy: 1200 files, 840 MB with worlds, 300 files without.
+    files: u64,
+    bytes: u64,
 }
 
 /// One simulated stage: what it counts, up to what total, and how long it takes.
@@ -136,7 +162,7 @@ struct Step {
 }
 
 struct Job {
-    mode: Mode,
+    instance: Instance,
     steps: Vec<Step>,
     step: usize,
     step_start: Instant,
@@ -165,25 +191,43 @@ impl FakeBackend {
         if let Some((mode, state)) = &options.preset {
             modes[index(*mode)].state = state.clone();
         }
-        let installed = std::array::from_fn(|i| match &modes[i].state {
+        let is_installed = |state: &ModeState| match state {
             ModeState::NotInstalled | ModeState::Installing(_) => false,
             ModeState::Failed(f) => f.installed,
             _ => true,
-        });
+        };
+        // The fake's custom instances start as not installed (no files behind them).
+        let mut customs: std::collections::BTreeMap<CustomId, ModeSnapshot> = settings
+            .custom_instances
+            .iter()
+            .map(|c| (c.id, blank.clone()))
+            .collect();
+        for (id, c) in customs.iter_mut() {
+            let (catalogue, concerns) = fake_mods(Instance::Custom(*id), &settings);
+            c.info.catalogue = Some(catalogue);
+            c.info.concerns = concerns;
+        }
+        let installed: HashSet<Instance> = Mode::ALL
+            .into_iter()
+            .zip(&modes)
+            .filter(|(_, m)| is_installed(&m.state))
+            .map(|(mode, _)| Instance::Mode(mode))
+            .collect();
         let accounts = FakeAccounts::new(events.clone(), options.accounts);
         let account_state = accounts.shared();
         for (i, m) in modes.iter_mut().enumerate() {
-            if installed[i] && m.info.java.is_none() {
+            let instance = Instance::Mode(Mode::ALL[i]);
+            if installed.contains(&instance) && m.info.java.is_none() {
                 m.info.java = Some(fake_java(Mode::ALL[i]).into());
             }
             if m.info.catalogue.is_none() {
-                let (catalogue, concerns) = fake_mods(Mode::ALL[i], &settings);
+                let (catalogue, concerns) = fake_mods(instance, &settings);
                 m.info.catalogue = Some(catalogue);
                 m.info.concerns = concerns;
             }
             if m.state == ModeState::Running {
                 let mut launched =
-                    fake_launched(Mode::ALL[i], &settings, &account_state.lock().unwrap());
+                    fake_launched(instance, &settings, &account_state.lock().unwrap());
                 if options.renew_warning {
                     launched.valid_until = Some(fake_valid_until());
                 }
@@ -192,6 +236,7 @@ impl FakeBackend {
         }
         let shared = Arc::new(Mutex::new(Snapshot {
             modes,
+            customs,
             settings,
             data_dir: options.data_dir.clone(),
             data_error: None,
@@ -209,8 +254,9 @@ impl FakeBackend {
         let worker = Worker {
             shared: shared.clone(),
             accounts: account_state,
-            events,
+            events: events.clone(),
             jobs: Vec::new(),
+            copies: Vec::new(),
             installed,
             fail_next: options.fail_first,
             settings_file: if options.settings.is_some() {
@@ -226,6 +272,7 @@ impl FakeBackend {
         Self {
             shared,
             cmds,
+            events,
             tools,
             stats,
             accounts,
@@ -272,10 +319,10 @@ pub fn fake_sign_in_failure(keyring: bool) -> Failure {
 }
 
 /// What a fake game was started with: the active Microsoft account or the settings' name, the
-/// memory, and of the tools the mode starts with, Ninjabrain Bot (the one tool the fake has
+/// memory, and of the tools the instance starts with, Ninjabrain Bot (the one tool the fake has
 /// installed).
-fn fake_launched(mode: Mode, settings: &Settings, accounts: &AccountSnapshot) -> Launched {
-    let ninjabrain = settings.starts_with(ToolId::NinjabrainBot, mode);
+fn fake_launched(instance: Instance, settings: &Settings, accounts: &AccountSnapshot) -> Launched {
+    let ninjabrain = settings.starts_with(ToolId::NinjabrainBot, settings.rules_mode(instance));
     let microsoft = accounts.active_name().map(str::to_string);
     Launched {
         microsoft: microsoft.is_some(),
@@ -286,7 +333,7 @@ fn fake_launched(mode: Mode, settings: &Settings, accounts: &AccountSnapshot) ->
                 .clone()
                 .unwrap_or_else(|| super::pipeline::DEFAULT_PLAYER.into())
         }),
-        memory_mb: settings.memory_mb(mode),
+        memory_mb: settings.memory_mb_of(instance),
         tools: if ninjabrain {
             vec![ToolId::NinjabrainBot]
         } else {
@@ -310,14 +357,23 @@ impl Backend for FakeBackend {
         self.shared.lock().unwrap().clone()
     }
     fn play(&self, mode: Mode) {
-        let _ = self.cmds.send(Cmd::Play(mode));
+        let _ = self.cmds.send(Cmd::Play(mode.into()));
     }
     fn cancel(&self, mode: Mode) {
-        let _ = self.cmds.send(Cmd::Cancel(mode));
+        let _ = self.cmds.send(Cmd::Cancel(mode.into()));
     }
-    fn set_settings(&self, settings: Settings) {
-        self.shared.lock().unwrap().settings = settings.clone();
-        let _ = self.cmds.send(Cmd::Settings(settings));
+    fn set_settings(&self, mut settings: Settings) {
+        // As the real backend: the custom instances that exist are the backend's to say.
+        {
+            let mut shared = self.shared.lock().unwrap();
+            if shared.settings.adopt_customs(&mut settings) {
+                // Under the lock, so it can't overtake a newer list from the worker.
+                let list = settings.custom_instances.clone();
+                let _ = self.events.unbounded_send(Event::CustomInstances(list));
+            }
+            shared.settings = settings;
+        }
+        let _ = self.cmds.send(Cmd::Settings);
     }
     fn open_data_folder(&self) {
         // Never a real file manager from the fake: it runs in Xvfb for screenshots, and a file
@@ -352,6 +408,30 @@ impl Backend for FakeBackend {
     fn add_jar(&self, mode: Mode, path: PathBuf) {
         let _ = self.cmds.send(Cmd::AddJar(mode, path));
     }
+    fn play_custom(&self, id: CustomId) {
+        let _ = self.cmds.send(Cmd::Play(Instance::Custom(id)));
+    }
+    fn cancel_custom(&self, id: CustomId) {
+        let _ = self.cmds.send(Cmd::Cancel(Instance::Custom(id)));
+    }
+    fn create_instance(&self, spec: NewInstance) {
+        let _ = self.cmds.send(Cmd::Create(spec));
+    }
+    fn duplicate_instance(&self, from: Instance, name: String, with_worlds: bool) {
+        let _ = self.cmds.send(Cmd::Duplicate(from, name, with_worlds));
+    }
+    fn delete_instance(&self, id: CustomId) {
+        let _ = self.cmds.send(Cmd::Delete(id));
+    }
+    fn add_instance_jar(&self, id: CustomId, path: PathBuf) {
+        let _ = self.cmds.send(Cmd::AddInstanceJar(id, path));
+    }
+    fn open_game_folder(&self, instance: Instance) {
+        eprintln!(
+            "fake: would open the game folder of {} in the file manager",
+            instance.id()
+        );
+    }
 }
 
 struct Worker {
@@ -360,9 +440,11 @@ struct Worker {
     accounts: Arc<Mutex<AccountSnapshot>>,
     events: Events,
     jobs: Vec<Job>,
-    /// Whether the game files of each mode are in place (so Retry after a failed launch skips
-    /// the downloads).
-    installed: [bool; 5],
+    /// Duplicates "copying".
+    copies: Vec<CopyJob>,
+    /// The instances whose game files are in place (so Retry after a failed launch skips the
+    /// downloads).
+    installed: HashSet<Instance>,
     fail_next: bool,
     settings_file: Option<PathBuf>,
 }
@@ -371,37 +453,32 @@ impl Worker {
     fn run(mut self, rx: mpsc::Receiver<Cmd>) {
         loop {
             // Idle blocks without a timeout, so a fake backend with nothing to do costs nothing.
-            let cmd = if self.jobs.is_empty() {
+            let cmd = if self.jobs.is_empty() && self.copies.is_empty() {
                 rx.recv().map_err(|_| RecvTimeoutError::Disconnected)
             } else {
                 rx.recv_timeout(TICK)
             };
             match cmd {
-                Ok(Cmd::Play(mode)) => self.play(mode),
-                Ok(Cmd::Cancel(mode)) => self.cancel(mode),
-                Ok(Cmd::Settings(s)) => {
-                    if let Some(path) = &self.settings_file
-                        && let Err(e) = s.save(path)
-                    {
-                        eprintln!("could not save settings to {}: {e}", path.display());
-                    }
-                    self.refresh_mods(&s);
+                Ok(Cmd::Play(instance)) => self.play(instance),
+                Ok(Cmd::Cancel(instance)) => self.cancel(instance),
+                Ok(Cmd::Create(spec)) => self.create(spec),
+                Ok(Cmd::Duplicate(from, name, worlds)) => self.duplicate(from, &name, worlds),
+                Ok(Cmd::Delete(id)) => self.delete(id),
+                Ok(Cmd::AddInstanceJar(id, path)) => {
+                    let answer = fake_jar(&path);
+                    let _ = self
+                        .events
+                        .unbounded_send(Event::InstanceJarAdded(id, answer));
+                }
+                // The newest settings, not the ones sent: a custom instance added since then
+                // must not be written away.
+                Ok(Cmd::Settings) => {
+                    self.save_settings();
+                    let latest = self.shared.lock().unwrap().settings.clone();
+                    self.refresh_mods(&latest);
                 }
                 Ok(Cmd::AddJar(mode, path)) => {
-                    let file_name = path
-                        .file_name()
-                        .map(|n| n.to_string_lossy().into_owned())
-                        .unwrap_or_default();
-                    let answer = if file_name.to_ascii_lowercase().ends_with(".jar") {
-                        Ok(srl_mods::CustomJar {
-                            name: file_name.trim_end_matches(".jar").to_string(),
-                            sha512: format!("{:0>128}", file_name.len()),
-                            size: std::fs::metadata(&path).map(|m| m.len()).unwrap_or(0),
-                            file_name,
-                        })
-                    } else {
-                        Err(format!("{} is not a .jar", path.display()))
-                    };
+                    let answer = fake_jar(&path);
                     let _ = self.events.unbounded_send(Event::JarAdded(mode, answer));
                 }
                 Err(RecvTimeoutError::Timeout) => {}
@@ -411,41 +488,214 @@ impl Worker {
         }
     }
 
-    fn state(&self, mode: Mode) -> ModeState {
-        self.shared.lock().unwrap().modes[index(mode)].state.clone()
+    fn state(&self, instance: Instance) -> ModeState {
+        self.shared
+            .lock()
+            .unwrap()
+            .instance(instance)
+            .map_or(ModeState::NotInstalled, |s| s.state.clone())
     }
 
     fn refresh_mods(&self, settings: &Settings) {
-        for mode in Mode::ALL {
-            let (catalogue, concerns) = fake_mods(mode, settings);
-            self.update_info(mode, |info| {
+        let customs: Vec<Instance> = settings
+            .custom_instances
+            .iter()
+            .map(|c| c.instance())
+            .collect();
+        for instance in Mode::ALL.into_iter().map(Instance::Mode).chain(customs) {
+            let (catalogue, concerns) = fake_mods(instance, settings);
+            self.update_info(instance, |info| {
                 info.catalogue = Some(catalogue);
                 info.concerns = concerns;
             });
         }
     }
 
-    fn set_state(&self, mode: Mode, state: ModeState) {
+    fn set_state(&self, instance: Instance, state: ModeState) {
         let mut shared = self.shared.lock().unwrap();
-        let slot = &mut shared.modes[index(mode)].state;
+        let Some(slot) = shared.instance_mut(instance).map(|s| &mut s.state) else {
+            return;
+        };
         if *slot != state {
             *slot = state.clone();
-            let _ = self.events.unbounded_send(Event::State(mode, state));
+            if let Some(ev) = state_event(instance, state) {
+                let _ = self.events.unbounded_send(ev);
+            }
         }
     }
 
-    fn update_info(&self, mode: Mode, f: impl FnOnce(&mut ModeInfo)) {
+    fn update_info(&self, instance: Instance, f: impl FnOnce(&mut ModeInfo)) {
         let mut shared = self.shared.lock().unwrap();
-        let info = &mut shared.modes[index(mode)].info;
+        let Some(info) = shared.instance_mut(instance).map(|s| &mut s.info) else {
+            return;
+        };
         let before = info.clone();
         f(info);
-        if *info != before {
-            let _ = self.events.unbounded_send(Event::Info(mode, info.clone()));
+        if *info != before
+            && let Some(ev) = info_event(instance, info.clone())
+        {
+            let _ = self.events.unbounded_send(ev);
         }
     }
 
-    fn play(&mut self, mode: Mode) {
-        let before = self.state(mode);
+    fn save_settings(&self) {
+        let settings = self.shared.lock().unwrap().settings.clone();
+        if let Some(path) = &self.settings_file
+            && let Err(e) = settings.save(path)
+        {
+            eprintln!("could not save settings to {}: {e}", path.display());
+        }
+    }
+
+    /// Adds a new custom instance (not installed), saves, and tells the UI, as the real
+    /// backend's `add_custom` does.
+    fn add_custom(&self, def: CustomInstance, skipped: Vec<String>) {
+        let created = Created {
+            id: def.id,
+            name: def.name.clone(),
+            skipped,
+        };
+        {
+            let mut shared = self.shared.lock().unwrap();
+            shared.settings.custom_instances.push(def);
+            let (catalogue, concerns) = fake_mods(Instance::Custom(created.id), &shared.settings);
+            shared.customs.insert(
+                created.id,
+                ModeSnapshot {
+                    state: ModeState::NotInstalled,
+                    info: ModeInfo {
+                        catalogue: Some(catalogue.clone()),
+                        concerns: concerns.clone(),
+                        ..ModeInfo::default()
+                    },
+                },
+            );
+            let list = shared.settings.custom_instances.clone();
+            let _ = self.events.unbounded_send(Event::CustomInstances(list));
+            let _ = self
+                .events
+                .unbounded_send(Event::CustomState(created.id, ModeState::NotInstalled));
+            let _ = self.events.unbounded_send(Event::CustomInfo(
+                created.id,
+                shared.customs[&created.id].info.clone(),
+            ));
+        }
+        self.save_settings();
+        let _ = self
+            .events
+            .unbounded_send(Event::InstanceCreated(Ok(created)));
+    }
+
+    fn create(&self, spec: NewInstance) {
+        let answer = {
+            let shared = self.shared.lock().unwrap();
+            shared
+                .settings
+                .validate_instance_name(&spec.name, None)
+                .map(|name| CustomInstance {
+                    id: shared.settings.next_custom_id(),
+                    name,
+                    base: spec.base,
+                    memory_mb: None,
+                    mods: srl_mods::ModChoice::default(),
+                    jvm_args: Vec::new(),
+                    created_ms: chrono::Utc::now().timestamp_millis(),
+                })
+        };
+        match answer {
+            Ok(def) => self.add_custom(def, Vec::new()),
+            Err(p) => {
+                let _ = self
+                    .events
+                    .unbounded_send(Event::InstanceCreated(Err(p.to_string())));
+            }
+        }
+    }
+
+    fn duplicate(&mut self, from: Instance, name: &str, worlds: bool) {
+        let answer = {
+            let shared = self.shared.lock().unwrap();
+            let s = &shared.settings;
+            s.validate_instance_name(name, None)
+                .map_err(|p| p.to_string())
+                .and_then(|name| {
+                    let (base, memory_mb, mods, jvm_args) = match from {
+                        Instance::Mode(m) => (
+                            m,
+                            s.mode_memory_mb.get(&m).copied(),
+                            s.mod_choices.get(&m).cloned().unwrap_or_default(),
+                            Vec::new(),
+                        ),
+                        Instance::Practice => (Mode::Rsg, None, Default::default(), Vec::new()),
+                        Instance::Custom(c) => {
+                            let d = s.custom(c).ok_or(format!("there is no instance {c}"))?;
+                            (d.base, d.memory_mb, d.mods.clone(), d.jvm_args.clone())
+                        }
+                    };
+                    // Ids handed out to copies still running count as taken.
+                    let id = self
+                        .copies
+                        .iter()
+                        .map(|c| c.def.id.0 + 1)
+                        .chain([s.next_custom_id().0])
+                        .max()
+                        .map(CustomId)
+                        .expect("at least one");
+                    Ok(CustomInstance {
+                        id,
+                        name,
+                        base,
+                        memory_mb,
+                        mods,
+                        jvm_args,
+                        created_ms: chrono::Utc::now().timestamp_millis(),
+                    })
+                })
+        };
+        match answer {
+            Ok(def) => self.copies.push(CopyJob {
+                def,
+                start: Instant::now(),
+                files: if worlds { 1200 } else { 300 },
+                bytes: if worlds { 840 * MIB } else { 96 * MIB },
+            }),
+            Err(e) => {
+                let _ = self.events.unbounded_send(Event::InstanceCreated(Err(e)));
+            }
+        }
+    }
+
+    fn delete(&mut self, id: CustomId) {
+        let instance = Instance::Custom(id);
+        let answer = match self.state(instance) {
+            _ if !self.shared.lock().unwrap().customs.contains_key(&id) => {
+                Err(format!("there is no instance {id}"))
+            }
+            ModeState::Installing(_) | ModeState::Running => {
+                Err(format!("{id} is installing or running; stop it first"))
+            }
+            _ => {
+                {
+                    let mut shared = self.shared.lock().unwrap();
+                    shared.settings.custom_instances.retain(|c| c.id != id);
+                    shared.customs.remove(&id);
+                    let list = shared.settings.custom_instances.clone();
+                    let _ = self.events.unbounded_send(Event::CustomInstances(list));
+                }
+                self.installed.remove(&instance);
+                self.save_settings();
+                eprintln!("fake: would move instances/{id} to trash/");
+                Ok(id)
+            }
+        };
+        let _ = self.events.unbounded_send(Event::InstanceDeleted(answer));
+    }
+
+    fn play(&mut self, instance: Instance) {
+        if self.shared.lock().unwrap().instance(instance).is_none() {
+            return;
+        }
+        let before = self.state(instance);
         if matches!(before, ModeState::Installing(_) | ModeState::Running) {
             return;
         }
@@ -457,7 +707,7 @@ impl Worker {
         };
         let check = step(Stage::Metadata, Unit::Files, 3, 0.5);
         let launch = step(Stage::Launching, Unit::Files, 0, 1.2);
-        let mut steps = if !self.installed[index(mode)] {
+        let mut steps = if !self.installed.contains(&instance) {
             vec![
                 step(Stage::Metadata, Unit::Files, 14, 0.8),
                 step(Stage::Java, Unit::Bytes, 48 * MIB, 1.8),
@@ -484,7 +734,7 @@ impl Worker {
             (at, 0.4)
         });
         self.jobs.push(Job {
-            mode,
+            instance,
             steps,
             step: 0,
             step_start: Instant::now(),
@@ -493,32 +743,61 @@ impl Worker {
         });
     }
 
-    fn cancel(&mut self, mode: Mode) {
-        if let Some(i) = self.jobs.iter().position(|j| j.mode == mode) {
+    fn cancel(&mut self, instance: Instance) {
+        if let Some(i) = self.jobs.iter().position(|j| j.instance == instance) {
             let job = self.jobs.remove(i);
-            self.set_state(mode, job.before);
+            self.set_state(instance, job.before);
             return;
         }
-        match self.state(mode) {
+        match self.state(instance) {
             // The game "exits".
             ModeState::Running => {
-                self.update_info(mode, |info| info.launched = None);
-                self.set_state(mode, ModeState::Ready)
+                self.update_info(instance, |info| info.launched = None);
+                self.set_state(instance, ModeState::Ready)
             }
             // A preset install with nothing behind it.
             ModeState::Installing(_) => {
-                let back = if self.installed[index(mode)] {
+                let back = if self.installed.contains(&instance) {
                     ModeState::Ready
                 } else {
                     ModeState::NotInstalled
                 };
-                self.set_state(mode, back);
+                self.set_state(instance, back);
             }
             _ => {}
         }
     }
 
     fn advance(&mut self, now: Instant) {
+        // Duplicates: progress, then the new instance once "copied".
+        let mut done = Vec::new();
+        for (i, c) in self.copies.iter().enumerate() {
+            let f =
+                (now.saturating_duration_since(c.start).as_secs_f32() / FAKE_COPY_SECS).min(1.0);
+            let _ = self
+                .events
+                .unbounded_send(Event::InstanceCopy(CopyProgress {
+                    id: c.def.id,
+                    name: c.def.name.clone(),
+                    files: (c.files as f32 * f) as u64,
+                    files_total: c.files,
+                    bytes: (c.bytes as f32 * f) as u64,
+                    bytes_total: c.bytes,
+                }));
+            if f >= 1.0 {
+                done.push(i);
+            }
+        }
+        for i in done.into_iter().rev() {
+            let mut c = self.copies.remove(i);
+            c.def.name = self
+                .shared
+                .lock()
+                .unwrap()
+                .settings
+                .unique_instance_name(&c.def.name);
+            self.add_custom(c.def, Vec::new());
+        }
         let mut finished = Vec::new();
         for (ji, job) in self.jobs.iter_mut().enumerate() {
             // Move past finished steps (a slow tick can skip a short one).
@@ -540,8 +819,12 @@ impl Worker {
                         unit: s.unit,
                     });
                     let mut shared = self.shared.lock().unwrap();
-                    shared.modes[index(job.mode)].state = state.clone();
-                    let _ = self.events.unbounded_send(Event::State(job.mode, state));
+                    if let Some(slot) = shared.instance_mut(job.instance) {
+                        slot.state = state.clone();
+                    }
+                    if let Some(ev) = state_event(job.instance, state) {
+                        let _ = self.events.unbounded_send(ev);
+                    }
                     break;
                 }
                 if job.step + 1 == job.steps.len() {
@@ -554,26 +837,50 @@ impl Worker {
         }
         for (ji, result) in finished.into_iter().rev() {
             let job = self.jobs.remove(ji);
-            let mode = job.mode;
+            let instance = job.instance;
             match result {
                 Ok(()) => {
-                    self.installed[index(mode)] = true;
-                    let launched = fake_launched(
-                        mode,
-                        &self.shared.lock().unwrap().settings,
-                        &self.accounts.lock().unwrap(),
-                    );
-                    self.update_info(mode, |info| {
+                    self.installed.insert(instance);
+                    let (launched, base) = {
+                        let shared = self.shared.lock().unwrap();
+                        (
+                            fake_launched(
+                                instance,
+                                &shared.settings,
+                                &self.accounts.lock().unwrap(),
+                            ),
+                            shared.settings.rules_mode(instance),
+                        )
+                    };
+                    self.update_info(instance, |info| {
                         info.download = None;
                         info.update = None;
-                        info.java = Some(fake_java(mode).into());
+                        info.java = Some(fake_java(base).into());
                         info.launched = Some(launched);
                     });
-                    self.set_state(mode, ModeState::Running);
+                    self.set_state(instance, ModeState::Running);
                 }
-                Err(failure) => self.set_state(mode, ModeState::Failed(failure)),
+                Err(failure) => self.set_state(instance, ModeState::Failed(failure)),
             }
         }
+    }
+}
+
+/// The fake's answer to a picked jar: any `.jar` is taken, with a made-up hash.
+fn fake_jar(path: &Path) -> Result<srl_mods::CustomJar, String> {
+    let file_name = path
+        .file_name()
+        .map(|n| n.to_string_lossy().into_owned())
+        .unwrap_or_default();
+    if file_name.to_ascii_lowercase().ends_with(".jar") {
+        Ok(srl_mods::CustomJar {
+            name: file_name.trim_end_matches(".jar").to_string(),
+            sha512: format!("{:0>128}", file_name.len()),
+            size: std::fs::metadata(path).map(|m| m.len()).unwrap_or(0),
+            file_name,
+        })
+    } else {
+        Err(format!("{} is not a .jar", path.display()))
     }
 }
 
@@ -743,6 +1050,65 @@ mod tests {
         wait_for(&mut rx, 5, |e| {
             matches!(e, Event::State(Mode::Ssg, ModeState::Failed(_)))
         });
+    }
+
+    /// The fake's custom instances: create, play (an install, then running), stop, duplicate
+    /// with progress, refuse a delete while running, delete.
+    #[test]
+    fn custom_instances_install_run_copy_and_go() {
+        let (tx, mut rx) = futures::channel::mpsc::unbounded();
+        let b = FakeBackend::new(tx, options());
+        b.create_instance(NewInstance {
+            name: "Seeds".into(),
+            base: Mode::Ssg,
+            copy_settings_from: None,
+        });
+        let mut id = None;
+        wait_for(&mut rx, 5, |e| match e {
+            Event::InstanceCreated(Ok(c)) => {
+                id = Some(c.id);
+                true
+            }
+            _ => false,
+        });
+        let id = id.unwrap();
+        let snap = b.snapshot();
+        assert!(snap.customs[&id].info.catalogue.is_some());
+        assert_eq!(snap.settings.custom(id).unwrap().base, Mode::Ssg);
+
+        b.play_custom(id);
+        let seen = wait_for(&mut rx, 20, |e| {
+            *e == Event::CustomState(id, ModeState::Running)
+        });
+        assert!(
+            seen.iter()
+                .any(|e| matches!(e, Event::CustomState(_, ModeState::Installing(p)) if p.stage == Stage::Assets))
+        );
+        b.delete_instance(id);
+        wait_for(&mut rx, 5, |e| matches!(e, Event::InstanceDeleted(Err(_))));
+        b.cancel_custom(id);
+        wait_for(&mut rx, 5, |e| {
+            *e == Event::CustomState(id, ModeState::Ready)
+        });
+
+        b.duplicate_instance(Instance::Custom(id), "seeds".into(), true);
+        wait_for(&mut rx, 5, |e| matches!(e, Event::InstanceCreated(Err(_))));
+        b.duplicate_instance(Instance::Custom(id), "Seeds copy".into(), true);
+        let seen = wait_for(&mut rx, 10, |e| matches!(e, Event::InstanceCreated(Ok(_))));
+        assert!(
+            seen.iter()
+                .filter(|e| matches!(e, Event::InstanceCopy(_)))
+                .count()
+                > 2
+        );
+        assert_eq!(b.snapshot().customs.len(), 2);
+
+        b.delete_instance(id);
+        wait_for(&mut rx, 5, |e| *e == Event::InstanceDeleted(Ok(id)));
+        let snap = b.snapshot();
+        assert_eq!(snap.customs.len(), 1);
+        assert_eq!(snap.settings.custom_instances.len(), 1);
+        assert_eq!(snap.settings.custom_instances[0].base, Mode::Ssg);
     }
 
     #[test]

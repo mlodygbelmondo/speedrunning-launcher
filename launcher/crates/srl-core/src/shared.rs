@@ -117,6 +117,17 @@ pub fn switch_to(paths: &Paths, mode: Mode) -> Result<()> {
     save(paths, &state)
 }
 
+/// Where `mode`'s own copy of the per-mode file `rel` (one of `PER_MODE_FILES`) is now: in the
+/// shared directory while `mode` is the current mode (or no mode is known yet), else aside in
+/// `.srl-modes/<mode>/`. It may not exist (the mode starts from Atum's defaults). For copies of
+/// the shared directory that must carry one mode's settings, not whichever mode played last.
+pub fn per_mode_file(paths: &Paths, mode: Mode, rel: &str) -> PathBuf {
+    match current(paths) {
+        Some(m) if m != mode => mode_files(paths, mode).join(rel),
+        _ => shared_dir(paths).join(rel),
+    }
+}
+
 /// Moves `from` to `to` (replacing it) if `from` exists, else removes `to`'s stale copy: after
 /// this `to` is exactly what `from` was.
 fn move_file(from: &Path, to: &Path) -> Result<()> {
@@ -379,6 +390,12 @@ mod tests {
         );
         switch_to(&paths, Mode::Ssg).unwrap();
         assert_eq!(current(&paths), Some(Mode::Ssg));
+        // Each mode's copy, wherever it is now.
+        assert_eq!(per_mode_file(&paths, Mode::Ssg, PER_MODE_FILES[0]), atum);
+        assert_eq!(
+            fs::read_to_string(per_mode_file(&paths, Mode::Rsg, PER_MODE_FILES[0])).unwrap(),
+            r#"{"seed":""}"#
+        );
         fs::remove_dir_all(&root).unwrap();
     }
 

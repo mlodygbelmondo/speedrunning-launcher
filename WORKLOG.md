@@ -249,6 +249,32 @@ Potem:
   Instancje. Strona Tryby usunięta (jej pytanie „Tryby względem Startu” z oceny ekranów tym samym zamknięte).
   Sprawdzone w Xvfb: wszystkie karty, sprzątanie usuwa 44 z 47 światów próbki i zostawia 3 nazwane.
   Własne instancje (tworzenie, kopiowanie, usuwanie) robi równolegle subagent w osobnym worktree.
+- **Własne instancje: rdzeń i backend** (prośba Piotra; ekrany robi równolegle wątek nadrzędny). Gracz może tworzyć
+  własne instancje, każdą z własnym katalogiem `instances/custom-<n>`. Wspólny katalog 1.16.1, Draftout i trening
+  zostają bez zmian.
+  - `srl-core`: `CustomId` i `Instance::Custom`; `Instance::id`/`dir_id` zwracają `Cow`, `Instance::from_id`,
+    `Paths::game_dir(instance)` (jedno miejsce na katalog każdej instancji), `Paths::trash`,
+    `shared::per_mode_file`. Zapis serde starych wartości bez zmian, nowa to `{"custom":n}`.
+  - Definicje w `settings.json` (`custom_instances`: nazwa 1–40 znaków, unikalna bez względu na wielkość liter,
+    tryb bazowy, pamięć, zmiany modów jak `mod_choices`, argumenty JVM, czas utworzenia). Tryb bazowy daje wersję gry,
+    Javę, Fabric, legalny zestaw modów i zasady narzędzi. Argumenty JVM bez `-Xmx`/`-Xms`, `-cp`/`-jar` i agentów
+    Javy, wstawiane przed klasą główną.
+  - Backend: `play_custom`/`cancel_custom` tą samą ścieżką Graj (własny zapis instalacji, log, plik pid i `mods/`,
+    nigdy przełączanie Atum wspólnego katalogu), stan przy starcie z dysku, karta Mody z katalogiem względem trybu
+    bazowego. `create_instance` (opcjonalnie z opcjami, `config/` i paczkami zasobów innej instancji),
+    `duplicate_instance` (cały katalog bez `mods/`, logów i notatek launchera, światy na życzenie, z postępem, pliki
+    nie do odczytu pominięte z notatką), `delete_instance` (odmawia, gdy instaluje, gra albo jest kopiowana; katalog
+    trafia do `trash/custom-<n>-<czas>`, nic nie jest kasowane). Listą instancji rządzi backend: `set_settings`
+    zmienia tylko istniejące i nie zmienia trybu bazowego. CLI: `--install` i `--launch custom-<n>`, `--status`
+    pokazuje własne instancje. `FakeBackend` symuluje to samo (`SRL_FAKE=1`).
+  - Sprawdzone: `cargo test --workspace`, `clippy -D warnings` i `fmt` zielone; nowe testy ustawień, kopiowania,
+    kosza, rozwiązywania zestawu i pełny cykl na `RealBackend` w katalogu tymczasowym (utwórz, duplikuj, zmień, usuń)
+    oraz na `FakeBackend`. Na prawdziwej grze w Xvfb: `--install custom-1` (baza RSG, 22 mody, własny katalog, bez
+    `instances/mcsr`), potem `--launch` do ekranu tytułowego w 11 s z `-Dsrl.smoke=yes` w linii poleceń Javy
+    i czystym zatrzymaniem.
+  - Zostaje: Statystyki nie liczą runów z własnych instancji (srl-stats przypisuje rekordy do katalogów trybów),
+    import nie proponuje ich jako celu, ekrany (strona Instancje) są w osobnym wątku. Metody API jeszcze
+    niewywoływane przez UI mają `#[allow(dead_code)]` do usunięcia przy podpięciu.
 
 - **Przejście między trybami na Starcie** (prośba Piotra: „brakuje animacji”). Klik w kafelek trybu: nowa grafika
   przenika starą przez 420 ms, a tytuł, opis, Graj, liczby po prawej i pasek pod spodem wjeżdżają 10 px z dołu

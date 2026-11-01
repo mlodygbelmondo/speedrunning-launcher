@@ -12,6 +12,7 @@ pipeline as the Play button, exit code 0 on success, 1 on failure, 2 on a usage 
 
 ```sh
 speedrunning-launcher --install rsg                    # Java, Minecraft, Fabric Loader, the mods, the tools
+speedrunning-launcher --install custom-2               # the same for a custom instance (--launch too)
 speedrunning-launcher --launch draftout --until-ready 300 --ready-cmd 'import -window root shot.png'
 speedrunning-launcher --launch rsg --tools none        # the game alone (default: the saved choice)
 speedrunning-launcher --status                         # what is installed, from local files only
@@ -37,7 +38,7 @@ output, and when CI pipes the output it writes there.
 | `src/screens/*.rs` | One file per screen: `home`, `instances` (with `mods`, its Mods tab), `practice`, `learn`, `tools`, `stats`, `settings` (with the credits view), `game` (Minecraft is running), `name` (first-run prompt), `import` (the settings import); `play` (Play button, progress, errors) and `field` (text input) are shared. |
 | `src/v3.rs` | Tokens and primitives ported from the prototype (letter-spacing, rings, pixel corners, gradients, the fade veil), and the UI system every screen uses (below, "Buttons and labels"). |
 | `src/backend.rs` | The facade and the settings file. |
-| `src/backend/pipeline.rs` | What Play does, over `srl-game`, `srl-mods` and `srl-tools`: `Core::prepare` (metadata, game, mods, the tools), `Core::launch` (through the tools' launch hook, then the tools start), `Game::startup` (title screen or startup failure), `Game::wait` (the game and its tools), `Core::install_tool`, `Core::local_state` (the start-up check). Shared by the window and the CLI. |
+| `src/backend/pipeline.rs` | What Play does, over `srl-game`, `srl-mods` and `srl-tools`: `Core::prepare_instance` (metadata, game, mods, the tools; a mode, practice or a custom instance), `Core::launch` (through the tools' launch hook, then the tools start), `Game::startup` (title screen or startup failure), `Game::wait` (the game and its tools), `Core::install_tool`, `Core::local_state` (the start-up check). Shared by the window and the CLI. |
 | `src/backend/real.rs` | `RealBackend`: the pipeline on one tokio runtime on a background thread, the per-mode state machine, the update check, the launcher log. |
 | `src/backend/fake.rs` | `FakeBackend`: simulated installs and game, for screenshots (`SRL_FAKE=1`). |
 | `src/backend/stats.rs` | The stats extension of the facade: `StatsService`, `StatsEvent`, `StatsView` (what the pages show), `StatsSettings` (the Ranked and Draftout names) and `RealStats` over `srl-stats`. |
@@ -46,6 +47,7 @@ output, and when CI pipes the output it writes there.
 | `src/backend/account.rs` | The Microsoft account extension (srl-auth): `Accounts`, `AccountSnapshot`, the login dialog's `LoginView`, `play_as` (who a Play starts the game as), `launch_account` (the sign-in before a launch), `RealAccounts` and `FakeAccounts`. |
 | `src/screens/account.rs` | The account section on Settings and the login dialog. |
 | `src/backend/practice.rs` | The practice extension of the facade: `PracticeMaps`, `PracticeSnapshot`, `PracticeEvent`, `RealPractice` (srl-practice built once, and the practice game through the pipeline) and `FakePractice`. Decides what the practice instance runs (`target`, `mod_set`, `TOOLS_LIKE`). |
+| `src/backend/instances.rs` | Custom instances on disk: `NewInstance`, `Created`, `CopyProgress`, `CopyPlan` (counting, then copying a game directory with progress; `NOT_COPIED`), `fix_per_mode_files` (a copy of the shared directory gets the source mode's Atum settings), `reserve` (a new number and its directory), `move_to_trash`. |
 | `src/backend/importer.rs` | The settings import's extension of the facade: `Importer`, `ImportEvent`, `ImportResult`, `targets` (every mode and the practice instance, Draftout with its seeded line), `effective` (the ticks a source can bring), `RealImport` (srl-import on the blocking pool, instances whose game runs or installs left out) and `FakeImport` (`ImportPreset`). |
 | `src/backend/update.rs` | The launcher's own update (srl-update): `Updates`, `UpdateState`, `RealUpdates` (when a build checks, the check on start and by hand, the swap right after the verified download, Restart) and `FakeUpdates` (`UpdatePreset`). Settings → About shows it; the gear in the top nav carries an accent square while an update is ready. |
 | `src/screens/instances.rs` | The Instances page (`InstancesView`): the instances on the left; the selected one's Play, facts and tabs (worlds with the reset-world clean-up, mods, resource packs, config, screenshots, logs, settings). The folder work is `backend/content.rs`, run with `cx.background_spawn`. Single deletes go to `<data>/trash/`; only the clean-up deletes for good. |
@@ -95,6 +97,14 @@ pub trait Backend {
     fn stats(&self) -> &dyn StatsService;    // SpeedRunIGT records, MCSR Ranked, Draftout
     fn account(&self) -> &dyn Accounts;      // Microsoft accounts (srl-auth)
     fn import(&self) -> &dyn Importer;       // the settings import (srl-import)
+    // Custom instances (below): Play and Stop, and their lifecycle; results come as events.
+    fn play_custom(&self, id: CustomId);
+    fn cancel_custom(&self, id: CustomId);
+    fn create_instance(&self, spec: NewInstance);          // Event::InstanceCreated
+    fn duplicate_instance(&self, from: Instance, name: String, with_worlds: bool); // InstanceCopy, then InstanceCreated
+    fn delete_instance(&self, id: CustomId);               // Event::InstanceDeleted
+    fn add_instance_jar(&self, id: CustomId, path: PathBuf); // Event::InstanceJarAdded
+    fn open_game_folder(&self, instance: Instance);
 }
 
 pub trait Importer {
@@ -194,7 +204,38 @@ pub trait Accounts {
   went where, where the replaced files are (`instances/<id>/import-backup-<unix time>/`), worlds that were already
   there and files left out. Skip, Back and Continue set `import_offered` in the settings, so the offer never comes
   back.
-- **Events** (`Event::State`, `Event::Info`, `Event::Tool`, `Event::Stats`, `Event::Account`, `Event::Import`) go over a `futures`
+- **Custom instances** (`Instance::Custom(CustomId)`, `instances/custom-<n>`): the definitions are
+  `Settings::custom_instances` (`CustomInstance`: `id`, `name`, `base`, `memory_mb` (`None`: the base mode's),
+  `mods` (a `ModChoice` like `mod_choices`), `jvm_args`, `created_ms`); their state is `Snapshot::customs`, changed
+  by `Event::CustomState` and `Event::CustomInfo` as a mode's by `State` and `Info` (the catalogue and concerns
+  against the base mode's set). The base mode gives the game (`srl_game::profile(base)`), the legal set
+  (`srl_mods::resolve` for the base, then the instance's `ModChoice`), the tools and their rules
+  (`Settings::tool_selection_of`) and the memory fallback (`Settings::memory_mb_of`); the instance's JVM arguments
+  (`validate_jvm_args`: no `-Xmx`/`-Xms`, no `-cp`/`-jar`, no Java agents, each one option) go right before the
+  main class. Play is the modes' pipeline with the instance's own record, stamp, log, pid file and `mods/`, one Play
+  per game directory, and Draftout's `options.txt` seed for a Draftout base; it never touches the shared directory's
+  Atum settings. Startup reads each one's state from disk, and the update check fills in their Mods pages.
+  - **The backend owns which exist.** `create_instance` (a name `Settings::validate_instance_name` takes, a base,
+    optionally another instance's option files, `config/` and resource packs), `duplicate_instance` (the whole game
+    directory but `instances::NOT_COPIED`, `saves/` only `with_worlds`; base, memory, mods and JVM arguments from the
+    source: a mode's own, a custom instance's, practice as RSG with no mod changes) and `delete_instance` add and
+    remove definitions, save the settings and send `Event::CustomInstances` (the list the UI puts into its settings
+    copy) before their result. `set_settings` takes the UI's changes to existing ones (name, memory, mods, JVM
+    arguments; an invalid one keeps the old value) but never adds, removes or rebases one, and sends
+    `CustomInstances` when it had to keep something. Rename, memory, JVM arguments and mods are plain settings
+    changes: `Settings::rename_custom`, `custom_mut`, `set_custom_mod`, `add_custom_jar_to`.
+  - **A copy of the shared directory** carries the source mode's own Atum settings (`shared::per_mode_file`), so an
+    SSG seed never reaches an RSG-based copy. A duplicate copies on the blocking pool, counting the files first, with
+    `Event::InstanceCopy` at most every 50 ms; a file it can't read is left out and named in `Created::skipped`,
+    links are never followed. A failed copy leaves nothing behind.
+  - **Delete** is refused while the instance installs, runs or is being copied from; otherwise its directory moves
+    to `<data>/trash/custom-<n>-<unix time>/` (a rename) and its record, stamp and pid file go. New instances take
+    the next number whose directory doesn't exist (`Settings::next_custom_id`, `instances::reserve`).
+  - **Not yet:** Stats don't count a custom instance's runs (srl-stats attributes records to the modes' own
+    directories), and the import doesn't offer custom instances as targets.
+- **Events** (`Event::State`, `Event::Info`, `Event::Tool`, `Event::Stats`, `Event::Account`, `Event::Import`, and the
+  custom instances' `CustomState`, `CustomInfo`, `CustomInstances`, `InstanceCreated`, `InstanceCopy`,
+  `InstanceDeleted`, `InstanceJarAdded`) go over a `futures`
   unbounded channel given at creation, from any thread. The app drains it on the GPUI executor and calls `notify` once per batch.
 - **Rules:** methods return at once and never block the UI thread; idle sends nothing, so an idle app renders no
   frames; `play` does nothing while the mode is already installing or running.
@@ -203,8 +244,9 @@ pub trait Accounts {
   first start's import offer being done (`import_offered`), the optional mods (`accessibility_mods`,
   `draftout_extras`, both off by default; `Settings::resolve_options()` hands them to `srl-mods`) and which modes
   start each tool (`tool_autostart`; by default srl-tools' choice: Ninjabrain
-  Bot and Toolscreen in every mode that allows them, waywall in none; `Settings::starts_with(tool, mode)`). Every new
-  field has a default, so older files still load.
+  Bot and Toolscreen in every mode that allows them, waywall in none; `Settings::starts_with(tool, mode)`) and the
+  custom instances (`custom_instances`, left out of the file while empty). Every new field has a default, so older
+  files still load.
 
 ### RealBackend
 
@@ -268,7 +310,9 @@ background on start and whenever the page opens (`PracticeSnapshot::loaded`).
   screen: the map's row says "In the game: Singleplayer, then <world name>" (1.16.1 can't open a world from the
   command line). Reset, Update and Remove are greyed out while it starts or runs.
 
-`FakeBackend` (`src/backend/fake.rs`) simulates installs and a running game on its own thread: a full install in
+`FakeBackend` (`src/backend/fake.rs`) simulates installs and a running game on its own thread, for modes and custom
+instances alike (a custom instance's create is instant, a duplicate "copies" for 2.5 s with progress, a delete only
+logs where the folder would go): a full install in
 about 9 s, an update, a running game until `cancel`, and, with `SRL_FAKE_FAIL=1`, a failure at 40% of the assets
 stage on the first `play`. It persists settings like the real one. `SRL_FAKE=1` selects it; `SRL_DEMO` and the screen
 ids with a state (`installing`, `error`, `crash`, `stopped`, `running`, `tools-*`, `account*`, `login*`, `msa-*`,

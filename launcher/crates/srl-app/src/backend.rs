@@ -20,12 +20,13 @@ use std::{
 };
 
 use serde::{Deserialize, Serialize};
-use srl_core::{Mode, Progress};
+use srl_core::{CustomId, Instance, Mode, Progress};
 
 pub mod account;
 pub mod content;
 mod fake;
 pub mod importer;
+pub mod instances;
 pub mod pipeline;
 pub mod practice;
 mod real;
@@ -40,6 +41,7 @@ pub use fake::{
     fake_sign_in_first,
 };
 pub use importer::{ImportEvent, ImportPreset, ImportResult, Importer};
+pub use instances::{CopyProgress, Created, NewInstance};
 pub use practice::{PracticeEvent, PracticeMaps, PracticePreset, PracticeSnapshot};
 pub use real::RealBackend;
 pub use stats::{StatsEvent, StatsService, StatsSettings, StatsView};
@@ -264,6 +266,142 @@ pub struct Settings {
     /// Look for a new version of the launcher on start, and install it (`update.rs`). On by
     /// default.
     pub auto_update: bool,
+    /// The instances the player created (the Instances page), in the order they were created.
+    /// The backend owns which exist: `Backend::create_instance`, `duplicate_instance` and
+    /// `delete_instance` add and remove them, and `set_settings` only changes the ones that
+    /// exist (their name, memory, mods and JVM arguments; never their base mode).
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    pub custom_instances: Vec<CustomInstance>,
+}
+
+/// A custom instance: a game directory of its own (`instances/custom-<n>`) that plays like its
+/// base mode. The base gives it its Minecraft version, Java, Fabric Loader floor, legal mod set
+/// and tool rules; the instance adds its own mod changes, memory and JVM arguments. It never
+/// touches the shared 1.16.1 directory or its per-mode Atum settings.
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct CustomInstance {
+    pub id: CustomId,
+    /// What the player calls it: 1 to `MAX_INSTANCE_NAME` characters after trimming, unique
+    /// among the custom instances ignoring case (`Settings::validate_instance_name`).
+    pub name: String,
+    /// The mode it plays like. Fixed once created: a world opened in another Minecraft version
+    /// is upgraded for good, so changing the base would risk the instance's worlds.
+    pub base: Mode,
+    /// Its own `-Xmx` in MiB; `None` follows the base mode's setting (`Settings::memory_mb`).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub memory_mb: Option<u32>,
+    /// The player's changes to the base mode's set, as in `Settings::mod_choices` (`on` may
+    /// name a jar of `custom_jars` by its `CustomJar::modid`).
+    #[serde(default, skip_serializing_if = "srl_mods::ModChoice::is_empty")]
+    pub mods: srl_mods::ModChoice,
+    /// JVM arguments added at launch, right before the main class (after the version's own,
+    /// so they win). Checked by `validate_jvm_args`.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub jvm_args: Vec<String>,
+    /// When it was created, in milliseconds since the Unix epoch.
+    #[serde(default)]
+    pub created_ms: i64,
+}
+
+impl CustomInstance {
+    /// The instance it is, for the pipeline and `Paths::game_dir`.
+    pub fn instance(&self) -> Instance {
+        Instance::Custom(self.id)
+    }
+}
+
+/// The longest custom instance name, in characters.
+pub const MAX_INSTANCE_NAME: usize = 40;
+
+/// Why a custom instance name can't be used. `Display` gives the English sentence for the log;
+/// the UI words it in the player's language by the variant.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum NameProblem {
+    /// Nothing but spaces.
+    Empty,
+    /// More than `MAX_INSTANCE_NAME` characters.
+    TooLong,
+    /// A line break, tab or other control character.
+    Control,
+    /// Another custom instance has it (ignoring case).
+    Taken,
+}
+
+impl fmt::Display for NameProblem {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(match self {
+            NameProblem::Empty => "the name is empty",
+            NameProblem::TooLong => "the name is longer than 40 characters",
+            NameProblem::Control => "the name has a control character",
+            NameProblem::Taken => "another instance has that name",
+        })
+    }
+}
+
+/// Why a custom instance's JVM argument is refused. `Display` gives the English sentence.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum JvmArgProblem {
+    /// An empty (or all-space) argument.
+    Empty,
+    /// Not an option (no leading `-`): before the main class it would be taken as the class.
+    NotAnOption(String),
+    /// `-Xmx` or `-Xms`: memory comes from the instance's memory setting.
+    Memory(String),
+    /// `-cp`, `-classpath`, `-jar` and the like: they would break the launch command.
+    Command(String),
+    /// A Java agent changes the game like a mod, outside srl-mods' legal checks.
+    Agent(String),
+}
+
+impl fmt::Display for JvmArgProblem {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            JvmArgProblem::Empty => f.write_str("an argument is empty"),
+            JvmArgProblem::NotAnOption(a) => write!(f, "{a:?} is not a JVM option (no leading -)"),
+            JvmArgProblem::Memory(a) => {
+                write!(f, "{a:?} sets memory, which the memory setting does")
+            }
+            JvmArgProblem::Command(a) => write!(f, "{a:?} would break the launch command"),
+            JvmArgProblem::Agent(a) => write!(f, "{a:?} loads a Java agent, which is not allowed"),
+        }
+    }
+}
+
+/// Checks a custom instance's JVM arguments: each one a single non-empty option. Memory comes
+/// from the memory setting; options that change the command's shape (`-cp`, `-jar`) or load an
+/// agent (which would change the game outside srl-mods' legal checks) are refused.
+pub fn validate_jvm_args(args: &[String]) -> Result<(), JvmArgProblem> {
+    for a in args {
+        let t = a.trim();
+        if t.is_empty() {
+            return Err(JvmArgProblem::Empty);
+        }
+        if !t.starts_with('-') || t != a || t.chars().any(char::is_control) {
+            return Err(JvmArgProblem::NotAnOption(a.clone()));
+        }
+        let lower = t.to_ascii_lowercase();
+        if lower.starts_with("-xmx") || lower.starts_with("-xms") {
+            return Err(JvmArgProblem::Memory(a.clone()));
+        }
+        let command = [
+            "-cp",
+            "-classpath",
+            "--class-path",
+            "-jar",
+            "-version",
+            "--version",
+        ];
+        if command.contains(&lower.as_str())
+            || lower.starts_with("--class-path=")
+            || lower.starts_with("-d64")
+        {
+            return Err(JvmArgProblem::Command(a.clone()));
+        }
+        if lower.starts_with("-javaagent") || lower.starts_with("-agent") {
+            return Err(JvmArgProblem::Agent(a.clone()));
+        }
+    }
+    Ok(())
 }
 
 /// Everything that decides a mode's mods besides the mod lists: the optional mods of Settings
@@ -272,12 +410,59 @@ pub struct Settings {
 pub struct ModRules {
     pub opts: srl_mods::ResolveOptions,
     choices: BTreeMap<Mode, srl_mods::ModChoice>,
+    /// Each custom instance's base mode and its changes, their own jars filled in.
+    customs: BTreeMap<CustomId, (Mode, srl_mods::ModChoice)>,
 }
 
 impl ModRules {
     /// The player's changes to `mode`'s set, their own jars filled in.
     pub fn choice(&self, mode: Mode) -> srl_mods::ModChoice {
         self.choices.get(&mode).cloned().unwrap_or_default()
+    }
+
+    /// The changes to any instance's set: a mode's (`choice`), a custom instance's own; the
+    /// practice instance has none (its list is fixed).
+    pub fn choice_of(&self, instance: Instance) -> srl_mods::ModChoice {
+        match instance {
+            Instance::Mode(mode) => self.choice(mode),
+            Instance::Practice => srl_mods::ModChoice::default(),
+            Instance::Custom(id) => self
+                .customs
+                .get(&id)
+                .map(|(_, c)| c.clone())
+                .unwrap_or_default(),
+        }
+    }
+
+    /// The mode whose set an instance starts from: a mode's own, a custom instance's base.
+    /// `None` for the practice instance (an explicit list) and for a custom instance that no
+    /// longer exists.
+    pub fn base(&self, instance: Instance) -> Option<Mode> {
+        match instance {
+            Instance::Mode(mode) => Some(mode),
+            Instance::Practice => None,
+            Instance::Custom(id) => self.customs.get(&id).map(|(base, _)| *base),
+        }
+    }
+}
+
+/// Turns `modid` on or off in a set of changes. `in_set`: the mod is in the set the changes
+/// apply to (so off is the change), else on is.
+fn toggle(c: &mut srl_mods::ModChoice, modid: &str, on: bool, in_set: bool) {
+    if in_set {
+        c.on.remove(modid);
+        if on {
+            c.off.remove(modid);
+        } else {
+            c.off.insert(modid.to_string());
+        }
+    } else {
+        c.off.remove(modid);
+        if on {
+            c.on.insert(modid.to_string());
+        } else {
+            c.on.remove(modid);
+        }
     }
 }
 
@@ -314,6 +499,7 @@ impl Default for Settings {
             custom_jars: Vec::new(),
             dev_hide_taglines: false,
             auto_update: true,
+            custom_instances: Vec::new(),
         }
     }
 }
@@ -342,36 +528,44 @@ impl Settings {
         }
     }
 
-    /// The optional mods and every mode's changes from the Mods page. A custom id in `on` whose
-    /// jar is gone from `custom_jars` is ignored.
+    /// The optional mods and every mode's and custom instance's changes from the Mods page. A
+    /// custom id in `on` whose jar is gone from `custom_jars` is ignored.
     pub fn mod_rules(&self) -> ModRules {
         let choices = self
             .mod_choices
             .iter()
-            .map(|(mode, c)| {
-                let custom = self
-                    .custom_jars
-                    .iter()
-                    .filter(|j| c.on.contains(&j.modid()))
-                    .cloned()
-                    .collect();
-                let on =
-                    c.on.iter()
-                        .filter(|id| !id.starts_with("custom:"))
-                        .cloned()
-                        .collect();
-                let choice = srl_mods::ModChoice {
-                    on,
-                    off: c.off.clone(),
-                    custom,
-                };
-                (*mode, choice)
-            })
+            .map(|(mode, c)| (*mode, self.with_jars(c)))
             .filter(|(_, c)| !c.is_empty())
+            .collect();
+        let customs = self
+            .custom_instances
+            .iter()
+            .map(|c| (c.id, (c.base, self.with_jars(&c.mods))))
             .collect();
         ModRules {
             opts: self.resolve_options(),
             choices,
+            customs,
+        }
+    }
+
+    /// `c` as srl-mods takes it: the `custom:` ids in `on` replaced by their jars.
+    fn with_jars(&self, c: &srl_mods::ModChoice) -> srl_mods::ModChoice {
+        let custom = self
+            .custom_jars
+            .iter()
+            .filter(|j| c.on.contains(&j.modid()))
+            .cloned()
+            .collect();
+        let on =
+            c.on.iter()
+                .filter(|id| !id.starts_with("custom:"))
+                .cloned()
+                .collect();
+        srl_mods::ModChoice {
+            on,
+            off: c.off.clone(),
+            custom,
         }
     }
 
@@ -379,24 +573,180 @@ impl Settings {
     /// set (so off is the change), else on is.
     pub fn set_mod(&mut self, mode: Mode, modid: &str, on: bool, in_mode: bool) {
         let c = self.mod_choices.entry(mode).or_default();
-        if in_mode {
-            c.on.remove(modid);
-            if on {
-                c.off.remove(modid);
-            } else {
-                c.off.insert(modid.to_string());
-            }
-        } else {
-            c.off.remove(modid);
-            if on {
-                c.on.insert(modid.to_string());
-            } else {
-                c.on.remove(modid);
-            }
-        }
+        toggle(c, modid, on, in_mode);
         if c.is_empty() {
             self.mod_choices.remove(&mode);
         }
+    }
+
+    /// [`Settings::set_mod`] for a custom instance's Mods tab. `in_base`: the mod is in the base
+    /// mode's own set (`Available::in_mode` of its catalogue). Nothing for an unknown id.
+    // Until the Instances page calls it (then drop this allow).
+    #[allow(dead_code)]
+    pub fn set_custom_mod(&mut self, id: CustomId, modid: &str, on: bool, in_base: bool) {
+        if let Some(c) = self.custom_mut(id) {
+            toggle(&mut c.mods, modid, on, in_base);
+        }
+    }
+
+    /// Adds the player's jar to the library (once) and turns it on in a custom instance.
+    // Until the Instances page calls it (then drop this allow).
+    #[allow(dead_code)]
+    pub fn add_custom_jar_to(&mut self, id: CustomId, jar: srl_mods::CustomJar) {
+        let modid = jar.modid();
+        if !self.custom_jars.iter().any(|j| j.modid() == modid) {
+            self.custom_jars.push(jar);
+        }
+        self.set_custom_mod(id, &modid, true, false);
+    }
+
+    /// The custom instance with this id.
+    pub fn custom(&self, id: CustomId) -> Option<&CustomInstance> {
+        self.custom_instances.iter().find(|c| c.id == id)
+    }
+
+    /// The custom instance with this id, to change it (then `Backend::set_settings`).
+    pub fn custom_mut(&mut self, id: CustomId) -> Option<&mut CustomInstance> {
+        self.custom_instances.iter_mut().find(|c| c.id == id)
+    }
+
+    /// Renames a custom instance, if the name is valid (trimmed first).
+    // Until the Instances page calls it (then drop this allow).
+    #[allow(dead_code)]
+    pub fn rename_custom(&mut self, id: CustomId, name: &str) -> Result<(), NameProblem> {
+        let name = self.validate_instance_name(name, Some(id))?;
+        if let Some(c) = self.custom_mut(id) {
+            c.name = name;
+        }
+        Ok(())
+    }
+
+    /// The number a new custom instance gets: one more than the highest in use (1 for the
+    /// first). The backend also skips numbers whose directory is still on disk.
+    pub fn next_custom_id(&self) -> CustomId {
+        CustomId(
+            self.custom_instances
+                .iter()
+                .map(|c| c.id.0)
+                .max()
+                .map_or(1, |n| n.saturating_add(1)),
+        )
+    }
+
+    /// `name` trimmed, if it can name a custom instance: 1 to `MAX_INSTANCE_NAME` characters, no
+    /// control characters, and no other custom instance (`except` is the one being renamed)
+    /// with the same name ignoring case.
+    pub fn validate_instance_name(
+        &self,
+        name: &str,
+        except: Option<CustomId>,
+    ) -> Result<String, NameProblem> {
+        let name = name.trim();
+        if name.is_empty() {
+            return Err(NameProblem::Empty);
+        }
+        if name.chars().count() > MAX_INSTANCE_NAME {
+            return Err(NameProblem::TooLong);
+        }
+        if name.chars().any(char::is_control) {
+            return Err(NameProblem::Control);
+        }
+        let lower = name.to_lowercase();
+        if self
+            .custom_instances
+            .iter()
+            .any(|c| Some(c.id) != except && c.name.trim().to_lowercase() == lower)
+        {
+            return Err(NameProblem::Taken);
+        }
+        Ok(name.to_string())
+    }
+
+    /// `wanted` if no custom instance has it, else `wanted 2`, `wanted 3`… (cut to fit
+    /// `MAX_INSTANCE_NAME`). For a duplicate whose name was taken while it copied.
+    pub fn unique_instance_name(&self, wanted: &str) -> String {
+        let wanted: String = wanted.trim().chars().take(MAX_INSTANCE_NAME).collect();
+        if self.validate_instance_name(&wanted, None).is_ok() {
+            return wanted;
+        }
+        (2u32..)
+            .map(|n| {
+                let tail = format!(" {n}");
+                let head: String = wanted
+                    .chars()
+                    .take(MAX_INSTANCE_NAME - tail.chars().count())
+                    .collect();
+                format!("{}{tail}", head.trim_end())
+            })
+            .find(|n| self.validate_instance_name(n, None).is_ok())
+            .expect("an unused name")
+    }
+
+    /// The mode whose rules an instance's game follows (its tools, its memory fallback, its
+    /// game): a mode's own, practice's `practice::TOOLS_LIKE`, a custom instance's base (RSG for
+    /// one that no longer exists).
+    pub fn rules_mode(&self, instance: Instance) -> Mode {
+        match instance {
+            Instance::Mode(mode) => mode,
+            Instance::Practice => practice::TOOLS_LIKE,
+            Instance::Custom(id) => self.custom(id).map_or(practice::TOOLS_LIKE, |c| c.base),
+        }
+    }
+
+    /// The `-Xmx` any instance's game starts with, in MiB: a mode's `memory_mb`, practice's
+    /// like RSG's, a custom instance's own value else its base mode's; never below what the
+    /// game needs.
+    pub fn memory_mb_of(&self, instance: Instance) -> u32 {
+        let base = self.rules_mode(instance);
+        match instance.custom().and_then(|id| self.custom(id)) {
+            Some(CustomInstance {
+                memory_mb: Some(mb),
+                ..
+            }) => (*mb).max(mode_needs(base).min_memory_mb),
+            _ => self.memory_mb(base),
+        }
+    }
+
+    /// The JVM arguments the instance's game gets on top of the version's: a custom instance's
+    /// own, none for the others.
+    pub fn jvm_args_of(&self, instance: Instance) -> Vec<String> {
+        instance
+            .custom()
+            .and_then(|id| self.custom(id))
+            .map(|c| c.jvm_args.clone())
+            .unwrap_or_default()
+    }
+
+    /// The tools any instance's game starts with: those of the mode whose rules it follows
+    /// (`rules_mode`).
+    pub fn tool_selection_of(&self, instance: Instance) -> srl_tools::ToolSelection {
+        self.tool_selection(self.rules_mode(instance))
+    }
+
+    /// `incoming`'s custom instances, made to fit `self`'s (the backend's) list: the same
+    /// instances in the same order (none added, none removed: only the backend's lifecycle
+    /// methods do that), each with `incoming`'s name, memory, mods and JVM arguments where they
+    /// are valid, and its own base. Returns whether anything of `incoming` had to change, so
+    /// the backend can send the UI the list it kept (`Event::CustomInstances`).
+    pub fn adopt_customs(&self, incoming: &mut Settings) -> bool {
+        let mut kept = Settings::default();
+        for current in &self.custom_instances {
+            let mut next = current.clone();
+            if let Some(new) = incoming.custom(current.id) {
+                if let Ok(name) = kept.validate_instance_name(&new.name, None) {
+                    next.name = name;
+                }
+                next.memory_mb = new.memory_mb.map(nearest_memory_choice);
+                next.mods = new.mods.clone();
+                if validate_jvm_args(&new.jvm_args).is_ok() {
+                    next.jvm_args = new.jvm_args.clone();
+                }
+            }
+            kept.custom_instances.push(next);
+        }
+        let changed = incoming.custom_instances != kept.custom_instances;
+        incoming.custom_instances = kept.custom_instances;
+        changed
     }
 
     /// Whether the player changed anything in `mode`'s mods.
@@ -492,6 +842,7 @@ impl Settings {
                         *name = None;
                     }
                 }
+                s.custom_instances = sane_customs(std::mem::take(&mut s.custom_instances));
                 Some(s)
             }
             Err(e) => {
@@ -513,6 +864,30 @@ impl Settings {
     }
 }
 
+/// An edited settings file's custom instances made usable: one definition per id (the first),
+/// every name valid and unique (a bad one becomes `Instance <n>`), memory on a Settings choice,
+/// and JVM arguments that pass `validate_jvm_args` (else none, logged).
+fn sane_customs(list: Vec<CustomInstance>) -> Vec<CustomInstance> {
+    let mut kept = Settings::default();
+    for mut c in list {
+        if kept.custom(c.id).is_some() {
+            eprintln!("settings: dropping a second custom instance {}", c.id);
+            continue;
+        }
+        c.name = match kept.validate_instance_name(&c.name, None) {
+            Ok(name) => name,
+            Err(_) => kept.unique_instance_name(&format!("Instance {}", c.id.0)),
+        };
+        c.memory_mb = c.memory_mb.map(nearest_memory_choice);
+        if let Err(e) = validate_jvm_args(&c.jvm_args) {
+            eprintln!("settings: {}: dropping its JVM arguments: {e}", c.id);
+            c.jvm_args.clear();
+        }
+        kept.custom_instances.push(c);
+    }
+    kept.custom_instances
+}
+
 #[derive(Clone, Debug, PartialEq)]
 pub struct ModeSnapshot {
     pub state: ModeState,
@@ -524,12 +899,54 @@ pub struct ModeSnapshot {
 pub struct Snapshot {
     /// One entry per mode, in `Mode::ALL` order.
     pub modes: [ModeSnapshot; 5],
+    /// One entry per custom instance of `settings.custom_instances`: its state and facts, as
+    /// for a mode (the catalogue and concerns against its base mode's set).
+    pub customs: BTreeMap<CustomId, ModeSnapshot>,
     pub settings: Settings,
     /// The data folder (`Paths::root`): games, mods, Java, logs and the settings file.
     pub data_dir: PathBuf,
     /// The data folder can't be written (a read-only or missing drive, a bad `SRL_HOME`): the
     /// folder and the error. Nothing can be installed or saved, so the UI shows only this.
     pub data_error: Option<String>,
+}
+
+impl Snapshot {
+    /// The state and facts of a mode or a custom instance (`None` for practice, which has its
+    /// own snapshot, and for an unknown custom id).
+    pub fn instance(&self, instance: Instance) -> Option<&ModeSnapshot> {
+        match instance {
+            Instance::Mode(mode) => Some(&self.modes[index(mode)]),
+            Instance::Practice => None,
+            Instance::Custom(id) => self.customs.get(&id),
+        }
+    }
+
+    pub(crate) fn instance_mut(&mut self, instance: Instance) -> Option<&mut ModeSnapshot> {
+        match instance {
+            Instance::Mode(mode) => Some(&mut self.modes[index(mode)]),
+            Instance::Practice => None,
+            Instance::Custom(id) => self.customs.get_mut(&id),
+        }
+    }
+}
+
+/// The event that tells the UI an instance's new state: `State` for a mode, `CustomState` for a
+/// custom instance (practice reports through `PracticeEvent`).
+pub(crate) fn state_event(instance: Instance, state: ModeState) -> Option<Event> {
+    match instance {
+        Instance::Mode(mode) => Some(Event::State(mode, state)),
+        Instance::Custom(id) => Some(Event::CustomState(id, state)),
+        Instance::Practice => None,
+    }
+}
+
+/// [`state_event`] for an instance's facts.
+pub(crate) fn info_event(instance: Instance, info: ModeInfo) -> Option<Event> {
+    match instance {
+        Instance::Mode(mode) => Some(Event::Info(mode, info)),
+        Instance::Custom(id) => Some(Event::CustomInfo(id, info)),
+        Instance::Practice => None,
+    }
 }
 
 /// A change, sent by the backend from any thread.
@@ -553,6 +970,28 @@ pub enum Event {
     JarAdded(Mode, Result<srl_mods::CustomJar, String>),
     /// The launcher's own update (`Updates`): its new state.
     Update(UpdateState),
+    /// A custom instance's state, as `State` is a mode's.
+    CustomState(CustomId, ModeState),
+    /// A custom instance's facts, as `Info` is a mode's.
+    CustomInfo(CustomId, ModeInfo),
+    /// The backend's list of custom instances changed (one created, duplicated or deleted), or
+    /// `set_settings` had to keep something of it (an invalid name, a changed base): the UI
+    /// puts this list into its copy of the settings as is.
+    CustomInstances(Vec<CustomInstance>),
+    /// A `create_instance` or `duplicate_instance` ended: the new instance (already in the list
+    /// sent just before, with its `CustomState`) and the files a duplicate had to leave out, or
+    /// why it failed (nothing is left behind then).
+    InstanceCreated(Result<Created, String>),
+    /// A `duplicate_instance` copying, at most every 50 ms.
+    InstanceCopy(CopyProgress),
+    /// A `delete_instance` ended: the instance is gone from the list (sent just before) and its
+    /// directory is in `trash/`, or why not (it is running or installing, or the directory
+    /// couldn't be moved; nothing changed then).
+    InstanceDeleted(Result<CustomId, String>),
+    /// A jar the player picked on a custom instance's Mods tab is in the store
+    /// (`Backend::add_instance_jar`), or why not; the UI then turns it on with
+    /// `Settings::add_custom_jar_to`.
+    InstanceJarAdded(CustomId, Result<srl_mods::CustomJar, String>),
 }
 
 /// Where a backend sends its events. Unbounded: the UI drains it every frame it wakes up for.
@@ -589,6 +1028,44 @@ pub trait Backend {
     /// Copies the player's jar at `path` into the content store for `mode`'s Mods page; the
     /// answer comes as `Event::JarAdded` (the UI then turns it on in its settings).
     fn add_jar(&self, mode: Mode, path: PathBuf);
+    /// `play` for a custom instance: installs its base mode's game and its own mod set into its
+    /// directory, then starts it. Progress comes as `Event::CustomState`.
+    // Until the Instances page calls it (then drop this allow).
+    #[allow(dead_code)]
+    fn play_custom(&self, id: CustomId);
+    /// `cancel` for a custom instance.
+    // Until the Instances page calls it (then drop this allow).
+    #[allow(dead_code)]
+    fn cancel_custom(&self, id: CustomId);
+    /// Creates a custom instance: its definition in the settings and its empty directory,
+    /// optionally with another instance's settings (options, `config/`, resource packs; never
+    /// worlds or mods). Answers with `Event::CustomInstances`, `CustomState` (NotInstalled) and
+    /// `InstanceCreated`. A name `Settings::validate_instance_name` refuses fails at once.
+    // Until the Instances page calls it (then drop this allow).
+    #[allow(dead_code)]
+    fn create_instance(&self, spec: NewInstance);
+    /// Copies an instance's whole game directory (but `mods/`, logs and the launcher's own
+    /// files; `saves/` only `with_worlds`) into a new custom instance with the same base mode,
+    /// memory, mods and JVM arguments, in the background with `Event::InstanceCopy` progress.
+    /// A file that can't be read is left out and named in the result. Ends with
+    /// `InstanceCreated`, as `create_instance` does.
+    // Until the Instances page calls it (then drop this allow).
+    #[allow(dead_code)]
+    fn duplicate_instance(&self, from: Instance, name: String, with_worlds: bool);
+    /// Removes a custom instance: refused while it installs, runs or is being copied; else its
+    /// definition goes and its directory moves to `<data>/trash/custom-<n>-<unix time>` (a
+    /// rename, nothing deleted). Answers with `Event::CustomInstances` and `InstanceDeleted`.
+    // Until the Instances page calls it (then drop this allow).
+    #[allow(dead_code)]
+    fn delete_instance(&self, id: CustomId);
+    /// `add_jar` for a custom instance's Mods tab: `Event::InstanceJarAdded`.
+    // Until the Instances page calls it (then drop this allow).
+    #[allow(dead_code)]
+    fn add_instance_jar(&self, id: CustomId, path: PathBuf);
+    /// Opens an instance's game directory (`Paths::game_dir`) in the file manager.
+    // Until the Instances page calls it (then drop this allow).
+    #[allow(dead_code)]
+    fn open_game_folder(&self, instance: Instance);
 }
 
 /// Opens `dir` in the file manager (Explorer, Finder, or what `xdg-open` picks), without waiting
@@ -698,6 +1175,233 @@ mod tests {
                 && !text.contains("stats")
         );
         assert_eq!(serde_json::from_str::<Settings>(&text).unwrap(), s);
+    }
+
+    fn custom(id: u32, name: &str, base: Mode) -> CustomInstance {
+        CustomInstance {
+            id: CustomId(id),
+            name: name.into(),
+            base,
+            memory_mb: None,
+            mods: srl_mods::ModChoice::default(),
+            jvm_args: Vec::new(),
+            created_ms: 0,
+        }
+    }
+
+    /// Files without custom instances load and save as before; a custom instance round-trips
+    /// with only the fields it uses.
+    #[test]
+    fn custom_instances_in_the_settings_file() {
+        let s: Settings = serde_json::from_str(r#"{"player_name":"VioletRunner"}"#).unwrap();
+        assert!(s.custom_instances.is_empty());
+        assert!(
+            !serde_json::to_string(&s)
+                .unwrap()
+                .contains("custom_instances")
+        );
+        let mut s = Settings::default();
+        s.custom_instances.push(custom(1, "Seeds", Mode::Ssg));
+        let text = serde_json::to_string(&s).unwrap();
+        assert!(
+            text.contains(
+                r#""custom_instances":[{"id":1,"name":"Seeds","base":"ssg","created_ms":0}]"#
+            ),
+            "{text}"
+        );
+        assert_eq!(serde_json::from_str::<Settings>(&text).unwrap(), s);
+    }
+
+    #[test]
+    fn instance_names_are_checked() {
+        let mut s = Settings::default();
+        s.custom_instances.push(custom(1, "Seeds", Mode::Ssg));
+        assert_eq!(
+            s.validate_instance_name("  Bastions  ", None),
+            Ok("Bastions".into())
+        );
+        assert_eq!(
+            s.validate_instance_name("   ", None),
+            Err(NameProblem::Empty)
+        );
+        assert_eq!(
+            s.validate_instance_name("seeds", None),
+            Err(NameProblem::Taken)
+        );
+        // Renaming to its own name (another case) is fine.
+        assert_eq!(
+            s.validate_instance_name("SEEDS", Some(CustomId(1))),
+            Ok("SEEDS".into())
+        );
+        assert_eq!(
+            s.validate_instance_name("a\nb", None),
+            Err(NameProblem::Control)
+        );
+        assert_eq!(
+            s.validate_instance_name(&"ż".repeat(40), None),
+            Ok("ż".repeat(40))
+        );
+        assert_eq!(
+            s.validate_instance_name(&"x".repeat(41), None),
+            Err(NameProblem::TooLong)
+        );
+        assert_eq!(s.unique_instance_name("Seeds"), "Seeds 2");
+        assert_eq!(s.unique_instance_name("New"), "New");
+        let long = "y".repeat(40);
+        s.custom_instances.push(custom(2, &long, Mode::Rsg));
+        let next = s.unique_instance_name(&long);
+        assert_eq!(next.chars().count(), 40);
+        assert!(next.ends_with(" 2"));
+        assert_eq!(s.next_custom_id(), CustomId(3));
+        assert_eq!(Settings::default().next_custom_id(), CustomId(1));
+        assert!(s.rename_custom(CustomId(2), "seeds").is_err());
+        s.rename_custom(CustomId(2), " Long one ").unwrap();
+        assert_eq!(s.custom(CustomId(2)).unwrap().name, "Long one");
+    }
+
+    #[test]
+    fn jvm_arguments_are_checked() {
+        let ok =
+            |a: &[&str]| validate_jvm_args(&a.iter().map(|s| s.to_string()).collect::<Vec<_>>());
+        assert!(ok(&[]).is_ok());
+        assert!(
+            ok(&[
+                "-XX:+UseG1GC",
+                "-Dfoo=bar baz",
+                "--add-opens=java.base/java.lang=ALL-UNNAMED"
+            ])
+            .is_ok()
+        );
+        assert_eq!(ok(&[""]), Err(JvmArgProblem::Empty));
+        assert_eq!(ok(&["  "]), Err(JvmArgProblem::Empty));
+        assert!(matches!(ok(&["-Xmx8G"]), Err(JvmArgProblem::Memory(_))));
+        assert!(matches!(ok(&["-xms1g"]), Err(JvmArgProblem::Memory(_))));
+        assert!(matches!(
+            ok(&["net.Main"]),
+            Err(JvmArgProblem::NotAnOption(_))
+        ));
+        assert!(matches!(
+            ok(&[" -Dx=1"]),
+            Err(JvmArgProblem::NotAnOption(_))
+        ));
+        assert!(matches!(ok(&["-cp"]), Err(JvmArgProblem::Command(_))));
+        assert!(matches!(ok(&["-jar"]), Err(JvmArgProblem::Command(_))));
+        assert!(matches!(
+            ok(&["-javaagent:x.jar"]),
+            Err(JvmArgProblem::Agent(_))
+        ));
+        assert!(matches!(
+            ok(&["-agentlib:jdwp=x"]),
+            Err(JvmArgProblem::Agent(_))
+        ));
+    }
+
+    /// A custom instance plays like its base mode: its memory falls back to the base's, its
+    /// tools are the base's, and its mods are its own changes on the base's set.
+    #[test]
+    fn a_custom_instance_follows_its_base() {
+        let mut s = Settings::default();
+        s.set_memory_mb(Mode::Ssg, 4096);
+        s.custom_instances.push(custom(1, "Seeds", Mode::Ssg));
+        s.custom_instances.push(custom(2, "Draft", Mode::Draftout));
+        let (one, two) = (Instance::Custom(CustomId(1)), Instance::Custom(CustomId(2)));
+        assert_eq!(s.rules_mode(one), Mode::Ssg);
+        assert_eq!(s.rules_mode(Instance::Custom(CustomId(9))), Mode::Rsg);
+        assert_eq!(s.memory_mb_of(one), 4096);
+        s.custom_mut(CustomId(1)).unwrap().memory_mb = Some(2048);
+        assert_eq!(s.memory_mb_of(one), 2048);
+        s.custom_mut(CustomId(2)).unwrap().memory_mb = Some(2048);
+        assert_eq!(s.memory_mb_of(two), 3072, "Draftout's floor");
+        assert_eq!(s.memory_mb_of(Instance::Practice), s.memory_mb(Mode::Rsg));
+        assert!(
+            !s.tool_selection_of(two).has(ToolId::NinjabrainBot),
+            "Draftout bans Ninjabrain Bot"
+        );
+        assert_eq!(s.tool_selection_of(one), s.tool_selection(Mode::Ssg));
+
+        let jar = srl_mods::CustomJar {
+            name: "Mine".into(),
+            file_name: "mine.jar".into(),
+            sha512: "ab".repeat(64),
+            size: 3,
+        };
+        s.set_custom_mod(CustomId(1), "setspawnmod", false, true);
+        s.set_custom_mod(CustomId(1), "worldpreview", true, false);
+        s.add_custom_jar_to(CustomId(1), jar.clone());
+        // The mode's own choices stay apart.
+        assert!(!s.mods_changed(Mode::Ssg));
+        let rules = s.mod_rules();
+        let c = rules.choice_of(one);
+        assert!(c.off.contains("setspawnmod") && c.on.contains("worldpreview"));
+        assert_eq!(c.custom, vec![jar]);
+        assert!(!c.on.iter().any(|id| id.starts_with("custom:")));
+        assert_eq!(rules.base(one), Some(Mode::Ssg));
+        assert_eq!(rules.base(Instance::Practice), None);
+        assert_eq!(rules.choice_of(two), srl_mods::ModChoice::default());
+        assert_eq!(s.jvm_args_of(one), Vec::<String>::new());
+    }
+
+    /// The UI can change a custom instance through `set_settings`, but not add, remove or rebase
+    /// one: the backend's list wins.
+    #[test]
+    fn set_settings_keeps_the_backends_list() {
+        let mut backend = Settings::default();
+        backend.custom_instances.push(custom(1, "Seeds", Mode::Ssg));
+        backend
+            .custom_instances
+            .push(custom(2, "Bastions", Mode::Rsg));
+        // An older copy from the UI: instance 2 is missing, 1 is renamed and rebased, a made-up
+        // 7 is there.
+        let mut ui = Settings::default();
+        let mut one = custom(1, " Seeds v2 ", Mode::Draftout);
+        one.memory_mb = Some(5000);
+        one.jvm_args = vec!["-XX:+UseZGC".into()];
+        ui.custom_instances.push(one);
+        ui.custom_instances.push(custom(7, "Made up", Mode::Rsg));
+        assert!(backend.adopt_customs(&mut ui));
+        let ids: Vec<u32> = ui.custom_instances.iter().map(|c| c.id.0).collect();
+        assert_eq!(ids, [1, 2]);
+        let one = &ui.custom_instances[0];
+        assert_eq!(
+            (one.name.as_str(), one.base, one.memory_mb),
+            ("Seeds v2", Mode::Ssg, Some(4096))
+        );
+        assert_eq!(one.jvm_args, ["-XX:+UseZGC"]);
+        // An invalid change keeps the old value.
+        let mut bad = ui.clone();
+        bad.custom_mut(CustomId(2)).unwrap().name = "seeds v2".into();
+        bad.custom_mut(CustomId(1)).unwrap().jvm_args = vec!["-Xmx1G".into()];
+        let before = ui.clone();
+        assert!(ui.adopt_customs(&mut bad));
+        assert_eq!(bad.custom_instances, before.custom_instances);
+        // The same list: nothing to change.
+        let mut same = ui.clone();
+        assert!(!ui.adopt_customs(&mut same));
+    }
+
+    /// An edited file: a second definition with the same id goes, a bad name is replaced, bad
+    /// JVM arguments are dropped.
+    #[test]
+    fn edited_custom_instances_load_usable() {
+        let dir = std::env::temp_dir().join(format!("srl-app-customs-{}", std::process::id()));
+        std::fs::create_dir_all(&dir).unwrap();
+        let file = dir.join("settings.json");
+        std::fs::write(
+            &file,
+            r#"{"custom_instances":[
+                {"id":1,"name":"","base":"rsg","memory_mb":1},
+                {"id":1,"name":"Again","base":"fsg"},
+                {"id":2,"name":"Ok","base":"draftout","jvm_args":["-Xmx9G"]}
+            ]}"#,
+        )
+        .unwrap();
+        let s = Settings::load(&file).unwrap();
+        let ids: Vec<u32> = s.custom_instances.iter().map(|c| c.id.0).collect();
+        assert_eq!(ids, [1, 2]);
+        assert_eq!(s.custom_instances[0].name, "Instance 1");
+        assert_eq!(s.custom_instances[0].memory_mb, Some(2048));
+        assert!(s.custom_instances[1].jvm_args.is_empty());
+        std::fs::remove_dir_all(&dir).unwrap();
     }
 
     #[test]

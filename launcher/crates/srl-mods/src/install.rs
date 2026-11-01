@@ -18,6 +18,7 @@
 //! is in place. `plan` and `status` for another mode compare its set with its own note, not with
 //! `mods/`: a switch between modes is not an update.
 use std::{
+    borrow::Cow,
     collections::{HashMap, HashSet},
     path::{Path, PathBuf},
     sync::{Arc, Mutex},
@@ -43,12 +44,15 @@ const TMP_PREFIX: &str = ".srl-";
 /// left running by an earlier launcher session has to be detected by the caller.
 ///
 /// Keyed by game directory ([`Instance::dir_id`]): the four 1.16.1 modes share one `mods/`, so a
-/// running RSG game blocks an SSG install (and game) too; Draftout and the practice instance
-/// have their own.
+/// running RSG game blocks an SSG install (and game) too; Draftout, the practice instance and
+/// every custom instance have their own.
 #[derive(Clone, Default)]
 pub struct InstanceGuard {
-    busy: Arc<Mutex<HashMap<&'static str, (Instance, Busy)>>>,
+    busy: Arc<Mutex<BusyDirs>>,
 }
+
+/// What runs in each game directory, by [`Instance::dir_id`].
+type BusyDirs = HashMap<Cow<'static, str>, (Instance, Busy)>;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 enum Busy {
@@ -122,12 +126,12 @@ impl InstanceGuard {
     /// Whether this instance's own game runs (not another mode of its directory).
     pub fn is_game_running(&self, instance: impl Into<Instance>) -> bool {
         let instance = instance.into();
-        self.lock().get(instance.dir_id()) == Some(&(instance, Busy::Game))
+        self.lock().get(&instance.dir_id()) == Some(&(instance, Busy::Game))
     }
 
     /// The instance whose game runs in `instance`'s directory, if any (itself or another mode).
     pub fn game_in_dir(&self, instance: impl Into<Instance>) -> Option<Instance> {
-        match self.lock().get(instance.into().dir_id()) {
+        match self.lock().get(&instance.into().dir_id()) {
             Some((running, Busy::Game)) => Some(*running),
             _ => None,
         }
@@ -143,7 +147,7 @@ impl InstanceGuard {
 
     fn acquire(&self, instance: Instance, what: Busy) -> Result<(), InstanceBusy> {
         let mut busy = self.lock();
-        match busy.get(instance.dir_id()) {
+        match busy.get(&instance.dir_id()) {
             Some((other, Busy::Game)) => Err(InstanceBusy::GameRunning(*other)),
             Some((other, Busy::Mods)) => Err(InstanceBusy::Installing(*other)),
             None => {
@@ -155,12 +159,12 @@ impl InstanceGuard {
 
     fn release(&self, instance: Instance, what: Busy) {
         let mut busy = self.lock();
-        if busy.get(instance.dir_id()) == Some(&(instance, what)) {
-            busy.remove(instance.dir_id());
+        if busy.get(&instance.dir_id()) == Some(&(instance, what)) {
+            busy.remove(&instance.dir_id());
         }
     }
 
-    fn lock(&self) -> std::sync::MutexGuard<'_, HashMap<&'static str, (Instance, Busy)>> {
+    fn lock(&self) -> std::sync::MutexGuard<'_, BusyDirs> {
         // The map stays consistent even if a holder panicked: every critical section is one
         // insert or remove.
         self.busy.lock().unwrap_or_else(|e| e.into_inner())
@@ -363,7 +367,7 @@ async fn note_install(paths: &Paths, set: &ModSet) -> Result<()> {
         serde_json::to_vec_pretty(&jars)?,
     )
     .await?;
-    tokio::fs::write(dir.join("owner"), set.instance.id()).await?;
+    tokio::fs::write(dir.join("owner"), set.instance.id().as_bytes()).await?;
     Ok(())
 }
 

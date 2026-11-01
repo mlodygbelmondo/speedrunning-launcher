@@ -48,11 +48,6 @@ use super::{
 /// The mode whose tool rules and settings (tools that start, memory) the practice game uses.
 pub const TOOLS_LIKE: Mode = Mode::Rsg;
 
-/// The mode whose tool rules apply to `instance`'s game.
-pub fn rules_mode(instance: Instance) -> Mode {
-    instance.mode().unwrap_or(TOOLS_LIKE)
-}
-
 /// What srl-game installs for the practice instance.
 pub fn target() -> Result<srl_game::Target> {
     srl_game::Target::practice(
@@ -1584,9 +1579,10 @@ mod tests {
     /// The practice game shares RSG's tool rules; the modes keep their own.
     #[test]
     fn tools_follow_rsg_for_practice() {
-        assert_eq!(rules_mode(Instance::Practice), Mode::Rsg);
+        let s = Settings::default();
+        assert_eq!(s.rules_mode(Instance::Practice), Mode::Rsg);
         for m in Mode::ALL {
-            assert_eq!(rules_mode(m.into()), m);
+            assert_eq!(s.rules_mode(m.into()), m);
         }
         let t = target().unwrap();
         assert_eq!(t.instance, Instance::Practice);

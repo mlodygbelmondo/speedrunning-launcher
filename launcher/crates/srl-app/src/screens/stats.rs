@@ -252,19 +252,13 @@ enum TileBody {
 
 impl Launcher {
     pub fn render_stats(&mut self, cx: &mut Context<Self>) -> AnyElement {
-        let tiles = div()
-            .flex_none()
-            .flex()
-            .flex_col()
-            .gap(px(12.))
-            .child(section_head(&t("stats.pbs")))
-            .child(
-                div()
-                    .flex()
-                    .flex_row()
-                    .gap(px(14.))
-                    .children(Mode::ALL.into_iter().map(|m| self.pb_tile(m, cx))),
-            );
+        let tiles = div().flex_none().flex().flex_col().gap(px(12.)).child(
+            div()
+                .flex()
+                .flex_row()
+                .gap(px(14.))
+                .children(Mode::ALL.into_iter().map(|m| self.pb_tile(m, cx))),
+        );
         div()
             .size_full()
             .relative()
@@ -321,7 +315,8 @@ impl Launcher {
             None if h.run_count > 0 => {
                 TileBody::Text(tn("stats.runs_none_finished", u64::from(h.run_count)))
             }
-            None => TileBody::Text(t("stats.no_runs")),
+            // The runs panel says "No runs yet" once; five tiles saying it too is noise.
+            None => TileBody::Text(SharedString::default()),
         };
         let mut corner: Option<Div> = None;
         let body = match mode {
@@ -488,7 +483,7 @@ impl Launcher {
         let Some(local) = self.stats.local.as_deref() else {
             // The first scan: the table's shape, dimmed, and what is happening.
             return panel
-                .child(band_head(&left, &t("stats.recent_src")))
+                .child(band_head(&left, ""))
                 .child(self.runs_header().mt(px(6.)))
                 .children((0..5).map(|i| {
                     div()
@@ -513,10 +508,12 @@ impl Launcher {
         let histories: Vec<(Mode, &RunHistory)> =
             modes.iter().map(|m| (*m, local.mode(*m))).collect();
         let total: u32 = histories.iter().map(|(_, h)| h.run_count).sum();
-        // What the split columns mean, once there are rows to read it against.
+        // What the split columns mean, once there is a PB to read them against.
         let right: SharedString = match scope {
             Some(m) => counts_line(local.mode(m)),
-            None if total == 0 => SharedString::default(),
+            None if histories.iter().all(|(_, h)| h.headline_pb().is_none()) => {
+                SharedString::default()
+            }
             None => t("stats.recent_src"),
         };
         let panel = panel.child(band_head(&left, &right));

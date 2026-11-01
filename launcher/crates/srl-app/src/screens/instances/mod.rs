@@ -1170,8 +1170,21 @@ impl Launcher {
                 .into_any_element();
         };
         if !c.exists {
-            // Only the practice instance says why it's empty: the others have Install right above.
-            let why = (key == InstKey::Practice).then(|| t("inst.practice.empty"));
+            // The practice instance says how to set it up; the others have Install right above,
+            // so the tab only says it's empty.
+            let why = if key == InstKey::Practice {
+                t("inst.practice.empty")
+            } else {
+                match self.instances.tab {
+                    Tab::Worlds => t("inst.worlds.none"),
+                    Tab::Packs => t("inst.packs.none"),
+                    Tab::Config => t("inst.config.none"),
+                    Tab::Screenshots => t("inst.screenshots.none"),
+                    Tab::Logs => t("inst.logs.none"),
+                    Tab::Mods | Tab::Settings => SharedString::default(),
+                }
+            };
+            let why = Some(why).filter(|w| !w.is_empty());
             return div()
                 .pt(px(18.))
                 .w(px(560.))

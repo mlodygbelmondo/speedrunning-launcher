@@ -16,7 +16,6 @@ use gpui::{
     ClipboardItem, Context, Div, FontWeight, ParentElement, SharedString, Styled, div, prelude::*,
     px,
 };
-use srl_auth::LoginStep;
 
 use crate::{
     app::Launcher,
@@ -221,6 +220,13 @@ impl Launcher {
         // Two columns, the gaps and the divider fill the panel's inside: 2 * 359 + 2 * 32 + 1.
         const COL: f32 = 359.;
         let body: Div = match &view.outcome {
+            // Once Microsoft is done, the browser and the code are old news: the rest (Xbox Live,
+            // Minecraft, the profile) runs on its own.
+            LoginOutcome::Waiting if view.step.is_some() => div().child(
+                inter(22., FontWeight::SEMIBOLD, 1.2)
+                    .text_color(text3())
+                    .child(t("auth.signing_in")),
+            ),
             LoginOutcome::Waiting => self.login_paths(&view, COL, cx),
             LoginOutcome::Done(v) => Self::login_done(v),
             LoginOutcome::Failed(p) => div()
@@ -282,10 +288,6 @@ impl Launcher {
                 );
             }
         }
-        // The steps show while the chain runs and when it fails: before, they'd be four grey names,
-        // and after success "Signed in as …" says it all.
-        let steps = (view.step.is_some() && !matches!(view.outcome, LoginOutcome::Done(_)))
-            .then(|| Self::login_steps(&view));
         let panel = div()
             .w(px(W))
             .flex()
@@ -298,7 +300,6 @@ impl Launcher {
             .pb(px(36.))
             .child(section_head(&t("auth.login")).mb(px(26.)))
             .child(body)
-            .children(steps)
             .child(
                 div()
                     .mt(px(30.))
@@ -496,68 +497,6 @@ impl Launcher {
                             .child(t("auth.logged_in_hint")),
                     ),
             )
-    }
-
-    /// The chain after the Microsoft sign-in: done steps bright, the current one in the accent,
-    /// the rest faint.
-    fn login_steps(view: &LoginView) -> Div {
-        let at = match view.step {
-            None => 0,
-            Some(LoginStep::SignedIn(_)) => 1,
-            Some(LoginStep::Xbox) => 2,
-            Some(LoginStep::Minecraft) => 3,
-            Some(LoginStep::Profile) => 4,
-        };
-        let done_all = matches!(view.outcome, LoginOutcome::Done(_));
-        let failed = matches!(view.outcome, LoginOutcome::Failed(_));
-        let labels = [
-            "auth.step_signed_in",
-            "auth.step_xbox",
-            "auth.step_minecraft",
-            "auth.step_profile",
-        ];
-        div()
-            .mt(px(30.))
-            .pt(px(18.))
-            .border_t_1()
-            .border_color(line3())
-            .flex()
-            .flex_row()
-            .flex_wrap()
-            .gap_x(px(24.))
-            .gap_y(px(8.))
-            .children(labels.iter().enumerate().map(|(i, key)| {
-                let n = i + 1;
-                let done = n < at || (n == at && (done_all || n == 1));
-                let (color, mark) = if done {
-                    (text3(), ok3())
-                } else if n == at && failed {
-                    (behind3(), behind3())
-                } else if n == at {
-                    (accent2(), accent2())
-                } else {
-                    (faint3(), text3a(0.16))
-                };
-                // "Checking Xbox Live…" only while it runs; the other steps lose the dots, and the
-                // step that failed says so ("Xbox Live refused") instead of still being in progress.
-                let label = if n == at && failed && !done {
-                    t(&format!("{key}_failed"))
-                } else if n == at && !failed && !done {
-                    t(key)
-                } else {
-                    t(key).trim_end_matches('…').to_string().into()
-                };
-                div()
-                    .flex()
-                    .flex_row()
-                    .items_center()
-                    .child(div().flex_none().size(px(7.)).mr(px(8.)).bg(mark))
-                    .child(
-                        inter(12., FontWeight::MEDIUM, 1.)
-                            .text_color(color)
-                            .child(label),
-                    )
-            }))
     }
 }
 

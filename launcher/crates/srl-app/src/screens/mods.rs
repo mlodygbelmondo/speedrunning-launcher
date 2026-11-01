@@ -253,9 +253,14 @@ impl Launcher {
         }
         // Our own one-liner when copy has one (`mods.desc.<modid>`, in both languages); the
         // upstream description (English, of every length and tone) only for the rest.
-        let description = t_opt(&format!("mods.desc.{}", r.modid))
-            .map(|d| d.to_string())
-            .unwrap_or_else(|| r.description.clone());
+        // A library another mod needs says so in its tag, and its own description adds nothing.
+        let description = if r.needed_by.is_some() {
+            String::new()
+        } else {
+            t_opt(&format!("mods.desc.{}", r.modid))
+                .map(|d| d.to_string())
+                .unwrap_or_else(|| r.description.clone())
+        };
         let desc = if description.is_empty() {
             None
         } else {

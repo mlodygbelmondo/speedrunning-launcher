@@ -400,11 +400,12 @@ impl Launcher {
                     inter(11., FontWeight::MEDIUM, 1.)
                         .whitespace_nowrap()
                         .text_color(faint3())
-                        .child(match e.link_only.as_ref().map(|l| l.reason) {
+                        // Other link-only maps: the how-to line under the row says it.
+                        .children(match e.link_only.as_ref().map(|l| l.reason) {
                             Some(LinkOnlyReason::OtherMinecraftVersion) => {
-                                tf("practice.link_only_needs", &[("mc", &e.minecraft)])
+                                Some(tf("practice.link_only_needs", &[("mc", &e.minecraft)]))
                             }
-                            _ => t("practice.link_only_hint"),
+                            _ => None,
                         }),
                 ),
             MapStatus::NotInstalled => cell

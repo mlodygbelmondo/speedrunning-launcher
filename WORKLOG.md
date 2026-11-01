@@ -226,6 +226,16 @@ Potem:
 
 ### 2026-11-01
 
+- **Pętla tekstów, runda 7** (r6: **8,5 i 8,5**). Zasada konta bez sprzeczności: „potrzebne raz przed pierwszą
+  grą i do każdego meczu”, a nick „używany, gdy nie jesteś zalogowany” (wcześniej „nick offline działa
+  wszędzie” kłóciło się z „każdy tryb startuje z tym kontem”). Okno logowania bez rzędu kroków (Microsoft, Xbox
+  Live, Minecraft, Profil): po kroku Microsoft zamiast nieaktualnej instrukcji i kodu jest „Loguję do
+  Minecrafta…”. Statystyki bez nagłówka „Rekordy” (był też nad elo Draftout), kafle bez pięciu „Jeszcze bez
+  runów” (mówi to panel), „splity względem rekordu” tylko gdy jest rekord. Niezainstalowana instancja: zakładka
+  mówi „Nie ma jeszcze światów” itd. zamiast pustki. Mody potrzebne innym modom bez opisu (mówi to etykieta).
+  „Usuń na dobre” dla map (trwałe) zamiast łagodniejszego „Usuń” niż kosz. „Pliki konfiguracji” wszędzie
+  (import mówił „pliki ustawień”). Krótsze: brak „Ręczna instalacja”, import, nie znaleziono gracza.
+
 - **Pętla tekstów, runda 6** (r5: **8,5 i 8,5**). Jedna nazwa na te same pliki: „ustawienia gry i modów”
   (jak w imporcie) zamiast „klawisze, opcje, konfiguracja”. Bez nadtytułu „MCSR Ranked” nad „Ranked” (z sezonem:
   „Sezon N”), bez nagłówków „Tryby” i „Instancje”, bez „z SpeedRunIGT” i rogu „draftoutmc.com”, bez „Jeszcze

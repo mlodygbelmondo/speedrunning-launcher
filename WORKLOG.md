@@ -18,9 +18,9 @@ commicie, który coś zmienia. Najnowsze wpisy dziennika są na górze.
 - **Samoaktualizacja launchera** jest zrobiona i wypchnięta (2026-10-31, szczegóły w dzienniku), CI zielone,
   wydanie `v0.1.0` opublikowane, suma SHA-256 sprawdzona po pobraniu. Nikt jej jeszcze nie uruchomił na Windowsie.
   Kolejne wydanie: podbij wersję w `launcher/Cargo.toml`, commit, tag `vX.Y.Z`, push tagu (`launcher/README.md`,
-  „Releasing a version”). Najnowsze jest `v0.1.2`. Test na Windowsie: Piotr ma zainstalowane 0.1.1, więc po
-  uruchomieniu launcher ma sam pobrać 0.1.2 (kropka na kole zębatym), w Ustawieniach, w O programie, zaproponować
-  „Uruchom ponownie”, a po kliknięciu pokazać 0.1.2 i usunąć `speedrunning-launcher.old.exe` po kilku sekundach.
+  „Releasing a version”). Najnowsze jest `v0.1.3` (import znajduje MultiMC wszędzie). Test na Windowsie: Piotr ma
+  0.1.2, więc launcher ma sam pobrać 0.1.3 (kropka na kole zębatym), w Ustawieniach, w O programie, zaproponować
+  „Uruchom ponownie”, a po kliknięciu pokazać 0.1.3; potem import ma pokazać `C:\Games\MultiMC` i jego 4 instancje.
 - **Logowanie Microsoft** jest wyłączone, dopóki Mojang nie zatwierdzi naszego client ID. Poradnik dla Piotra:
   `launcher/docs/microsoft-login.md` (Azure i formularz Mojanga, po polsku). Bez client ID gra offline działa jak
   dotąd, więc testy w czasie weryfikacji nie potrzebują konta.
@@ -206,6 +206,10 @@ Potem:
 ## Dziennik
 
 ### 2026-11-01
+
+- **Wydanie `v0.1.3`** (decyzja Piotra): nowe wykrywanie importu poniżej, żeby jego 0.1.2 zaktualizowało się samo.
+  Przed tagiem poprawka clippy (`sort_by_key`), na której padł Linux w CI; testy `srl-import` przeszły też jako exe
+  na Windowsie Piotra.
 
 - **Import znajduje MultiMC tam, gdzie gracz go trzyma** (zgłoszenie Piotra: jego MultiMC w `C:\Games\MultiMC`
   nie był wykryty, a `Downloads\MultiMC` to junction do niego, którego wyszukiwanie celowo nie śledzi).

@@ -137,7 +137,7 @@ impl Launcher {
                         .into_any_element(),
                     );
                 }
-                actions.extend([tertiary(("inst-world-open", i), &t("inst.open"))
+                actions.extend([tertiary(("inst-world-open", i), &t("inst.show_folder"))
                     .on_click(cx.listener(move |_, _, _, _| open_folder(&open)))
                     .into_any_element()]);
                 if !busy {
@@ -562,7 +562,12 @@ pub(super) fn file_row(
     actions.push(
         tertiary(
             SharedString::from(format!("inst-{folder}-open-{i}")),
-            &t("inst.open"),
+            // A config file opens in the system's editor; a log or anything else just opens.
+            &t(if text && folder == "config" {
+                "inst.edit"
+            } else {
+                "inst.open"
+            }),
         )
         .on_click(cx.listener(move |_, _, _, _| open_path(&open)))
         .into_any_element(),

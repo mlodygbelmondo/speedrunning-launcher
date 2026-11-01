@@ -817,6 +817,9 @@ impl Launcher {
             .child(
                 inter(14., FontWeight::NORMAL, 1.5)
                     .mt(px(12.))
+                    // Three lines' room whatever the text, so Play and the tabs stay put when
+                    // another instance is picked.
+                    .min_h(px(3. * 14. * 1.5))
                     .whitespace_nowrap()
                     .text_color(muted3())
                     .child(wrap_even(

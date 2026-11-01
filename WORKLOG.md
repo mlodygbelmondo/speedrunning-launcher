@@ -10,12 +10,12 @@ commicie, który coś zmienia. Najnowsze wpisy dziennika są na górze.
 
   | Miara | Start | Teraz |
   |---|---|---|
-  | 1. Wygląd i dopracowanie | 7,5 | 8 (krytyk, runda 3: 7) |
+  | 1. Wygląd i dopracowanie | 7,5 | 8,5 (krytyk, runda 4: 8) |
   | 2. Ruch i płynność (animacje) | 5 | 8,5 |
   | 3. Model instancji (własne instancje: tworzenie, kopia, usuwanie) | 3 | 9 |
   | 4. Zawartość instancji (światy, mody, paczki, konfiguracja, logi) | 4 | 9 |
-  | 5. Nawigacja i układ informacji | 7 | 8 (krytyk, runda 3: 7) |
-  | 6. Teksty EN i PL | 7 | 8 (krytyk, runda 3: EN 7, PL 8) |
+  | 5. Nawigacja i układ informacji | 7 | 8,5 (krytyk, runda 4: 8) |
+  | 6. Teksty EN i PL | 7 | 8,5 (krytyk, runda 4: EN 8, PL 8) |
   | 7. Odporność i bezpieczeństwo danych | 7,5 | 9 |
   | 8. Wydajność (bezczynność 0 klatek, start) | 9 | 9 |
   | 9. Jakość kodu i testy | 8 | 9 |
@@ -222,6 +222,20 @@ Potem:
 ## Dziennik
 
 ### 2026-11-01
+
+- **Czwarta runda krytyka zrzutów (oceny: 8 we wszystkich czterech), poprawki:**
+  - „Na start” w formularzu nowej instancji to jeden wybór w jednym rzędzie: Ustawienia domyślne · Speedrun 1.16.1 ·
+    instancje innych launcherów, a pod nim zdanie, co dokładnie się skopiuje („…z „RSG” (MultiMC)…”).
+    Wcześniej był przełącznik plus drugi rząd pod zdaniem i nie dało się zacząć od czystych ustawień tak, żeby to
+    było widać.
+  - Jeden styl zaznaczenia w całej aplikacji: segmenty w Ustawieniach (pamięć, język…) wyglądają jak zaznaczony
+    chip (fiolet z kreską), nie jak białe wypełnienie.
+  - Opis instancji ma zawsze miejsce na trzy linie, więc Graj i karty nie skaczą przy zmianie instancji.
+  - „Graj jako” zamiast „Tryb” przy chipach; w Światach „Pokaż folder” zamiast „Otwórz”; w Konfiguracji
+    „Podgląd / Edytuj” (pliki tekstowe), reszta „Otwórz”.
+  - Teksty: „Draftout potrzebuje co najmniej 3 GB.”, „Not allowed in Draftout.”, „Overworld” wielką literą,
+    „submit your first run”, PL opis formularza („na którego zasadach chcesz grać”), logowanie („nie obsługuje
+    jeszcze logowania”, też w `srl-auth`), przypis o mapach.
 
 - **Trzecia runda krytyka zrzutów (oceny: wygląd 7, nawigacja 7, EN 7, PL 8), poprawki:**
   - Pamięć wspólnej instancji jest jedna dla Ranked, RSG, FSG i SSG także na stronie Instancje (tak jak

@@ -73,8 +73,10 @@ impl Launcher {
                 let on = i == selected;
                 let live = !on && enabled(i);
                 let pick = on_pick.clone();
+                // The selected one looks like a selected `chip` (Instances, Tools): one style for
+                // every single choice in the app.
                 let color = if on {
-                    ink()
+                    text3()
                 } else if live {
                     muted3()
                 } else {
@@ -87,12 +89,14 @@ impl Launcher {
                     .flex()
                     .items_center()
                     .bg(if on {
-                        text3()
+                        accent3a(0.28)
                     } else if live {
                         text3a(0.05)
                     } else {
                         text3a(0.02)
                     })
+                    .border_b_2()
+                    .border_color(if on { accent2() } else { text3a(0.0) })
                     .when(live, |d| {
                         d.cursor_pointer().hover(|s| s.bg(text3a(0.1))).on_click(
                             cx.listener(move |this, _, window, cx| pick(this, i, window, cx)),

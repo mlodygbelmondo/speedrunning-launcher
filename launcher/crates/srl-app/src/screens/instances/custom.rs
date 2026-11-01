@@ -364,25 +364,97 @@ impl Launcher {
                     cx.notify();
                 }))
             }));
+        // Where the new instance's keys and options come from, as one choice: nothing (the
+        // game's defaults), the launcher's instance of the same Minecraft, or another launcher's.
         let from = Self::settings_source(form.base);
         let from_name = self.inst_name(from);
-        let copy = chip(
-            "inst-new-copy",
-            &tf("inst.new.copy", &[("from", &from_name)]),
-            form.copy && form.source.is_none(),
-            true,
+        let pick = |f: &mut NewForm, copy: bool| {
+            f.copy = copy;
+            f.source = None;
+        };
+        let blank = chip(
+            "inst-new-blank",
+            &t("inst.new.blank"),
+            !form.copy && form.source.is_none(),
+            false,
         )
-        .on_click(cx.listener(|this, _, _, cx| {
-            if this.instances.importing {
-                return;
-            }
-            if let Some(f) = &mut this.instances.creating {
-                f.copy = f.source.is_some() || !f.copy;
-                f.source = None;
+        .on_click(cx.listener(move |this, _, _, cx| {
+            if !this.instances.importing
+                && let Some(f) = &mut this.instances.creating
+            {
+                pick(f, false);
             }
             cx.notify();
         }));
-        let start = self.import_choices(&form, cx);
+        let copy = chip(
+            "inst-new-copy",
+            &from_name,
+            form.copy && form.source.is_none(),
+            false,
+        )
+        .on_click(cx.listener(move |this, _, _, cx| {
+            if !this.instances.importing
+                && let Some(f) = &mut this.instances.creating
+            {
+                pick(f, true);
+            }
+            cx.notify();
+        }));
+        let (sources, looking) = self.import_choices(&form, cx);
+        let hint = match &form.source {
+            // "“RSG” (MultiMC)": the other launcher's instance name alone could read as a mode.
+            Some((dir, name)) => {
+                let quoted = tf("quoted", &[("text", name)]);
+                let launcher = self
+                    .import
+                    .found
+                    .iter()
+                    .find(|s| s.game_dir == *dir)
+                    .map(|s| crate::screens::import::launcher_name(s.launcher))
+                    .unwrap_or_default();
+                let from = if launcher.is_empty() {
+                    quoted.to_string()
+                } else {
+                    format!("{quoted} ({launcher})")
+                };
+                tf("inst.new.start_import_hint", &[("from", &from)])
+            }
+            None if form.copy => tf("inst.new.start_copy_hint", &[("from", &from_name)]),
+            None => t("inst.new.blank_hint"),
+        };
+        let worlds = form.source.is_some().then(|| {
+            self.tick_line("inst-new-worlds", &t("inst.copy.worlds"), form.worlds)
+                .on_click(cx.listener(|this, _, _, cx| {
+                    if this.instances.importing {
+                        return;
+                    }
+                    if let Some(f) = &mut this.instances.creating {
+                        f.worlds = !f.worlds;
+                    }
+                    cx.notify();
+                }))
+        });
+        let start = div()
+            .flex()
+            .flex_col()
+            .gap(px(8.))
+            .child(
+                div()
+                    .flex()
+                    .flex_row()
+                    .flex_wrap()
+                    .gap(px(6.))
+                    .child(blank)
+                    .child(copy)
+                    .children(sources),
+            )
+            .child(
+                inter(12., FontWeight::NORMAL, 1.4)
+                    .text_color(faint3())
+                    .child(hint),
+            )
+            .children(looking)
+            .children(worlds.map(|w| div().pt(px(4.)).flex().flex_row().child(w)));
         let section = |title: SharedString, body: Div| {
             div()
                 .flex()
@@ -454,85 +526,53 @@ impl Launcher {
                         )),
                 ),
             ))
-            .child(section(
-                t("inst.new.start"),
-                div()
-                    .flex()
-                    .flex_col()
-                    .gap(px(12.))
-                    .child(div().flex().flex_row().child(copy))
-                    .children(start),
-            ))
+            .child(section(t("inst.new.start"), start))
             .child(self.new_instance_actions(cx))
     }
 
-    /// The other launchers' instances on the form's Minecraft version, to bring one over, and
-    /// "With worlds" once one is picked. `None` when there are none.
-    pub(super) fn import_choices(&self, form: &NewForm, cx: &mut Context<Self>) -> Option<Div> {
+    /// The other launchers' instances on the form's Minecraft version, as choices for "Start
+    /// with", and a line while they are still being looked for.
+    pub(super) fn import_choices(
+        &self,
+        form: &NewForm,
+        cx: &mut Context<Self>,
+    ) -> (Vec<gpui::Stateful<Div>>, Option<Div>) {
         let mc = form.base.minecraft_version();
-        let found: Vec<_> = self
+        let looking = (!self.import.scanned).then(|| {
+            inter(12., FontWeight::NORMAL, 1.4)
+                .text_color(faint3())
+                .child(t("inst.new.looking"))
+        });
+        let chips = self
             .import
             .found
             .iter()
             .filter(|s| s.runs(mc))
             .take(4)
-            .collect();
-        if found.is_empty() {
-            return (!self.import.scanned).then(|| {
-                inter(12., FontWeight::NORMAL, 1.4)
-                    .text_color(faint3())
-                    .child(t("inst.new.looking"))
-            });
-        }
-        let mut chips = div().flex().flex_row().flex_wrap().gap(px(6.));
-        for (i, s) in found.into_iter().enumerate() {
-            let on = form.source.as_ref().is_some_and(|(d, _)| *d == s.game_dir);
-            let launcher = crate::screens::import::launcher_name(s.launcher);
-            let text = if launcher.is_empty() {
-                s.name.clone()
-            } else {
-                format!("{} · {launcher}", s.name)
-            };
-            let pick = (s.game_dir.clone(), s.name.clone());
-            chips = chips.child(
-                chip(("inst-new-src", i), &text, on, true).on_click(cx.listener(
+            .enumerate()
+            .map(|(i, s)| {
+                let on = form.source.as_ref().is_some_and(|(d, _)| *d == s.game_dir);
+                let launcher = crate::screens::import::launcher_name(s.launcher);
+                let text = if launcher.is_empty() {
+                    s.name.clone()
+                } else {
+                    format!("{} · {launcher}", s.name)
+                };
+                let pick = (s.game_dir.clone(), s.name.clone());
+                chip(("inst-new-src", i), &text, on, false).on_click(cx.listener(
                     move |this, _, _, cx| {
                         if this.instances.importing {
                             return;
                         }
                         if let Some(f) = &mut this.instances.creating {
-                            f.source = if on { None } else { Some(pick.clone()) };
+                            f.source = Some(pick.clone());
                         }
                         cx.notify();
                     },
-                )),
-            );
-        }
-        let worlds = form.source.is_some().then(|| {
-            self.tick_line("inst-new-worlds", &t("inst.copy.worlds"), form.worlds)
-                .on_click(cx.listener(|this, _, _, cx| {
-                    if this.instances.importing {
-                        return;
-                    }
-                    if let Some(f) = &mut this.instances.creating {
-                        f.worlds = !f.worlds;
-                    }
-                    cx.notify();
-                }))
-        });
-        Some(
-            div()
-                .flex()
-                .flex_col()
-                .gap(px(8.))
-                .child(
-                    inter(12., FontWeight::NORMAL, 1.4)
-                        .text_color(faint3())
-                        .child(t("inst.new.other")),
-                )
-                .child(chips)
-                .children(worlds.map(|w| div().flex().flex_row().child(w))),
-        )
+                ))
+            })
+            .collect();
+        (chips, looking)
     }
 
     /// Create and Cancel, or the progress of bringing an instance over.

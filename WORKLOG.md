@@ -18,9 +18,9 @@ commicie, który coś zmienia. Najnowsze wpisy dziennika są na górze.
 - **Samoaktualizacja launchera** jest zrobiona i wypchnięta (2026-10-31, szczegóły w dzienniku), CI zielone,
   wydanie `v0.1.0` opublikowane, suma SHA-256 sprawdzona po pobraniu. Nikt jej jeszcze nie uruchomił na Windowsie.
   Kolejne wydanie: podbij wersję w `launcher/Cargo.toml`, commit, tag `vX.Y.Z`, push tagu (`launcher/README.md`,
-  „Releasing a version”). Najnowsze jest `v0.1.3` (import znajduje MultiMC wszędzie). Test na Windowsie: Piotr ma
-  0.1.2, więc launcher ma sam pobrać 0.1.3 (kropka na kole zębatym), w Ustawieniach, w O programie, zaproponować
-  „Uruchom ponownie”, a po kliknięciu pokazać 0.1.3; potem import ma pokazać `C:\Games\MultiMC` i jego 4 instancje.
+  „Releasing a version”). Najnowsze jest `v0.1.4` (Toolscreen wstrzykiwany po otwarciu okna gry). Test na
+  Windowsie: Piotr ma 0.1.3, więc launcher ma sam pobrać 0.1.4, a potem Ranked i FSG z Toolscreen mają dojść do
+  ekranu tytułowego.
 - **Logowanie Microsoft** jest wyłączone, dopóki Mojang nie zatwierdzi naszego client ID. Poradnik dla Piotra:
   `launcher/docs/microsoft-login.md` (Azure i formularz Mojanga, po polsku). Bez client ID gra offline działa jak
   dotąd, więc testy w czasie weryfikacji nie potrzebują konta.
@@ -206,6 +206,9 @@ Potem:
 ## Dziennik
 
 ### 2026-11-01
+
+- **Wydanie `v0.1.4`** (decyzja Piotra): poprawka wstrzykiwania Toolscreen poniżej. Katalog testowy
+  `%LOCALAPPDATA%\srl-test` na Windowsie Piotra usunięty.
 
 - **Toolscreen wstrzykiwany dopiero po otwarciu okna gry** (zgłoszenie Piotra: Ranked padał z
   NullPointerException w Lithium przy kształtach bloków, FSG z naruszeniem dostępu `0xC0000005` złapanym przez

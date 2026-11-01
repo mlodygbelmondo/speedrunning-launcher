@@ -48,7 +48,7 @@ const TILE_MS: f32 = 180.0;
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum Page {
     Home,
-    /// Every instance and what's inside it (`screens/instances.rs`).
+    /// Every instance and what's inside it (`screens/instances/`).
     Instances,
     Practice,
     Learn,

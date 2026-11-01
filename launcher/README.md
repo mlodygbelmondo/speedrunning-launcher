@@ -142,8 +142,10 @@ changes, JVM arguments). The base mode gives it its Minecraft version, Java, Fab
 rules; Play installs and starts it through the same pipeline, keyed by its own id (`custom-<n>`: its install record,
 log, pid file and `mods/`), and it never touches the shared directory's per-mode Atum settings. It can be created
 empty or with another instance's options, `config/` and resource packs, duplicated (the whole directory but `mods/`,
-logs and the launcher's notes; worlds if asked), renamed, changed and deleted. Details:
-`crates/srl-app/README.md`, "Custom instances".
+logs and the launcher's notes; worlds if asked), brought over from another launcher (MultiMC, Prism, MCSR
+Launcher, the official launcher: only its options, `config/`, resource packs and, if asked, worlds), renamed,
+changed and deleted. Its runs count in Statistics for its base mode. Everything is on the Instances page
+(`crates/srl-app/src/screens/instances/`). Details: `crates/srl-app/README.md`, "Custom instances".
 
 **Deleting a custom instance deletes nothing.** Its directory moves to `<data>/trash/custom-<n>-<unix time>/` (with
 the launcher's logs of it in `launcher-logs/`). To get it back, create a new instance with the same base mode and

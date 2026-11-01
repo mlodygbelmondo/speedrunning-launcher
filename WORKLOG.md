@@ -18,7 +18,7 @@ commicie, który coś zmienia. Najnowsze wpisy dziennika są na górze.
   | 6. Teksty EN i PL | 7 | 8 |
   | 7. Odporność i bezpieczeństwo danych | 7,5 | 9 |
   | 8. Wydajność (bezczynność 0 klatek, start) | 9 | 9 |
-  | 9. Jakość kodu i testy | 8 | 8,5 |
+  | 9. Jakość kodu i testy | 8 | 9 |
   | 10. Wartość dla speedrunnera (legalność, narzędzia, trening, staty) | 8 | 9 |
 
 - **Stan:** `launcher` i `main` to ten sam commit, a pierwsze numerowane wydanie
@@ -222,6 +222,12 @@ Potem:
 ## Dziennik
 
 ### 2026-11-01
+
+- **Kod:** `screens/instances.rs` (2600 linii) podzielony na `screens/instances/`: `mod.rs` (stan, lista, panel,
+  karty), `tabs.rs` (Światy, Paczki, Konfiguracja, Logi, Zrzuty i ich wiersze), `settings.rs` (karta Ustawienia
+  i „Zrób kopię”), `custom.rs` (tworzenie, kopia, import, zmiana nazwy, usuwanie, Graj własnej instancji,
+  formularz). Bez zmian w działaniu: testy, clippy i zrzut w Xvfb. README: import z innego launchera i
+  statystyki własnych instancji.
 
 - **Podgląd konfiguracji w launcherze:** na karcie Konfiguracja pliki tekstowe (json, txt, toml, properties, cfg,
   yml…) mają „Pokaż”: pierwsze 400 linii pod wierszem, długie linie łamane co 110 znaków (jednowierszowy JSON

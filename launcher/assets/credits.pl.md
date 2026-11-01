@@ -2,8 +2,6 @@
 
 <!-- Ustawienia > Autorzy i licencje, lewa kolumna (po polsku). Angielska wersja to credits.md. -->
 
-NOT AN OFFICIAL MINECRAFT PRODUCT. NOT APPROVED BY OR ASSOCIATED WITH MOJANG OR MICROSOFT.
-
 ## Grafiki
 
 Każda grafika to nasz własny render z Blendera z naszymi teksturami. Nie używamy żadnego pliku z gry Minecraft.

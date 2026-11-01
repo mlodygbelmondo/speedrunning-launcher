@@ -3,8 +3,6 @@
 <!-- Shown in Settings > Credits and licences, left column (English). The Polish one is
      credits.pl.md. The developer notes on how the art is made are in art/CREDITS.md. -->
 
-NOT AN OFFICIAL MINECRAFT PRODUCT. NOT APPROVED BY OR ASSOCIATED WITH MOJANG OR MICROSOFT.
-
 ## Pictures
 
 Every picture is our own Blender render with our own textures. No file from the Minecraft game is used.

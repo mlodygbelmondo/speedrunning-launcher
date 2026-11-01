@@ -174,14 +174,7 @@ impl Launcher {
                     }),
                 ))
             };
-            col = col.child(
-                div()
-                    .flex()
-                    .flex_col()
-                    .gap(px(10.))
-                    .child(section_head(&t("inst.custom.remove")))
-                    .child(body),
-            );
+            col = col.child(div().flex().flex_col().gap(px(10.)).child(body));
         }
         // Fades at the edges while more is hidden, as the tabs' lists do.
         div()

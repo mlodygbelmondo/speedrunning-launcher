@@ -172,11 +172,6 @@ impl Launcher {
                 )))
             })
             .child(div().flex_1())
-            .child(
-                inter(12., FontWeight::NORMAL, 1.)
-                    .text_color(faint3())
-                    .child(t("mods.next_play")),
-            )
             .child(actions);
 
         let list_w = 1280. - 388. - 48.;

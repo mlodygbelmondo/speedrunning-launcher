@@ -941,8 +941,9 @@ mod tests {
                         || s.contains("bakeoff")
                         || s.contains("SRL_DEMO"),
             }));
+            // The disclaimer is on Settings itself, right above the Credits link.
             assert!(
-                b.iter()
+                !b.iter()
                     .any(|x| matches!(x, Block::Para(s) if s.starts_with("NOT AN OFFICIAL")))
             );
         }

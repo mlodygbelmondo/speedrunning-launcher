@@ -309,7 +309,7 @@ impl Launcher {
     // PB tiles
     // -----------------------------------------------------------------------------------------
 
-    /// One mode's tile: the PB (or Ranked's best time, Draftout's elo), the sum of best in gold
+    /// One mode's tile: the PB (Ranked's best match when it has no run of its own, Draftout's elo), the sum of best in gold
     /// at the top right. Clicking a mode with runs lists only its runs; Draftout without a name
     /// opens Settings.
     fn pb_tile(&self, mode: Mode, cx: &mut Context<Self>) -> gpui::Stateful<Div> {
@@ -336,18 +336,14 @@ impl Launcher {
                     .as_ref()
                     .and_then(|l| l.value.as_ref())
                     .and_then(|o| o.profile.value.season.best_time_ms);
-                match (api_best, history) {
-                    (Some(ms), _) => TileBody::Value(fmt_igt(ms), t("stats.best_match")),
-                    (None, None) => TileBody::Loading,
-                    (None, Some(h)) => match h.headline_pb() {
-                        Some(pb) => TileBody::Value(
-                            fmt_igt(pb.record.igt_ms),
-                            tf(
-                                "stats.practice_pb",
-                                &[("date", &fmt_date(pb.record.date_ms))],
-                            ),
-                        ),
-                        None => pb_body(h),
+                // Your own PB first, as on every tile, so it agrees with the PB badge in Recent
+                // runs; the season's best match only when there is no run of your own.
+                match (history.filter(|h| h.headline_pb().is_some()), api_best) {
+                    (Some(h), _) => pb_body(h),
+                    (None, Some(ms)) => TileBody::Value(fmt_igt(ms), t("stats.best_match")),
+                    (None, None) => match history {
+                        Some(h) => pb_body(h),
+                        None => TileBody::Loading,
                     },
                 }
             }

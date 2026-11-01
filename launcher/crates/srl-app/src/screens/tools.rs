@@ -348,7 +348,7 @@ impl Launcher {
                     .whitespace_nowrap()
                     .text_color(if unsupported { faint3() } else { muted3() })
                     .child(wrap(
-                        &t(&format!("tools.{}.desc", id.id())),
+                        &t(info.copy_key),
                         INTER,
                         FontWeight::NORMAL,
                         14.,

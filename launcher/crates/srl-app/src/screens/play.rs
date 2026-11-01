@@ -302,7 +302,13 @@ impl Launcher {
                     Some(Fix::SignInFirst) => t("v3.fix.sign_in"),
                     _ => t("v3.fix.relogin"),
                 },
-                SharedString::default(),
+                // The lower memory stays: say so under the button.
+                match &fix {
+                    Some(Fix::Memory { to_mb, .. }) => {
+                        tf("v3.fix.memory_hint", &[("n", &gb(*to_mb))])
+                    }
+                    _ => SharedString::default(),
+                },
                 true,
             ),
             ModeState::Failed(f) => (

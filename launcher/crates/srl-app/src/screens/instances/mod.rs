@@ -542,10 +542,12 @@ impl Launcher {
         cx.spawn(async move |this, cx| {
             let answer = task.await;
             let _ = this.update(cx, |app, cx| {
-                app.instances.note = Some(match answer {
-                    Ok(s) => (s, false),
-                    Err(e) => (e.into(), true),
-                });
+                // A change the screen already shows (a pack's tick) says nothing.
+                app.instances.note = match answer {
+                    Ok(s) if s.is_empty() => None,
+                    Ok(s) => Some((s, false)),
+                    Err(e) => Some((e.into(), true)),
+                };
                 app.rescan(cx);
             });
         })
@@ -612,16 +614,7 @@ impl Launcher {
         self.change(
             move || {
                 content::set_pack(&dir, &rel, on)
-                    .map(|_| {
-                        tf(
-                            if on {
-                                "inst.packs.turned_on"
-                            } else {
-                                "inst.packs.turned_off"
-                            },
-                            &[("name", &rel)],
-                        )
-                    })
+                    .map(|_| SharedString::default())
                     .map_err(|e| format!("{e:#}"))
             },
             cx,

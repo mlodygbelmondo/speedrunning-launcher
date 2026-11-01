@@ -226,6 +226,15 @@ Potem:
 
 ### 2026-11-01
 
+- **Pętla tekstów, runda 4** (r3: **8 i 8**). Kafel Ranked w Statystykach pokazuje lokalny PB, a dopiero bez
+  niego najlepszy mecz z API (wcześniej dwa różne „najlepsze” czasy na jednej stronie). Opisy Ranked, Draftout
+  i FSG na Home usunięte (powtarzały nazwę trybu); zostaje jedna linia o koncie Microsoft. Jeden zestaw opisów
+  narzędzi (`tool.*.what`), bez `tools.*.desc`. Bez notki „zmiany działają przy następnym uruchomieniu” w Modach
+  (to oczywiste) i bez notek po włączeniu paczki. Bez zastrzeżenia „nieoficjalny produkt” w Autorach (jest już
+  w Ustawieniach). Podpowiedź przy naprawie pamięci mówi, ile GB zostaje na stałe. Krótsze i spójne teksty
+  logowania („Mecze wymagają konta Microsoft”), błędów Microsoft, podpowiedzi nicków, importu, aktualizacji
+  i Treningu.
+
 - **Pętla tekstów, runda 3** (r2: **8 i 8**). Błąd: zakładka Paczki zasobów pokazywała dosłowne „{all}”
   (kod podawał tylko `on`), naprawione. Pierwsze logowanie to krok, nie błąd: bez czerwieni i „nie udało się”, kafel
   mówi „zaloguj się raz, żeby grać”. Wersja bez logowania mówi na Home, że mecze wymagają konta, a ta wersja jeszcze

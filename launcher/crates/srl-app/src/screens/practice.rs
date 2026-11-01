@@ -1334,7 +1334,9 @@ impl Launcher {
                     .flex()
                     .flex_row()
                     .justify_between()
-                    .child(section_head(&title)),
+                    .when(matches!(self.practice_sel, PracticeSel::Tools), |d| {
+                        d.child(section_head(&title))
+                    }),
             )
             // While rows are hidden above or below, they fade into the page at that edge instead
             // of being cut by it (and never run into the header).

@@ -668,6 +668,7 @@ impl Launcher {
             (format!("{mod_key}+1 … 6"), "settings.keys.pages"),
             (format!("{mod_key}+,"), "settings.keys.settings"),
             ("← →".to_string(), "settings.keys.modes"),
+            ("↑ ↓".to_string(), "settings.keys.instances"),
             ("Enter".to_string(), "settings.keys.play"),
             ("Esc".to_string(), "settings.keys.back"),
         ];

@@ -11,10 +11,10 @@ commicie, który coś zmienia. Najnowsze wpisy dziennika są na górze.
   | Miara | Start | Teraz |
   |---|---|---|
   | 1. Wygląd i dopracowanie | 7,5 | 8,5 (krytyk, runda 5: 8) |
-  | 2. Ruch i płynność (animacje) | 5 | 8,5 |
+  | 2. Ruch i płynność (animacje) | 5 | 9 |
   | 3. Model instancji (własne instancje: tworzenie, kopia, usuwanie) | 3 | 9 |
   | 4. Zawartość instancji (światy, mody, paczki, konfiguracja, logi) | 4 | 9 |
-  | 5. Nawigacja i układ informacji | 7 | 8,5 (krytyk, runda 5: 8) |
+  | 5. Nawigacja i układ informacji | 7 | 9 (krytyk, runda 6: 8; potem skróty klawiszowe i poprawki) |
   | 6. Teksty EN i PL | 7 | 9 (krytyk, runda 5: EN 8, PL 9; poprawki EN po rundzie) |
   | 7. Odporność i bezpieczeństwo danych | 7,5 | 9 |
   | 8. Wydajność (bezczynność 0 klatek, start) | 9 | 9 |
@@ -222,6 +222,12 @@ Potem:
 ## Dziennik
 
 ### 2026-11-01
+
+- **Instancje z klawiatury:** ↑ i ↓ wybierają poprzednią albo następną instancję (z zawinięciem, lista przewija
+  się do wybranej), ← i → przełączają karty (Trening bez karty Mody). Działa, gdy żadne pole nie ma fokusu
+  i formularz nowej instancji jest zamknięty. Lista skrótów w Ustawieniach to mówi. Lista instancji wygasza się
+  u góry i u dołu, gdy coś jest schowane, jak listy na kartach. Sprawdzone w Xvfb (8 własnych instancji, ↑ z
+  pierwszej przewija do ostatniej), 0 klatek bezczynności.
 
 - **Szósta runda krytyka zrzutów (8 we wszystkich czterech; krytyk co rundę znajduje ~12 drobiazgów, część
   sprzecznych z wcześniejszymi rundami), poprawki:**

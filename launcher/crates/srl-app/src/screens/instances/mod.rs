@@ -389,6 +389,56 @@ impl Launcher {
         cx.notify();
     }
 
+    /// ↑ and ↓ on the page: the instance above or below in the list, wrapping round. Not while
+    /// the New instance form is open (its fields take the keys).
+    pub fn step_instance(&mut self, down: bool, cx: &mut Context<Self>) {
+        if self.instances.creating.is_some() {
+            return;
+        }
+        let keys: Vec<InstKey> = InstKey::BUILT_IN
+            .into_iter()
+            .chain(
+                self.settings
+                    .custom_instances
+                    .iter()
+                    .map(|c| InstKey::Custom(c.id)),
+            )
+            .collect();
+        let at = keys
+            .iter()
+            .position(|k| *k == self.instances.sel)
+            .unwrap_or(0);
+        let n = keys.len();
+        let next = if down { (at + 1) % n } else { (at + n - 1) % n };
+        // The rows are the list's children in this order: keep the picked one in view.
+        self.instances.list_scroll.scroll_to_item(next);
+        self.select_instance(keys[next], cx);
+    }
+
+    /// ← and → on the page: the tab before or after the selected one, wrapping round (Practice
+    /// has no Mods tab).
+    pub fn step_tab(&mut self, right: bool, cx: &mut Context<Self>) {
+        if self.instances.creating.is_some() {
+            return;
+        }
+        let key = self.instances.sel;
+        let tabs: Vec<Tab> = Tab::ALL
+            .into_iter()
+            .filter(|tab| !(key == InstKey::Practice && *tab == Tab::Mods))
+            .collect();
+        let at = tabs
+            .iter()
+            .position(|t| *t == self.instances.tab)
+            .unwrap_or(0);
+        let n = tabs.len();
+        let next = if right {
+            (at + 1) % n
+        } else {
+            (at + n - 1) % n
+        };
+        self.select_tab(tabs[next], cx);
+    }
+
     fn select_tab(&mut self, tab: Tab, cx: &mut Context<Self>) {
         let v = &mut self.instances;
         if v.tab != tab {
@@ -641,29 +691,37 @@ impl Launcher {
             .bottom(px(28.))
             .child(section_head(&t("inst.list")).pb(px(4.)))
             .child(
+                // Rows hidden above or below fade out at the edge, as the tabs' lists do.
                 div()
-                    .id("inst-keys")
                     .flex_1()
                     .min_h_0()
+                    .relative()
                     // Room for the selected row's ring, which sits 5 px outside the row: the
                     // scroll area clips at its padding edge.
                     .m(px(-6.))
-                    .p(px(6.))
-                    .overflow_y_scroll()
-                    .track_scroll(&self.instances.list_scroll)
-                    .flex()
-                    .flex_col()
-                    .gap(px(8.))
-                    .children({
-                        let mut rows = Vec::new();
-                        for k in InstKey::BUILT_IN {
-                            rows.push(self.inst_row(k, cx));
-                        }
-                        for c in &self.settings.custom_instances {
-                            rows.push(self.inst_row(InstKey::Custom(c.id), cx));
-                        }
-                        rows
-                    }),
+                    .child(
+                        div()
+                            .id("inst-keys")
+                            .size_full()
+                            .p(px(6.))
+                            .overflow_y_scroll()
+                            .track_scroll(&self.instances.list_scroll)
+                            .flex()
+                            .flex_col()
+                            .gap(px(8.))
+                            .children({
+                                let mut rows = Vec::new();
+                                for k in InstKey::BUILT_IN {
+                                    rows.push(self.inst_row(k, cx));
+                                }
+                                for c in &self.settings.custom_instances {
+                                    rows.push(self.inst_row(InstKey::Custom(c.id), cx));
+                                }
+                                rows
+                            }),
+                    )
+                    .child(fade_above(self.instances.list_scroll.clone(), 24.))
+                    .child(fade_below(self.instances.list_scroll.clone(), 24.)),
             )
             .child(
                 div().flex_none().pt(px(8.)).child(

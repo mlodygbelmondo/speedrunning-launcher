@@ -799,8 +799,9 @@ impl Launcher {
     }
 
     /// The keyboard shortcuts, only while no text field has the focus: Ctrl+1…6 the nav pages,
-    /// Ctrl+, Settings; on Home ← and → pick the mode and Enter is Play; Esc closes the Instances
-    /// page's question, or goes back from the game screen.
+    /// Ctrl+, Settings; on Home ← and → pick the mode and Enter is Play; on Instances ↑ and ↓
+    /// pick the instance and ← and → the tab; Esc closes the Instances page's question, or goes
+    /// back from the game screen.
     fn global_key(&mut self, ev: &gpui::KeyDownEvent, window: &mut Window, cx: &mut Context<Self>) {
         if !self.root_focus.is_focused(window) || self.data_error.is_some() {
             return;
@@ -846,6 +847,8 @@ impl Launcher {
                     }
                 }
             }
+            (Page::Instances, "up" | "down") => self.step_instance(k.key == "down", cx),
+            (Page::Instances, "left" | "right") => self.step_tab(k.key == "right", cx),
             (Page::Instances, "escape") if self.instances.confirm.is_some() => {
                 self.instances.confirm = None;
                 cx.notify();

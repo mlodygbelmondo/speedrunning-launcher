@@ -226,6 +226,9 @@ Potem:
 
 ### 2026-11-01
 
+- **Wersja 0.2.2** (Piotr: „Yeah sure”): teksty po 11 rundach pętli (9/10), wydane jako v0.2.2, żeby jego
+  instalacja zaktualizowała się sama.
+
 - **Pętla tekstów zakończona: r11 = 9 i 8,5** (cel 9 osiągnięty; historia: r0 7/7, r1 7,5/7,5, r2 8/8, r3 8/8,
   r4–r10 8,5/8,5, r11 9/8,5). Poprawki po ostatniej ocenie (wskazane przez obu albo błędne): podsumowanie importu
   mówi „Speedrun i Mapy treningowe”, nie cztery tryby; pamięć własnej instancji 1.16.1 to „Jak w Speedrun (3 GB)”

@@ -623,7 +623,9 @@ impl Launcher {
             .gap(px(20.));
         match key {
             InstKey::Shared | InstKey::Draftout => {
-                let mi = self.mode_sel;
+                // The instance's own mode, never another instance's: Draftout may still be
+                // selected from Home while the shared instance is shown.
+                let mi = index(self.inst_mode(key).unwrap_or(Mode::Ranked));
                 row = row.child(self.mode_play(mi, "inst-play", 200., 44., 15., cx));
                 if key == InstKey::Shared {
                     row = row.child(div().flex().flex_row().gap(px(6.)).children(

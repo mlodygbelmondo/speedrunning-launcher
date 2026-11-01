@@ -329,7 +329,8 @@ impl Launcher {
         }
     }
 
-    /// The ghost actions next to Play: Cancel while installing; with the demo, the prototype's
+    /// The ghost actions next to Play: Cancel while installing; on Home, Manage instance once the
+    /// mode is installed; with the demo, the prototype's
     /// Verify files (and Open folder on Modes) for an installed mode. Without the demo there is
     /// nothing to verify or open yet, so nothing shows.
     pub fn play_ghosts(
@@ -362,6 +363,13 @@ impl Launcher {
                 );
             }
             return v;
+        }
+        // Home: the way into the instance the mode plays in (its worlds, mods and files).
+        if prefix == "home" && self.installed(mi) {
+            return vec![
+                tertiary("home-instance", &t("home.instance"))
+                    .on_click(cx.listener(|this, _, _, cx| this.open_instances(None, cx))),
+            ];
         }
         if demo::get().is_none() || !self.installed(mi) {
             return Vec::new();

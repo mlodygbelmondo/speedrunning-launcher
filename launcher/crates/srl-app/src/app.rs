@@ -464,6 +464,10 @@ impl Launcher {
                 // there to tie the run to the mode.
                 if was_running && !running {
                     self.backend.stats().scan();
+                    // New worlds, screenshots and logs to list.
+                    if self.target == Page::Instances {
+                        self.rescan(cx);
+                    }
                 }
                 if running && !was_running {
                     // The launcher steps aside while the game runs (README "What the launcher

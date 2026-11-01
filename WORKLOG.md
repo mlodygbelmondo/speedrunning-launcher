@@ -5,6 +5,22 @@ commicie, który coś zmienia. Najnowsze wpisy dziennika są na górze.
 
 ## Teraz
 
+- **Pętla ulepszeń (od 2026-11-01, prośba Piotra):** pomysł → zrobienie → przegląd → poprawki, aż każda z 10 miar
+  ma co najmniej 9/10. Oceny po każdej rundzie:
+
+  | Miara | Start | Teraz |
+  |---|---|---|
+  | 1. Wygląd i dopracowanie | 7,5 | 7,5 |
+  | 2. Ruch i płynność (animacje) | 5 | 7 |
+  | 3. Model instancji (własne instancje: tworzenie, kopia, usuwanie) | 3 | 3 (w toku, subagent) |
+  | 4. Zawartość instancji (światy, mody, paczki, konfiguracja, logi) | 4 | 8 |
+  | 5. Nawigacja i układ informacji | 7 | 8 |
+  | 6. Teksty EN i PL | 7 | 7,5 |
+  | 7. Odporność i bezpieczeństwo danych | 7,5 | 8 |
+  | 8. Wydajność (bezczynność 0 klatek, start) | 9 | 9 |
+  | 9. Jakość kodu i testy | 8 | 8 |
+  | 10. Wartość dla speedrunnera (legalność, narzędzia, trening, staty) | 8 | 8,5 |
+
 - **Stan:** `launcher` i `main` to ten sam commit, a pierwsze numerowane wydanie
   `v0.1.0` jest opublikowane (2026-10-31, niepodpisane, `releases/latest`). Gotowe są M1, M2 i M3 (statystyki
   z prawdziwych danych, mapy treningowe, logowanie Microsoft z ekranami), import ustawień z innych launcherów,

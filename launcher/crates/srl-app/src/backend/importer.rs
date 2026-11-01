@@ -90,7 +90,7 @@ pub fn targets(paths: &Paths) -> Vec<(Instance, Target)> {
         .into_iter()
         .map(|m| {
             let id = Instance::Mode(m).dir_id();
-            let t = Target::new(id, paths.instance(m), m.minecraft_version());
+            let t = Target::new(&id, paths.instance(m), m.minecraft_version());
             let t = if m == Mode::Draftout {
                 t.with_seed(DRAFTOUT_SEED.0, DRAFTOUT_SEED.1)
             } else {
@@ -104,7 +104,7 @@ pub fn targets(paths: &Paths) -> Vec<(Instance, Target)> {
     out.push((
         Instance::Practice,
         Target::new(
-            Instance::Practice.id(),
+            &Instance::Practice.id(),
             paths.practice_instance(),
             srl_practice::PRACTICE.minecraft_version,
         ),

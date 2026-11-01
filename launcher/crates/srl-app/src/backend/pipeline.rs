@@ -21,6 +21,11 @@
 //! The practice instance goes through the same steps (`Core::prepare_instance` with
 //! `Instance::Practice`, then `Core::launch`): its own game directory, log, pid file and record,
 //! the game and mods `practice.rs` names, and the one account and tools logic of the modes.
+//!
+//! So does a custom instance (`Instance::Custom`): its base mode's game (`srl_game::profile`),
+//! its base mode's legal set with the instance's own changes (`ModRules::choice_of`), its base
+//! mode's tools, and its own directory, log, pid file, record, memory and JVM arguments. It
+//! never touches the shared directory's per-mode Atum settings.
 use std::{
     collections::HashSet,
     path::{Path, PathBuf},
@@ -64,7 +69,8 @@ pub const DEFAULT_PLAYER: &str = "Player";
 /// `-Duser.home=<folder>`, so SpeedRunIGT keeps its records (`~/speedrunigt`) out of the real home
 /// folder. Only that one property: the launcher strips JVM options from the environment on purpose
 /// (srl-game's `SCRUBBED_ENV`, speedrun rule A.8.19), and this must not become a way around it.
-/// The app has no JVM arguments setting; this is for tests only.
+/// The modes have no JVM arguments setting (custom instances do, checked by
+/// `validate_jvm_args`); this is for tests only.
 pub const DEV_GAME_HOME_ENV: &str = "SRL_DEV_GAME_HOME";
 
 /// The offline account a game uses when no Microsoft account plays (`account::play_as`, the one
@@ -111,6 +117,16 @@ pub struct Prepared {
     pub tools: ToolSelection,
     /// Tools that could not be installed (they are left out of the launch, the game starts).
     pub tool_notes: Vec<ToolNote>,
+    /// The mode whose rules the game follows: its tools' rules (a mode's own, practice's
+    /// `practice::TOOLS_LIKE`, a custom instance's base).
+    pub rules_mode: Mode,
+}
+
+/// [`Core::sets`]: an instance's base mode, that mode's own set and the set Play installs.
+pub struct Sets {
+    pub base: Mode,
+    pub own: ModSet,
+    pub set: ModSet,
 }
 
 /// What an install left on disk, so the next start can tell Ready from NotInstalled with a few
@@ -193,6 +209,12 @@ impl Core {
         Ok(meta)
     }
 
+    /// Puts mod lists in memory as if just fetched, so tests resolve without the network.
+    #[cfg(test)]
+    pub async fn seed_mod_meta(&self, meta: ModMeta) {
+        *self.mod_meta.lock().await = Some((Instant::now(), Arc::new(meta)));
+    }
+
     /// The mode's own mod set for this OS, with the optional mods `opts` asks for, before the
     /// player's changes.
     pub fn mode_set(&self, meta: &ModMeta, mode: Mode, opts: &ResolveOptions) -> Result<ModSet> {
@@ -207,7 +229,7 @@ impl Core {
     }
 
     /// [`Core::resolve`] for any instance: the practice instance's set is its explicit list
-    /// (`practice::mod_set`).
+    /// (`practice::mod_set`), a custom instance's its base mode's with its own changes.
     pub fn resolve_instance(
         &self,
         meta: &ModMeta,
@@ -217,27 +239,31 @@ impl Core {
         match instance {
             Instance::Mode(mode) => self.resolve(meta, mode, rules),
             Instance::Practice => super::practice::mod_set(meta, rules.opts.accessibility),
+            Instance::Custom(_) => Ok(self.sets(meta, instance, rules)?.set),
         }
     }
 
-    /// Steps 1 to 3 of Play: metadata, game, mods, then the `tools` the game starts with.
-    /// Idempotent and fast when everything is in place (a stat per game file, a hash of the mod
-    /// jars and tool files). Reports `Metadata`, then `Java`, `Game` and `Assets` (in parallel),
-    /// then `Mods`, then `Tools` when one downloads. A tool that can't be installed never fails
-    /// Play: it comes back in `Prepared::tool_notes` and the game starts without it.
-    pub async fn prepare(
-        &self,
-        mode: Mode,
-        rules: &ModRules,
-        tools: &ToolSelection,
-        progress: Option<ProgressFn>,
-    ) -> Result<Prepared> {
-        self.prepare_instance(mode.into(), rules, tools, progress)
-            .await
+    /// A mode's or a custom instance's sets: the base mode's own (with the optional mods), and
+    /// the one Play installs (with the instance's changes, for its own `mods/`). The update
+    /// check builds the Mods page's catalogue and concerns from both.
+    pub fn sets(&self, meta: &ModMeta, instance: Instance, rules: &ModRules) -> Result<Sets> {
+        let base = rules
+            .base(instance)
+            .with_context(|| format!("{} has no mode set of its own", instance.id()))?;
+        let own = self.mode_set(meta, base, &rules.opts)?;
+        let mut set = srl_mods::apply(meta, own.clone(), &rules.choice_of(instance));
+        // srl-mods resolved it as the base mode; its files go to the instance's own directory.
+        set.instance = instance;
+        Ok(Sets { base, own, set })
     }
 
-    /// [`Core::prepare`] for a mode or the practice instance. Installs share `install_lock` with
-    /// the modes: the practice game uses the same Java, libraries and assets as the 1.16.1 modes.
+    /// Steps 1 to 3 of Play for a mode, the practice instance or a custom instance: metadata,
+    /// game, mods, then the `tools` the game starts with. Idempotent and fast when everything is
+    /// in place (a stat per game file, a hash of the mod jars and tool files). Reports
+    /// `Metadata`, then `Java`, `Game` and `Assets` (in parallel), then `Mods`, then `Tools`
+    /// when one downloads. A tool that can't be installed never fails Play: it comes back in
+    /// `Prepared::tool_notes` and the game starts without it. Installs of every instance share
+    /// `install_lock`: they use the same Java, libraries and assets.
     pub async fn prepare_instance(
         &self,
         instance: Instance,
@@ -281,9 +307,20 @@ impl Core {
             .await
             .context("loading the mod lists")?;
         let mut notes = meta.notes.clone();
+        let rules_mode = match instance {
+            Instance::Practice => super::practice::TOOLS_LIKE,
+            _ => rules
+                .base(instance)
+                .with_context(|| format!("there is no instance {}", instance.id()))?,
+        };
         let target = match instance {
             Instance::Mode(mode) => srl_game::Target::mode(mode),
             Instance::Practice => super::practice::target()?,
+            // The base mode's game, in the instance's own directory.
+            Instance::Custom(_) => srl_game::Target {
+                instance,
+                profile: srl_game::profile(rules_mode),
+            },
         };
         let installed = self
             .installer
@@ -302,7 +339,7 @@ impl Core {
         )
         .await
         .context("installing the mods")?;
-        if instance == Instance::Mode(Mode::Draftout) {
+        if instance != Instance::Practice && rules_mode == Mode::Draftout {
             seed_options(&installed.game_dir).await?;
         }
         // The shared directory: this mode's Atum settings in place (`srl_core::shared`).
@@ -318,11 +355,7 @@ impl Core {
         let tool_notes = {
             let _one_at_a_time = self.tool_lock.lock().await;
             self.tools
-                .install_selected(
-                    super::practice::rules_mode(instance),
-                    tools,
-                    progress.clone(),
-                )
+                .install_selected(rules_mode, tools, progress.clone())
                 .await
         };
         Ok(Prepared {
@@ -333,6 +366,7 @@ impl Core {
             notes,
             tools: tools.clone(),
             tool_notes,
+            rules_mode,
         })
     }
 
@@ -347,15 +381,15 @@ impl Core {
         account: GameAccount,
     ) -> Result<Game> {
         let instance = prepared.installed.instance;
-        let rules = super::practice::rules_mode(instance);
+        let rules = prepared.rules_mode;
         let token = self.guard.game_started(instance)?;
         let name = account.name().to_string();
         let microsoft = account.is_microsoft();
         let mut opts = LaunchOptions::with_profile(&prepared.installed.profile, account);
-        // The mode's own setting (practice: RSG's), never below what the game needs (Draftout:
-        // 3 GB).
+        // The mode's own setting (practice: RSG's; a custom instance's own, else its base's),
+        // never below what the game needs (Draftout: 3 GB).
         opts.max_memory_mb = settings
-            .memory_mb(rules)
+            .memory_mb_of(instance)
             .max(prepared.installed.profile.min_memory_mb);
         // The tools' launch hook: waywall may wrap the command; what can't run is left out with
         // a note and the game starts anyway.
@@ -365,12 +399,19 @@ impl Core {
             .context("starting Minecraft")?;
         // Right before the main class, not in `extra_jvm_args`: those would replace the
         // version's default JVM arguments (Draftout's ZGC flags).
+        // A custom instance's own arguments go there too, after the version's, so they win.
         let main_class = prepared.installed.version.main_class.as_deref();
-        if let Some(home) = std::env::var_os(DEV_GAME_HOME_ENV).filter(|v| !v.is_empty())
+        let mut jvm_args = settings.jvm_args_of(instance);
+        if let Err(e) = super::validate_jvm_args(&jvm_args) {
+            bail!("the instance's JVM arguments can't be used: {e}");
+        }
+        if let Some(home) = std::env::var_os(DEV_GAME_HOME_ENV).filter(|v| !v.is_empty()) {
+            jvm_args.push(format!("-Duser.home={}", home.to_string_lossy()));
+        }
+        if !jvm_args.is_empty()
             && let Some(at) = main_class.and_then(|m| command.args.iter().position(|a| a == m))
         {
-            let home = home.to_string_lossy();
-            command.args.insert(at, format!("-Duser.home={home}"));
+            command.args.splice(at..at, jvm_args);
         }
         // What the log may show of the command: the game's arguments, the token masked.
         let shown = command.redacted_args();
@@ -536,13 +577,17 @@ impl Core {
     /// closed or crashed while a game ran). They stop once the games of that session are gone,
     /// or now if none runs. Returns what it did, for the log.
     pub async fn adopt_earlier_tools(&self) -> Vec<(ToolId, srl_tools::Adopted)> {
-        // The games of the earlier session, as their pid files say now; this session's games
-        // write theirs later and don't count.
-        let stamps: Vec<PidFile> = Mode::ALL
-            .iter()
-            .map(|&m| Instance::Mode(m))
-            .chain([Instance::Practice])
-            .filter_map(|i| serde_json::from_slice(&std::fs::read(self.pid_file(i)).ok()?).ok())
+        // The games of the earlier session, as their pid files say now (every instance's,
+        // custom ones included); this session's games write theirs later and don't count.
+        let stamps: Vec<PidFile> = std::fs::read_dir(self.paths.logs())
+            .into_iter()
+            .flatten()
+            .flatten()
+            .filter_map(|e| {
+                let name = e.file_name().to_string_lossy().into_owned();
+                let instance = Instance::from_id(name.strip_suffix(".pid")?)?;
+                serde_json::from_slice(&std::fs::read(self.pid_file(instance)).ok()?).ok()
+            })
             .collect();
         self.tools
             .adopt_earlier(move || stamps.iter().any(is_our_game))
@@ -1465,6 +1510,51 @@ A potential solution has been determined, this may resolve your problem:
         std::fs::remove_dir_all(&root).unwrap();
     }
 
+    /// A custom instance resolves as its base mode, with its own changes, into its own
+    /// directory; the practice instance has no base.
+    #[test]
+    fn a_custom_instance_gets_its_base_modes_set() {
+        let root = std::env::temp_dir().join(format!("srl-app-sets-{}", std::process::id()));
+        let core = Core::new(Paths::new(&root)).unwrap();
+        let meta = super::super::fake::fake_meta();
+        let mut settings = Settings::default();
+        settings
+            .custom_instances
+            .push(super::super::CustomInstance {
+                id: srl_core::CustomId(4),
+                name: "Seeds".into(),
+                base: Mode::Ssg,
+                memory_mb: None,
+                mods: srl_mods::ModChoice {
+                    off: ["setspawnmod".to_string()].into(),
+                    ..Default::default()
+                },
+                jvm_args: Vec::new(),
+                created_ms: 0,
+            });
+        let rules = settings.mod_rules();
+        let custom = Instance::Custom(srl_core::CustomId(4));
+        let ssg = core.resolve(meta, Mode::Ssg, &rules).unwrap();
+        let sets = core.sets(meta, custom, &rules).unwrap();
+        assert_eq!(sets.base, Mode::Ssg);
+        assert_eq!(sets.set.instance, custom);
+        assert!(ssg.get("setspawnmod").is_some());
+        assert!(sets.own.get("setspawnmod").is_some());
+        assert!(sets.set.get("setspawnmod").is_none());
+        assert_eq!(sets.set.mods.len() + 1, ssg.mods.len());
+        let resolved = core.resolve_instance(meta, custom, &rules).unwrap();
+        assert_eq!(resolved.instance, custom);
+        assert_eq!(
+            srl_mods::mods_dir(core.paths(), resolved.instance),
+            root.join("instances/custom-4/mods")
+        );
+        assert!(core.sets(meta, Instance::Practice, &rules).is_err());
+        assert!(
+            core.sets(meta, Instance::Custom(srl_core::CustomId(5)), &rules)
+                .is_err()
+        );
+    }
+
     #[test]
     fn local_state_needs_the_record_and_its_files() {
         let root = std::env::temp_dir().join(format!("srl-app-local-{}", std::process::id()));
@@ -1508,9 +1598,25 @@ A potential solution has been determined, this may resolve your problem:
         // SSG's set is in the shared mods/ now: RSG swaps its own back in on Play, no repair.
         std::fs::create_dir_all(root.join("instances/mcsr/.srl-mods")).unwrap();
         std::fs::write(root.join("instances/mcsr/.srl-mods/owner"), "ssg").unwrap();
-        assert_eq!(core.local_state(Mode::Rsg), Local::Ready(record));
+        assert_eq!(core.local_state(Mode::Rsg), Local::Ready(record.clone()));
         std::fs::remove_file(root.join("meta/verified/rsg.json")).unwrap();
         assert_eq!(core.local_state(Mode::Rsg), Local::NotInstalled);
+        // A custom instance: its own record, stamp and mods/.
+        let custom = Instance::Custom(srl_core::CustomId(1));
+        assert_eq!(core.local_state(custom), Local::NotInstalled);
+        let mods = root.join("instances/custom-1/mods");
+        for (path, body) in [
+            (root.join("meta/verified/custom-1.json"), &b"{}"[..]),
+            (
+                root.join("meta/launcher/custom-1.json"),
+                &serde_json::to_vec(&record).unwrap(),
+            ),
+            (mods.join("a.jar"), b"abc"),
+        ] {
+            std::fs::create_dir_all(path.parent().unwrap()).unwrap();
+            std::fs::write(path, body).unwrap();
+        }
+        assert_eq!(core.local_state(custom), Local::Ready(record));
         std::fs::remove_dir_all(&root).unwrap();
     }
 }

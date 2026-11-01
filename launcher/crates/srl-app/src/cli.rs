@@ -3,8 +3,9 @@
 //!
 //! ```text
 //! speedrunning-launcher --install <mode>    install or repair: Java, Minecraft, Fabric, the mods
-//!                                           and the tools the mode starts with
+//!                                           and the tools the mode starts with (also custom-<n>)
 //! speedrunning-launcher --launch <mode>     install, start the game with its tools, wait for it
+//!                                           (also custom-<n>)
 //! speedrunning-launcher --status            what is installed (no network)
 //! speedrunning-launcher --tools             each tool's state (no network)
 //! speedrunning-launcher --install-tool <t>  install or update a tool, with its hashes checked
@@ -18,7 +19,7 @@ use std::{
 };
 
 use anyhow::{Context, Result, bail};
-use srl_core::{Mode, OfflineAccount, Paths, Progress, ProgressFn, Stage};
+use srl_core::{CustomId, Instance, Mode, OfflineAccount, Paths, Progress, ProgressFn, Stage};
 use srl_tools::{ToolId, ToolSelection};
 
 use crate::backend::{
@@ -38,7 +39,8 @@ Without a command it opens the launcher. Commands (no window):
   --install-tool <t>   install or update a tool (ninjabrain-bot, toolscreen), hashes checked
   --help               this text
 
-<mode> is ranked, rsg, fsg, ssg or draftout. Options for --launch:
+<mode> is ranked, rsg, fsg, ssg, draftout or a custom instance, custom-<n> (see --status).
+Options for --launch:
   --name NAME          offline player name (default: the saved one, else Player)
   --memory MB          -Xmx for this run (default: the saved setting)
   --tools LIST         the tools to start, comma-separated, or none (default: the saved choice)
@@ -52,9 +54,9 @@ enum Command {
     Help,
     Status,
     Tools,
-    Install(Mode),
+    Install(Instance),
     InstallTool(ToolId),
-    Launch(Mode, LaunchArgs),
+    Launch(Instance, LaunchArgs),
 }
 
 #[derive(Default)]
@@ -118,24 +120,27 @@ pub fn run(args: Vec<String>) -> Option<i32> {
 fn parse(args: Vec<String>) -> Result<Command> {
     let mut it = args.into_iter();
     let command = it.next().unwrap_or_default();
-    let mut mode = || -> Result<Mode> {
+    let mut instance = || -> Result<Instance> {
         let id = it
             .next()
             .with_context(|| format!("{command} needs a mode"))?;
-        Mode::from_id(&id).with_context(|| format!("unknown mode {id:?}"))
+        Mode::from_id(&id)
+            .map(Instance::Mode)
+            .or_else(|| CustomId::from_id(&id).map(Instance::Custom))
+            .with_context(|| format!("unknown mode {id:?}"))
     };
     let cmd = match command.as_str() {
         "--help" | "-h" | "help" => return Ok(Command::Help),
         "--status" => Command::Status,
         "--tools" => Command::Tools,
-        "--install" => Command::Install(mode()?),
+        "--install" => Command::Install(instance()?),
         "--install-tool" => {
             let id = it.next().context("--install-tool needs a tool")?;
             Command::InstallTool(
                 ToolId::from_id(&id).with_context(|| format!("unknown tool {id:?}"))?,
             )
         }
-        "--launch" => Command::Launch(mode()?, LaunchArgs::default()),
+        "--launch" => Command::Launch(instance()?, LaunchArgs::default()),
         other => bail!("unknown command {other:?}"),
     };
     let Command::Launch(m, mut la) = cmd else {
@@ -184,14 +189,26 @@ async fn execute(cmd: Command) -> Result<()> {
             tools_status(&core);
             Ok(())
         }
-        Command::Install(mode) => {
+        Command::Install(instance) => {
             let settings = saved_settings(&core);
-            prepare(&core, mode, &settings, &settings.tool_selection(mode)).await?;
+            known(&settings, instance)?;
+            let tools = settings.tool_selection_of(instance);
+            prepare(&core, instance, &settings, &tools).await?;
             Ok(())
         }
         Command::InstallTool(tool) => install_tool(&core, tool).await,
-        Command::Launch(mode, args) => launch(&core, mode, args).await,
+        Command::Launch(instance, args) => launch(&core, instance, args).await,
     }
+}
+
+/// A custom instance must be in the saved settings (the window creates them).
+fn known(settings: &Settings, instance: Instance) -> Result<()> {
+    if let Instance::Custom(id) = instance
+        && settings.custom(id).is_none()
+    {
+        bail!("there is no custom instance {id} (see --status)");
+    }
+    Ok(())
 }
 
 fn tools_status(core: &Core) {
@@ -246,8 +263,18 @@ async fn install_tool(core: &Core, tool: ToolId) -> Result<()> {
 }
 
 fn status(core: &Core) {
-    for mode in Mode::ALL {
-        let line = match core.local_state(mode) {
+    let settings = saved_settings(core);
+    let instances = Mode::ALL
+        .into_iter()
+        .map(|m| (Instance::Mode(m), String::new()))
+        .chain(
+            settings
+                .custom_instances
+                .iter()
+                .map(|c| (c.instance(), format!(" ({:?} on {})", c.name, c.base.id()))),
+        );
+    for (instance, name) in instances {
+        let line = match core.local_state(instance) {
             Local::NotInstalled => "not installed".to_string(),
             Local::Ready(r) => format!(
                 "ready: {}, Java {}, {} mods, {} MB on disk",
@@ -261,7 +288,7 @@ fn status(core: &Core) {
                 r.version_id
             ),
         };
-        println!("{:9} {line}", mode.id());
+        println!("{:9} {line}{name}", instance.id());
     }
 }
 
@@ -273,20 +300,25 @@ fn saved_settings(core: &Core) -> Settings {
 
 async fn prepare(
     core: &Core,
-    mode: Mode,
+    instance: Instance,
     settings: &Settings,
     tools: &ToolSelection,
 ) -> Result<Prepared> {
     let started = Instant::now();
+    let mode = instance.id();
     let prepared = core
-        .prepare(mode, &settings.mod_rules(), tools, Some(progress_printer()))
+        .prepare_instance(
+            instance,
+            &settings.mod_rules(),
+            tools,
+            Some(progress_printer()),
+        )
         .await
-        .with_context(|| format!("installing {}", mode.id()))?;
+        .with_context(|| format!("installing {mode}"))?;
     let i = &prepared.installed;
     let r = &prepared.report;
     println!(
-        "installed {} in {:.2}s: Minecraft {}, Fabric Loader {}, Java {} ({})",
-        mode.id(),
+        "installed {mode} in {:.2}s: Minecraft {}, Fabric Loader {}, Java {} ({})",
         started.elapsed().as_secs_f64(),
         i.minecraft_version,
         i.fabric_loader,
@@ -296,7 +328,7 @@ async fn prepare(
     println!(
         "mods: {} in {} ({} added, {} updated, {} removed, {} unchanged)",
         prepared.mods.mods.len(),
-        srl_mods::mods_dir(core.paths(), mode).display(),
+        srl_mods::mods_dir(core.paths(), instance).display(),
         r.added.len(),
         r.updated.len(),
         r.removed.len(),
@@ -312,8 +344,7 @@ async fn prepare(
         println!("note: {note}");
     }
     println!(
-        "tools for {}: {}",
-        mode.id(),
+        "tools for {mode}: {}",
         tool_names(prepared.tools.0.iter().copied())
     );
     for note in &prepared.tool_notes {
@@ -331,19 +362,27 @@ fn tool_names(tools: impl Iterator<Item = ToolId>) -> String {
     }
 }
 
-async fn launch(core: &Core, mode: Mode, args: LaunchArgs) -> Result<()> {
+async fn launch(core: &Core, instance: Instance, args: LaunchArgs) -> Result<()> {
     let started = Instant::now();
     let mut settings = saved_settings(core);
+    known(&settings, instance)?;
     let tools = args
         .tools
         .clone()
-        .unwrap_or_else(|| settings.tool_selection(mode));
-    let prepared = prepare(core, mode, &settings, &tools).await?;
+        .unwrap_or_else(|| settings.tool_selection_of(instance));
+    let prepared = prepare(core, instance, &settings, &tools).await?;
     if args.name.is_some() {
         settings.player_name = args.name.clone();
     }
     if let Some(mb) = args.memory {
-        settings.set_memory_mb(mode, mb);
+        match instance {
+            Instance::Custom(id) => {
+                if let Some(c) = settings.custom_mut(id) {
+                    c.memory_mb = Some(mb);
+                }
+            }
+            _ => settings.set_memory_mb(settings.rules_mode(instance), mb),
+        }
     }
     // The same account as the Play button: the active Microsoft account (a build with Microsoft
     // login), else the offline name.
@@ -510,9 +549,18 @@ mod tests {
     fn parses_the_commands() {
         assert!(matches!(
             parse(args("--install rsg")),
-            Ok(Command::Install(Mode::Rsg))
+            Ok(Command::Install(Instance::Mode(Mode::Rsg)))
         ));
-        let Ok(Command::Launch(Mode::Draftout, la)) = parse(args(
+        assert!(matches!(
+            parse(args("--install custom-3")),
+            Ok(Command::Install(Instance::Custom(CustomId(3))))
+        ));
+        assert!(parse(args("--install custom-03")).is_err());
+        assert!(matches!(
+            parse(args("--launch custom-3 --until-ready 60")),
+            Ok(Command::Launch(Instance::Custom(CustomId(3)), _))
+        ));
+        let Ok(Command::Launch(Instance::Mode(Mode::Draftout), la)) = parse(args(
             "--launch draftout --name Violet_Runner --until-ready 120",
         )) else {
             panic!("launch");

@@ -502,6 +502,14 @@ impl Launcher {
             Event::Import(ev) => self.apply_import(ev, cx),
             Event::JarAdded(mode, answer) => self.jar_added(mode, answer, cx),
             Event::Update(state) => self.update = state,
+            // Custom instances: the Instances page wires these.
+            Event::CustomState(..)
+            | Event::CustomInfo(..)
+            | Event::CustomInstances(_)
+            | Event::InstanceCreated(_)
+            | Event::InstanceCopy(_)
+            | Event::InstanceDeleted(_)
+            | Event::InstanceJarAdded(..) => {}
         }
     }
 

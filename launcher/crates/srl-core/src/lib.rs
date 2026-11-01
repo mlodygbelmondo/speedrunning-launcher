@@ -9,7 +9,7 @@ pub mod shared;
 
 pub use account::OfflineAccount;
 pub use download::{Download, Downloader, Hash, HashMismatch};
-pub use mode::{Instance, Mode};
+pub use mode::{CustomId, Instance, Mode};
 pub use paths::Paths;
 pub use progress::{Progress, ProgressFn, Stage, Unit};
 

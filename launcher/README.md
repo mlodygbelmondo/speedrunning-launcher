@@ -6,7 +6,9 @@ The bake-off is over: the app is GPUI, with our own Rust core that reuses MIT co
 
 ## What the launcher does
 
-1. You pick a mode: Ranked, RSG, FSG, SSG or Draftout. Each mode is a ready instance with its own game directory.
+1. You pick a mode: Ranked, RSG, FSG, SSG or Draftout. The four 1.16.1 modes share one game directory
+   (`instances/mcsr`) and differ in the mods Play puts into it; Draftout has its own. Players can also create their
+   own instances (below, "Custom instances").
 2. You press Play. The launcher installs whatever is missing or outdated, then starts Minecraft itself, with no
    official launcher involved:
    - the Minecraft version, its libraries, natives and assets;
@@ -87,7 +89,7 @@ and `shots/m3/pl/`.
 
 | Crate | Owns |
 |---|---|
-| `srl-core` | Shared contracts: `Paths` (disk layout, `$SRL_HOME`), `Mode`, `Progress`, `OfflineAccount`, `Downloader` (verified, retried, concurrent downloads). Change it only when a contract really needs to. |
+| `srl-core` | Shared contracts: `Paths` (disk layout, `$SRL_HOME`, `game_dir` for any instance), `Mode`, `Instance` (a mode, practice or `Custom(CustomId)`), `Progress`, `OfflineAccount`, `Downloader` (verified, retried, concurrent downloads). Change it only when a contract really needs to. |
 | `srl-game` | Minecraft itself: Mojang version manifest and version JSON, OS rules, libraries, natives, client jar, asset index and objects, Java runtimes, the Fabric Loader profile, building the launch command and starting and watching the game process. |
 | `srl-mods` | Legal mods: mcsr-meta schema 7 (`mods.json`, `extra.json`), `legal-builds.csv` and `conditional-mods.json`, the per-mode sets, the content store and materialising jars into the instance's `mods/`, the player's changes from the Mods page (`choice`), update checks and removing jars that are no longer legal. |
 | `srl-tools` | Speedrun tools: Ninjabrain Bot, Toolscreen (Windows) and waywall (Linux). The pinned legal versions, verified downloads, `legal-dlls.csv`, per-mode defaults, and the launch hook that wraps the game command (waywall), injects Toolscreen and runs Ninjabrain Bot next to the game. See `crates/srl-tools/README.md`. |
@@ -106,7 +108,8 @@ Async code runs on tokio. The app owns one tokio runtime on a background thread 
 `srl-app/src/backend/pipeline.rs` is the one place that strings the crates together; the window (`RealBackend`) and
 the headless command line run the same code:
 
-The practice instance goes through the same steps with `Instance::Practice` (its game and mods from `srl-practice`).
+The practice instance goes through the same steps with `Instance::Practice` (its game and mods from `srl-practice`),
+and so does a custom instance with `Instance::Custom` (below).
 
 1. `srl-mods` loads the mod lists (fetched again when older than 10 minutes, else the cached copy).
 2. `srl-game` installs the game: the version metadata (Mojang's and Fabric Loader's), then in parallel Java, the
@@ -130,6 +133,22 @@ The practice instance goes through the same steps with `Instance::Practice` (its
 Every install writes a record (`meta/launcher/<mode>.json`). On start the launcher checks it against the files on
 disk, so it knows which modes are ready without the network; the update check runs after that, in the background.
 Details: `crates/srl-app/README.md`.
+
+### Custom instances
+
+Besides the built-in instances (the shared 1.16.1 directory, Draftout, practice) the player can create their own:
+each is `instances/custom-<n>` with a definition in `settings.json` (`custom_instances`: name, base mode, memory, mod
+changes, JVM arguments). The base mode gives it its Minecraft version, Java, Fabric Loader, legal mod set and tool
+rules; Play installs and starts it through the same pipeline, keyed by its own id (`custom-<n>`: its install record,
+log, pid file and `mods/`), and it never touches the shared directory's per-mode Atum settings. It can be created
+empty or with another instance's options, `config/` and resource packs, duplicated (the whole directory but `mods/`,
+logs and the launcher's notes; worlds if asked), renamed, changed and deleted. Details:
+`crates/srl-app/README.md`, "Custom instances".
+
+**Deleting a custom instance deletes nothing.** Its directory moves to `<data>/trash/custom-<n>-<unix time>/` (with
+the launcher's logs of it in `launcher-logs/`). To get it back, create a new instance with the same base mode and
+move that folder's contents into the new one's directory (Open folder); to free the space, delete the folder by hand.
+The launcher never empties `trash/` itself.
 
 ## Build and run
 

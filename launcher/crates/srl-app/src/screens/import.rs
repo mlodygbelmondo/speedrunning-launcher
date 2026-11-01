@@ -679,7 +679,7 @@ impl Launcher {
             vec![match instance_of(id) {
                 Some(Instance::Mode(m)) => catalog::def(m).short.to_string(),
                 Some(Instance::Practice) => t("import.practice").to_string(),
-                None => id.to_string(),
+                Some(Instance::Custom(_)) | None => id.to_string(),
             }]
         };
         let name = |id: &str| list_and(&names(id));
@@ -706,7 +706,7 @@ impl Launcher {
             ));
         }
         if !r.busy.is_empty() {
-            let busy: Vec<String> = r.busy.iter().flat_map(|i| names(i.dir_id())).collect();
+            let busy: Vec<String> = r.busy.iter().flat_map(|i| names(&i.dir_id())).collect();
             lines.push((
                 tf("import.done_busy", &[("modes", &list_and(&busy))]),
                 gold(),

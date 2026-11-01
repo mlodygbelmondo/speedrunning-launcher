@@ -27,7 +27,7 @@ impl Launcher {
         let body = if self.account.available {
             "name.body_msa"
         } else {
-            "name.body"
+            "settings.player_hint"
         };
         let field = self.name_input(Field::Prompt, 360., 56., 20., window, cx);
         let next = play_button(

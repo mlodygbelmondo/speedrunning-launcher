@@ -209,3 +209,17 @@ fn the_catalogue_lists_every_mod_for_the_version() {
     let rows = catalogue(&meta, &ranked, &ranked, Mode::Ranked);
     assert!(rows.iter().all(|r| r.modid != "glacier"));
 }
+
+#[test]
+fn draftout_offers_commandqmod_on_macos_only() {
+    let meta = meta();
+    for (os, offered) in [(Os::Windows, false), (Os::Linux, false), (Os::MacOs, true)] {
+        let draftout = resolve(&meta, Mode::Draftout, os, &ResolveOptions::default()).unwrap();
+        let rows = catalogue(&meta, &draftout, &draftout, Mode::Draftout);
+        assert_eq!(
+            rows.iter().any(|r| r.modid == "commandqmod"),
+            offered,
+            "{os:?}"
+        );
+    }
+}

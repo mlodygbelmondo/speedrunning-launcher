@@ -24,6 +24,10 @@ commicie, który coś zmienia. Najnowsze wpisy dziennika są na górze.
   Pętla zakończona 2026-11-01: każda miara ma 9 w mojej ocenie. Krytyk zrzutów (osobny subagent, bez kodu) po
   kalibracji dawał 8,5 i z każdą rundą znajdował drobniejsze rzeczy; jego ostatnie uwagi są poprawione.
 
+- **Pętla tekstów UI (2026-11-01, prośba Piotra):** dwóch niezależnych recenzentów oceniało teksty od 1 do 10,
+  aż jeden dał 9. Zakończona w rundzie 11 (9 i 8,5, start 7 i 7), wydana jako `v0.2.2`. Recenzenci przy drobnych
+  sformułowaniach zmieniają zdanie co rundę, więc takie wybory rozstrzygamy raz i nie gonimy każdej uwagi.
+
 - **Stan:** `launcher` i `main` to ten sam commit, a pierwsze numerowane wydanie
   `v0.1.0` jest opublikowane (2026-10-31, niepodpisane, `releases/latest`). Gotowe są M1, M2 i M3 (statystyki
   z prawdziwych danych, mapy treningowe, logowanie Microsoft z ekranami), import ustawień z innych launcherów,
@@ -37,16 +41,16 @@ commicie, który coś zmienia. Najnowsze wpisy dziennika są na górze.
 - **Samoaktualizacja launchera** jest zrobiona i wypchnięta (2026-10-31, szczegóły w dzienniku), CI zielone,
   wydanie `v0.1.0` opublikowane, suma SHA-256 sprawdzona po pobraniu. Nikt jej jeszcze nie uruchomił na Windowsie.
   Kolejne wydanie: podbij wersję w `launcher/Cargo.toml`, commit, tag `vX.Y.Z`, push tagu (`launcher/README.md`,
-  „Releasing a version”). Najnowsze jest `v0.2.1` (własne instancje i strona Instancje). Test na
-  Windowsie: Piotr ma 0.1.3, więc launcher ma sam pobrać 0.1.4, a potem Ranked i FSG z Toolscreen mają dojść do
-  ekranu tytułowego.
+  „Releasing a version”). Najnowsze jest `v0.2.2` (krótsze teksty UI). Test na
+  Windowsie: starsza wersja ma sama pobrać najnowszą, a potem Ranked i FSG z Toolscreen mają dojść do ekranu
+  tytułowego.
 - **Logowanie Microsoft** jest wyłączone, dopóki Mojang nie zatwierdzi naszego client ID. Poradnik dla Piotra:
   `launcher/docs/microsoft-login.md` (Azure i formularz Mojanga, po polsku). Bez client ID gra offline działa jak
   dotąd, więc testy w czasie weryfikacji nie potrzebują konta.
 - **Czeka na Piotra:** test paczki na prawdziwym Windowsie 10/11 x64. Pobierz
   <https://github.com/mlodygbelmondo/speedrunning-launcher/releases/download/launcher-latest/speedrunning-launcher-windows.zip>,
   rozpakuj i uruchom `speedrunning-launcher.exe`. Przy pierwszym starcie wpisz nick i, jeśli masz MultiMC, Prism
-  albo MCSR Launcher, spróbuj „Importuj moje ustawienia”. Potem wybierz RSG i kliknij Pobierz: gra powinna dojść do
+  albo MCSR Launcher, spróbuj „Importuj moje ustawienia”. Potem wybierz RSG i kliknij Zainstaluj: gra powinna dojść do
   ekranu tytułowego z modami. Najważniejsze są Toolscreen, czyste zatrzymanie gry i import, bo tego nie da się
   sprawdzić na Linuksie:
   1. Import: launcher znajduje Twoje instancje (MultiMC, Prism, MCSR Launcher, `.minecraft`), a po imporcie gra ma
@@ -64,7 +68,7 @@ commicie, który coś zmienia. Najnowsze wpisy dziennika są na górze.
      może zostać zabita.
   8. Po RSG zagraj w SSG albo FSG: to ta sama instancja (`instances\mcsr`), więc tryb dokłada tylko swoje mody,
      a klawisze i światy zostają. Seed wpisany w Atum w SSG nie może się pojawić po powrocie do RSG (ani seed
-     z zaimportowanej instancji SSG). W Trybach przycisk Mody pozwala włączyć i wyłączyć mod, a „Dodaj własny
+     z zaimportowanej instancji SSG). W Instancje › Speedrun › Mody da się włączyć i wyłączyć mod, a „Dodaj własny
      .jar…” otwiera okno wyboru pliku Windowsa; jar Fabric API launcher odrzuca.
   9. Statystyki po kilku resetach pokazują te runy. Trening: zainstaluj jedną mapę (np. Bastion Trainer) i zagraj.
   10. Ustawienia, potem Autorzy i licencje: w kolumnie Kod są Pandora Launcher i EasyInjectBundled.
@@ -225,6 +229,23 @@ Potem:
 ## Dziennik
 
 ### 2026-11-01
+
+- **Poprawki po pętli tekstów** (prośba Piotra: prawdziwe problemy, pominięte uwagi recenzentów i „Teraz”):
+  - Ustawienia instancji Speedrun mówią „Narzędzia startujące z Ranked” (tryb z „Graj jako”), bo narzędzia są
+    ustawiane na tryb, a nie na instancję.
+  - CommandQMod (tylko macOS) nie jest już proponowany w Draftout na Windowsie i Linuksie (`MAC_ONLY_EXTRAS`
+    w `srl-mods`, test).
+  - Aktualizacja mapy treningowej ma dwie opcje: zastąp albo zostaw obie. „Tylko pobierz” zniknęło.
+  - Mapy pobierane ręcznie ze strony autora mają przycisk Graj, a ich opis kończy się „i naciśnij Graj”, więc
+    wgrany ręcznie świat da się uruchomić z wiersza tej mapy.
+  - waywall bez łatanego GLFW: karta w Narzędziach mówi to od razu (zamiast cichego startu gry bez waywalla),
+    a tekst instalacji wspomina o GLFW. Fałszywy stan `tools-update` pokazuje ten przypadek na zrzutach.
+  - Wybrany kafelek trybu nie pokazuje odznaki „Zaloguj się ponownie”, bo mówi to przycisk nad nim.
+  - Zakładka Logi: wiersz latest.log nie ma Podglądu, bo jego koniec jest pokazany nad listą.
+  - Złączone zdublowane klucze tekstów (`v3.r.best`, `name.body`, `import.practice`,
+    `practice.game_fail.sign_in`).
+  - Rozmiar światów w imporcie pominięty: wymagałby przejścia przez wszystkie pliki światów przy skanowaniu.
+  - „Teraz”: najnowsze wydanie `v0.2.2`, wynik pętli tekstów, „Zainstaluj” zamiast „Pobierz”.
 
 - **Wersja 0.2.2** (Piotr: „Yeah sure”): teksty po 11 rundach pętli (9/10), wydane jako v0.2.2, żeby jego
   instalacja zaktualizowała się sama.

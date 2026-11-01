@@ -541,7 +541,12 @@ pub(super) fn file_row(
         cx.notify();
     };
     let mut actions = Vec::new();
-    if text {
+    // The Logs tab already shows the end of latest.log above the list.
+    let tailed = folder == "logs"
+        && Path::new(&it.rel)
+            .file_name()
+            .is_some_and(|n| n == "latest.log");
+    if text && !tailed {
         let toggle = toggle.clone();
         actions.push(
             tertiary(

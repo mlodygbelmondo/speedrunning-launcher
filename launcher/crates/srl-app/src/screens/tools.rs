@@ -177,6 +177,19 @@ impl Launcher {
             None => tf("tools.install_hint_plain", &[("source", "GitHub")]),
         };
         Some(match &tool.state {
+            // Found, but 1.16.1 would start without it: say so now, not at the first launch.
+            ToolState::Installed if tool.glfw_missing => div().child(
+                inter(13., FontWeight::NORMAL, 1.5)
+                    .whitespace_nowrap()
+                    .text_color(gold())
+                    .child(wrap(
+                        &t("tools.glfw_missing"),
+                        INTER,
+                        FontWeight::NORMAL,
+                        13.,
+                        INNER_W,
+                    )),
+            ),
             ToolState::Unsupported | ToolState::Installed => return None,
             // The launcher doesn't install it: say how, instead of a button that can't.
             ToolState::NotInstalled if tool.system => div().child(

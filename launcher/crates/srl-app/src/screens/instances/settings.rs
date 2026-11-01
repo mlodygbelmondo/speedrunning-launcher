@@ -126,9 +126,11 @@ impl Launcher {
                     .flex()
                     .flex_col()
                     .gap(px(10.))
-                    // A custom instance starts the tools of the mode it plays like.
+                    // A custom instance starts the tools of the mode it plays like; the shared
+                    // instance those of the mode picked under "Play as" (tools are per mode).
                     .child(section_head(&match custom_id {
                         Some(_) => tf("inst.tools_like", &[("mode", short)]),
+                        None if key == InstKey::Shared => tf("inst.tools_mode", &[("mode", short)]),
                         None => t("inst.tools"),
                     }))
                     .child(

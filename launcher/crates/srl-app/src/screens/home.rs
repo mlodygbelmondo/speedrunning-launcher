@@ -121,7 +121,7 @@ impl Launcher {
                     ))
                     .child(Self::form_item(
                         Self::form_value(r.best.clone(), text3()),
-                        Self::form_label(&t("v3.r.best")),
+                        Self::form_label(&t("stats.best_match")),
                     )),
             )
         } else {
@@ -214,7 +214,7 @@ impl Launcher {
                 let best = p.season.best_time_ms.map(|ms| {
                     Self::form_item(
                         Self::form_value(fmt_igt(ms), text3()),
-                        Self::form_label(&t("v3.r.best")),
+                        Self::form_label(&t("stats.best_match")),
                     )
                 });
                 // Like Stats: no season record without a ranked match this season.
@@ -548,9 +548,9 @@ impl Launcher {
                 Status::Failed if matches!(self.fix(i), Some(super::play::Fix::SignInFirst)) => {
                     Some(Self::tile_badge(&t("v3.sign_in_once"), muted3()))
                 }
-                // Nor is an expired sign-in: nothing broke.
+                // Nor is an expired sign-in: nothing broke. Selected, its button says it.
                 Status::Failed if matches!(self.fix(i), Some(super::play::Fix::Relogin)) => {
-                    Some(Self::tile_badge(&t("v3.sign_in_again"), muted3()))
+                    (!on).then(|| Self::tile_badge(&t("v3.sign_in_again"), muted3()))
                 }
                 Status::Update | Status::Running | Status::Failed => {
                     Some(Self::tile_badge(&t(status.key()), status.color()))

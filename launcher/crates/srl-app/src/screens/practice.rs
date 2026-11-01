@@ -390,24 +390,43 @@ impl Launcher {
             return cell.child(status_text(&t(job_key(job.kind)), faint3()));
         }
         match &v.status {
-            // Its licence lets us link, not download: say so where Install would be.
-            MapStatus::LinkOnly => cell
-                .child(
-                    tertiary(("practice-page", i), &t("practice.open_page"))
-                        .on_click(open_url(e.source_page.clone(), cx)),
-                )
-                .child(
-                    inter(11., FontWeight::MEDIUM, 1.)
-                        .whitespace_nowrap()
-                        .text_color(faint3())
-                        // Other link-only maps: the how-to line under the row says it.
-                        .children(match e.link_only.as_ref().map(|l| l.reason) {
-                            Some(LinkOnlyReason::OtherMinecraftVersion) => {
-                                Some(tf("practice.link_only_needs", &[("mc", &e.minecraft)]))
-                            }
-                            _ => None,
-                        }),
-                ),
+            // Its licence lets us link, not download: the author's page is where Install would
+            // be. A world the player put in the saves folder by hand plays like any other, so
+            // Play is there too, except for a map this launcher's Minecraft can't run.
+            MapStatus::LinkOnly => {
+                let other_version = matches!(
+                    e.link_only.as_ref().map(|l| l.reason),
+                    Some(LinkOnlyReason::OtherMinecraftVersion)
+                );
+                let page = tertiary(("practice-page", i), &t("practice.open_page"))
+                    .on_click(open_url(e.source_page.clone(), cx));
+                if other_version {
+                    cell.child(page).child(
+                        inter(11., FontWeight::MEDIUM, 1.)
+                            .whitespace_nowrap()
+                            .text_color(faint3())
+                            .child(tf("practice.link_only_needs", &[("mc", &e.minecraft)])),
+                    )
+                } else if self.game_on(&e.id) {
+                    let label = match self.practice.game.state {
+                        ModeState::Running => (t("practice.in_game"), ok3()),
+                        _ => (t("practice.starting"), faint3()),
+                    };
+                    cell.child(status_dot(&label.0, label.1))
+                } else if self.practice.game_busy() {
+                    cell.child(secondary_off(&t("practice.play"))).child(page)
+                } else {
+                    cell.child(
+                        secondary(("practice-play", i), &t("practice.play")).on_click(cx.listener(
+                            move |this, _, _, cx| {
+                                cx.stop_propagation();
+                                this.practice_play(&id, cx);
+                            },
+                        )),
+                    )
+                    .child(page)
+                }
+            }
             MapStatus::NotInstalled => cell
                 .child(
                     secondary(("practice-install", i), &t("practice.install")).on_click(
@@ -620,7 +639,7 @@ impl Launcher {
                     (FailKind::Offline, true) => "practice.game_fail.offline_update",
                     (FailKind::Install, _) => "practice.game_fail.install",
                     (FailKind::Launch, _) => "practice.game_fail.launch",
-                    (FailKind::SignIn, _) => "practice.game_fail.sign_in",
+                    (FailKind::SignIn, _) => "v3.fail.sign_in",
                 };
                 let w = LIST_W - INDENT - 14.;
                 let log = f.log.clone();
@@ -1014,10 +1033,12 @@ impl Launcher {
                 id, to, carry_over, ..
             } => {
                 let lines = Vec::new();
+                // Not offered: `StoreOnly` (download now, apply with Reset later) is Cancel with a
+                // head start, and "the old world stays" already is Keep both. A copy stored that
+                // way before still shows "Reset to v…".
                 let choices = [
                     (UpdateChoice::ReplaceWorlds, "practice.ask.update.replace"),
                     (UpdateChoice::KeepBoth, "practice.ask.update.both"),
-                    (UpdateChoice::StoreOnly, "practice.ask.update.later"),
                 ];
                 let keep = (!carry_over.is_empty()).then(|| keep_what(id));
                 let options = choices.into_iter().enumerate().map(|(n, (choice, key))| {

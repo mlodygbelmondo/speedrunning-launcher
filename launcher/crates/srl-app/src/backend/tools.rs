@@ -86,6 +86,9 @@ pub struct ToolSnapshot {
     pub system: bool,
     /// Where a tool of the system was found (`/usr/bin/waywall`).
     pub path: Option<PathBuf>,
+    /// waywall is installed, but not the patched GLFW 1.16.1 needs, so it wouldn't wrap the game
+    /// (the launch would only say so then, as `tool.note.no_glfw`).
+    pub glfw_missing: bool,
 }
 
 /// The tools side of the facade. Like `Backend`: methods return at once, changes arrive as
@@ -145,6 +148,7 @@ pub fn local_snapshot(tools: &srl_tools::Tools, id: ToolId) -> ToolSnapshot {
         download: offer.map(|o| o.download),
         system,
         path: None,
+        glfw_missing: false,
     };
     match tools.status(id) {
         ToolStatus::NotAvailable => {
@@ -159,6 +163,11 @@ pub fn local_snapshot(tools: &srl_tools::Tools, id: ToolId) -> ToolSnapshot {
             snap.download = None;
             if !t.managed {
                 snap.path = Some(t.path);
+            }
+            if id == ToolId::Waywall {
+                let home = std::env::var_os("HOME").map(PathBuf::from);
+                snap.glfw_missing =
+                    srl_tools::waywall::find_glfw(None, home.as_deref(), None).is_none();
             }
         }
         ToolStatus::UpdateAvailable { installed, latest } => {
@@ -384,6 +393,7 @@ fn fake_tools(preset: ToolsPreset) -> Vec<ToolSnapshot> {
                 download: size,
                 system: id.info().source == Source::System,
                 path: None,
+                glfw_missing: false,
             };
             let size = size.unwrap_or(MIB);
             if !runs_here(id) {
@@ -415,6 +425,10 @@ fn fake_tools(preset: ToolsPreset) -> Vec<ToolSnapshot> {
                     snap.installed = latest.map(str::to_string);
                     snap.download = None;
                 }
+            } else if id == ToolId::Waywall && preset == ToolsPreset::Update {
+                // The other thing that needs a hand: waywall without its patched GLFW.
+                snap.state = ToolState::Installed;
+                snap.glfw_missing = true;
             }
             snap
         })

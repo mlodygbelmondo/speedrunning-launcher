@@ -254,6 +254,9 @@ pub fn concerns(meta: &ModMeta, set: &ModSet, mode: Mode) -> Vec<Concern> {
     out
 }
 
+/// Mods of `extra.json` that only run on macOS (Command+Q quits the game there).
+const MAC_ONLY_EXTRAS: [&str; 1] = ["commandqmod"];
+
 /// The mode's own non-legal mods: they are legal in that mode.
 fn own_mods(mode: Mode) -> &'static [&'static str] {
     match mode {
@@ -334,6 +337,10 @@ pub fn catalogue(meta: &ModMeta, mode_set: &ModSet, now: &ModSet, mode: Mode) ->
     }
     for m in &meta.extra.mods {
         if m.version_for(mc).is_none() || rows.contains_key(&m.modid) {
+            continue;
+        }
+        // extra.json has no traits: its macOS-only mod is named in `MAC_ONLY_EXTRAS`.
+        if os != Os::MacOs && MAC_ONLY_EXTRAS.contains(&m.modid.as_str()) {
             continue;
         }
         if forbidden_in(mode.into()).contains(&m.modid.as_str()) {

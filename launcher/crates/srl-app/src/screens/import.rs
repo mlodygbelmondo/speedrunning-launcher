@@ -671,7 +671,7 @@ impl Launcher {
             }
             vec![match instance_of(id) {
                 Some(Instance::Mode(m)) => catalog::def(m).short.to_string(),
-                Some(Instance::Practice) => t("import.practice").to_string(),
+                Some(Instance::Practice) => t("inst.practice.name").to_string(),
                 Some(Instance::Custom(_)) | None => id.to_string(),
             }]
         };

@@ -286,7 +286,15 @@ impl Launcher {
             .child(
                 inter(12., FontWeight::NORMAL, 1.4)
                     .text_color(faint3())
-                    .child(t("inst.copy.hint")),
+                    .child(
+                        match self.inst_mode(key).filter(|_| key == InstKey::Shared) {
+                            // The shared instance's copy plays as the mode picked on Play.
+                            Some(m) => {
+                                tf("inst.copy.hint_mode", &[("mode", catalog::def(m).short)])
+                            }
+                            None => t("inst.copy.hint"),
+                        },
+                    ),
             )
             .child(body)
     }

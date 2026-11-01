@@ -200,7 +200,7 @@ impl Launcher {
                         },
                         tertiary(
                             "inst-packs-folder",
-                            &tf("inst.open_named", &[("folder", "resourcepacks")]),
+                            &tf("inst.open_named", &[("folder", "resource packs")]),
                         )
                         .on_click(cx.listener(move |_, _, _, _| open_folder(&dir)))
                         .into_any_element(),

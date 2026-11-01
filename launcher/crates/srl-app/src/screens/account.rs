@@ -282,8 +282,8 @@ impl Launcher {
                 );
             }
         }
-        let steps = (view.outcome == LoginOutcome::Waiting || view.step.is_some())
-            .then(|| Self::login_steps(&view));
+        // The steps show once the chain is under way: before that they'd be four grey names.
+        let steps = view.step.is_some().then(|| Self::login_steps(&view));
         let panel = div()
             .w(px(W))
             .flex()

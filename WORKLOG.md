@@ -226,6 +226,16 @@ Potem:
 
 ### 2026-11-01
 
+- **Pętla tekstów, runda 5** (r4: **8,5 i 8,5**). Kosz: każdy komunikat mówi, gdzie on jest (w folderze danych),
+  a podpowiedź folderu danych go wymienia. Panel Ranked bez elo i bez meczów pokazuje tylko „jeszcze bez meczów”
+  (bez wielkiej kreski i „bez elo”). Przerwany mecz Ranked to „Koniec: …”, nie „Reset: …”. Kafle PB pokazują
+  samą datę (nagłówek już mówi „Rekordy”). Kroki logowania pojawiają się dopiero, gdy łańcuch ruszy. Bez
+  nadtytułu „Minecraft 1.16.1” nad „Speedrun 1.16.1”. Kopia wspólnej instancji mówi, jak który tryb gra.
+  Bez linii „pliki zastąpione są w kopii” (jest przycisk) i bez podpowiedzi automatycznych aktualizacji
+  (etykieta mówi „przy każdym starcie”). „My” → „launcher” w komunikatach. Nauka bez poradnika instalacji
+  Ranked (launcher to robi); opisy map Vine, Blaze (Semperzz), End i Llama mówią, co ćwiczą. Błąd
+  „Mojang nie zatwierdził” każe sprawdzić aktualizację (offline nie da się grać przed pierwszym logowaniem).
+
 - **Pętla tekstów, runda 4** (r3: **8 i 8**). Kafel Ranked w Statystykach pokazuje lokalny PB, a dopiero bez
   niego najlepszy mecz z API (wcześniej dwa różne „najlepsze” czasy na jednej stronie). Opisy Ranked, Draftout
   i FSG na Home usunięte (powtarzały nazwę trybu); zostaje jedna linia o koncie Microsoft. Jeden zestaw opisów

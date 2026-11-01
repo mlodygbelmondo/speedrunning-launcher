@@ -108,7 +108,6 @@
       "art": "ranked",
       "modes": ["ranked"],
       "guides": [
-        { "id": "ranked-install", "kind": "text", "title": "Installation Guide", "author": "MCSR Ranked Wiki", "url": "https://wiki.mcsrranked.com/install/" },
         { "id": "hitrippy-ranked", "kind": "video", "title": "MCSR Setup Guide: Ninjabrainbot, Boat Eye, Toolscreen, Standard Settings, Practice Maps", "author": "HiTrippy", "url": "https://www.youtube.com/watch?v=Uvy0LzZuCxU", "date": "2026-05", "minutes": 36 },
         { "id": "simon-ranked", "kind": "video", "title": "How to set up Minecraft for MCSR Ranked - A full Guide", "author": "Stuff2Simon", "url": "https://www.youtube.com/watch?v=3W2UL4CkAPE", "date": "2026-03", "minutes": 4 },
         { "id": "ranked-rules", "kind": "text", "title": "Rules", "author": "MCSR Ranked Wiki", "url": "https://wiki.mcsrranked.com/gameplay/rules" },

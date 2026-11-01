@@ -319,7 +319,7 @@ impl Launcher {
         let pb_body = |h: &RunHistory| match h.headline_pb() {
             Some(pb) => TileBody::Value(
                 fmt_igt(pb.record.igt_ms),
-                tf("v3.pb", &[("date", &fmt_date(pb.record.date_ms))]),
+                fmt_date(pb.record.date_ms),
             ),
             None if h.run_count > 0 => {
                 TileBody::Text(tn("stats.runs_none_finished", u64::from(h.run_count)))
@@ -657,7 +657,14 @@ impl Launcher {
                 .unwrap_or_default();
             inter(13., FontWeight::NORMAL, 1.2)
                 .text_color(muted3())
-                .child(tf("stats.reset_at", &[("split", &furthest)]))
+                .child(tf(
+                    if run.mode == Some(Mode::Ranked) {
+                        "stats.ended_at"
+                    } else {
+                        "stats.reset_at"
+                    },
+                    &[("split", &furthest)],
+                ))
         };
         let pb_rec = pb.filter(|_| !is_pb).map(|p| &p.record);
         let split = |k: &SplitKind| {
@@ -959,8 +966,11 @@ impl Launcher {
             .items_center()
             .justify_end()
             .child(age_line(&o.profile, true).unwrap_or_else(|| label(&t("v3.matches_src"))));
+        // No elo and no match this season: a big dash and "no elo yet" would only repeat "No
+        // ranked matches this season yet" below.
+        let empty = p.elo.is_none() && record.is_none();
         col.child(section_head(&head))
-            .child(
+            .children((!empty).then(|| {
                 div()
                     .mt(px(18.))
                     .flex()
@@ -968,11 +978,11 @@ impl Launcher {
                     .justify_between()
                     .items_end()
                     .child(elo)
-                    .children(record),
-            )
+                    .children(record)
+            }))
             .child(
                 div()
-                    .mt(px(22.))
+                    .mt(px(if empty { 12. } else { 22. }))
                     .flex()
                     .flex_col()
                     .gap(px(8.))

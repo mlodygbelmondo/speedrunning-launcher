@@ -742,24 +742,12 @@ impl Launcher {
             .iter()
             .filter(|t| t.backup.is_some())
             .collect();
-        // Where the replaced files are: named in the line, opened by the button under it.
         let backup = backups.first().and_then(|t| t.backup.clone());
-        if let Some(first) = backups.first() {
-            let folder = first
-                .backup
-                .as_ref()
-                .and_then(|b| b.file_name())
-                .map(|n| n.to_string_lossy().into_owned())
-                .unwrap_or_default();
-            let modes: Vec<String> = backups.iter().flat_map(|t| names(&t.id)).collect();
-            lines.push((
-                tf(
-                    "import.done_backup",
-                    &[("folder", &folder), ("modes", &list_and(&modes))],
-                ),
-                muted3(),
-            ));
-        } else if r.report.files() == 0 && r.report.targets.iter().all(|t| t.error.is_none()) {
+        // No line about replaced files: the "Open the backup" button under the lines covers it.
+        if backups.is_empty()
+            && r.report.files() == 0
+            && r.report.targets.iter().all(|t| t.error.is_none())
+        {
             lines.push((t("import.done_unchanged"), muted3()));
         }
         let from = source

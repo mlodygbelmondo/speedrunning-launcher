@@ -364,14 +364,7 @@ impl Launcher {
                     this.save_settings(settings, cx);
                 },
             );
-            rows.push(Self::setting_row(
-                t("settings.auto_update"),
-                Some(Self::hint(
-                    &t("settings.auto_update_hint"),
-                    RIGHT_W - 44. - GAP,
-                )),
-                auto,
-            ));
+            rows.push(Self::setting_row(t("settings.auto_update"), None, auto));
         }
         Self::section(t("settings.section_about"), rows)
             .child(

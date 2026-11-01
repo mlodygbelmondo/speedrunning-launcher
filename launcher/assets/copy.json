@@ -840,7 +840,7 @@
   "inst.practice.body": "The practice maps from the Practice page play here, away from your run worlds.",
   "inst.practice.open": "Open Practice",
   "inst.eyebrow": "Instance · Minecraft {mc} · Fabric",
-  "inst.in_use": "in use",
+  "inst.in_use": "in use: installing or playing",
   "inst.fact.worlds": "Worlds",
   "inst.fact.disk": "On disk",
   "inst.fact.mods": "Mods on",

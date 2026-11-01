@@ -207,6 +207,11 @@ Potem:
 
 ### 2026-11-01
 
+- **Skróty klawiszowe** (gdy żadne pole tekstowe nie ma fokusu): Ctrl+1…6 strony z nawigacji, Ctrl+, Ustawienia,
+  na Starcie ← i → zmieniają tryb, Enter to Graj; Esc zamyka pytanie na Instancjach i wraca z ekranu gry.
+  Sprawdzone xdotool w Xvfb. Na Instancjach: Anuluj przy instalacji, „w użyciu” zamiast opisu w wierszu
+  instancji, więcej miejsca pod paskiem postępu.
+
 - **Seed każdego świata** na karcie Światy, z „Kopiuj seed” (po dobrym runie seed jest od razu w schowku).
   `srl-practice::level` czyta teraz też `Data.WorldGenSettings.seed` (1.16+), `Data.RandomSeed` (starsze)
   i `Data.LastPlayed`; lista sortuje po `LastPlayed`, dzisiejsze światy pokazują godzinę. „Zarządzaj instancją”

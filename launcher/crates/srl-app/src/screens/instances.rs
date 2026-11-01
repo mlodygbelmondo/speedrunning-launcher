@@ -511,13 +511,15 @@ impl Launcher {
                         1.0,
                         text3(),
                     ))
-                    .child(
+                    .child(if busy {
+                        status_text(&t("inst.in_use"), accent2()).mt(px(9.))
+                    } else {
                         inter(12., FontWeight::MEDIUM, 1.)
                             .mt(px(9.))
                             .whitespace_nowrap()
                             .text_color(muted3())
-                            .child(self.inst_who(key)),
-                    ),
+                            .child(self.inst_who(key))
+                    }),
             )
             .child(
                 div()
@@ -527,7 +529,6 @@ impl Launcher {
                     .flex()
                     .flex_row()
                     .gap(px(8.))
-                    .when(busy, |d| d.child(status_text(&t("inst.in_use"), accent2())))
                     .child(
                         plex(11., FontWeight::MEDIUM)
                             .text_color(faint3())
@@ -661,7 +662,9 @@ impl Launcher {
                 // The instance's own mode, never another instance's: Draftout may still be
                 // selected from Home while the shared instance is shown.
                 let mi = index(self.inst_mode(key).unwrap_or(Mode::Ranked));
-                row = row.child(self.mode_play(mi, "inst-play", 200., 44., 15., cx));
+                row = row
+                    .child(self.mode_play(mi, "inst-play", 200., 44., 15., cx))
+                    .children(self.play_ghosts(mi, "inst", false, cx));
                 if key == InstKey::Shared {
                     row = row.child(div().flex().flex_row().gap(px(6.)).children(
                         Mode::SHARED.into_iter().map(|m| {
@@ -702,7 +705,8 @@ impl Launcher {
             })
         };
         div()
-            .mt(px(26.))
+            // Room for the install progress that hangs under Play.
+            .mt(px(44.))
             .flex()
             .flex_row()
             .gap(px(26.))

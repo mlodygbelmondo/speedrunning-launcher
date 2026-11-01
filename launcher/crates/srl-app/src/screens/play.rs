@@ -164,7 +164,7 @@ impl Launcher {
 
     /// Does the fix: less memory for the mode (all four 1.16.1 modes share one instance and one
     /// memory row, so all of them), then Play again; the Mods page; the sign-in dialog.
-    fn apply_fix(&mut self, mi: usize, fix: &Fix, cx: &mut Context<Self>) {
+    pub fn apply_fix(&mut self, mi: usize, fix: &Fix, cx: &mut Context<Self>) {
         match fix {
             Fix::Memory { to_mb, .. } => {
                 let mode = self.mode(mi);

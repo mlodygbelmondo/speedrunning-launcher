@@ -878,7 +878,7 @@
   "inst.practice.body": "Tu grasz mapy ze strony Trening, z dala od światów z runów.",
   "inst.practice.open": "Otwórz Trening",
   "inst.eyebrow": "Instancja · Minecraft {mc} · Fabric",
-  "inst.in_use": "w użyciu",
+  "inst.in_use": "w użyciu: instalacja albo gra",
   "inst.fact.worlds": "Światy",
   "inst.fact.disk": "Na dysku",
   "inst.fact.mods": "Mody",

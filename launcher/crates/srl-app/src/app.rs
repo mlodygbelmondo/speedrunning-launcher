@@ -171,6 +171,9 @@ pub struct Launcher {
     pub stopping: bool,
     /// The first-run prompt's field and the Settings field.
     pub name_prompt: NameField,
+    /// The window's own focus, so the keyboard shortcuts (`global_key`) work while no text field
+    /// has the focus.
+    root_focus: FocusHandle,
     pub name_settings: NameField,
     /// The prompt's field was focused once (`render_name`), so a click elsewhere isn't undone.
     pub prompt_focused: bool,
@@ -280,6 +283,8 @@ impl Launcher {
             .into_iter()
             .find(|m| snap.modes[index(*m)].state == ModeState::Running);
         // The Settings name is saved when its edit ends; clicking elsewhere ends it.
+        let root_focus = cx.focus_handle();
+        window.focus(&root_focus, cx);
         let settings_focus = cx.focus_handle();
         cx.on_blur(&settings_focus, window, |this: &mut Self, _, cx| {
             this.commit_settings_name(cx)
@@ -326,6 +331,7 @@ impl Launcher {
                 },
                 focus: cx.focus_handle(),
             },
+            root_focus,
             name_settings: NameField {
                 text: name,
                 focus: settings_focus,
@@ -699,6 +705,63 @@ impl Launcher {
         self.offer_import_or_go_on(cx);
     }
 
+    /// The keyboard shortcuts, only while no text field has the focus: Ctrl+1…6 the nav pages,
+    /// Ctrl+, Settings; on Home ← and → pick the mode and Enter is Play; Esc closes the Instances
+    /// page's question, or goes back from the game screen.
+    fn global_key(&mut self, ev: &gpui::KeyDownEvent, window: &mut Window, cx: &mut Context<Self>) {
+        if !self.root_focus.is_focused(window) || self.data_error.is_some() {
+            return;
+        }
+        let k = &ev.keystroke;
+        let ctrl = k.modifiers.control || k.modifiers.platform;
+        if k.modifiers.alt || k.modifiers.shift {
+            return;
+        }
+        let full = self.target.full_window();
+        if ctrl {
+            let to = match k.key.as_str() {
+                "1" => Page::Home,
+                "2" => Page::Instances,
+                "3" => Page::Practice,
+                "4" => Page::Learn,
+                "5" => Page::Tools,
+                "6" => Page::Stats,
+                "," => Page::Settings,
+                _ => return,
+            };
+            if !full {
+                self.navigate(to, cx);
+            }
+            return;
+        }
+        match (self.target, k.key.as_str()) {
+            (Page::Home, "left" | "right") => {
+                let n = self.modes.len();
+                let mi = if k.key == "left" {
+                    (self.mode_sel + n - 1) % n
+                } else {
+                    (self.mode_sel + 1) % n
+                };
+                self.select_mode(mi, cx);
+            }
+            (Page::Home, "enter") => {
+                let mi = self.mode_sel;
+                if self.sibling_busy(mi).is_none() {
+                    match self.fix(mi) {
+                        Some(fix) => self.apply_fix(mi, &fix, cx),
+                        None => self.play(mi, cx),
+                    }
+                }
+            }
+            (Page::Instances, "escape") if self.instances.confirm.is_some() => {
+                self.instances.confirm = None;
+                cx.notify();
+            }
+            (Page::Game, "escape") => self.leave_game(cx),
+            _ => {}
+        }
+    }
+
     /// Same semantics as the prototype: outgoing 150 ms ease-in, then incoming 220 ms ease-out.
     /// A request made during a transition is remembered and started once the current one ends.
     pub fn navigate(&mut self, to: Page, cx: &mut Context<Self>) {
@@ -929,8 +992,19 @@ impl Render for Launcher {
         }
 
         div()
+            .id("root")
             .size_full()
             .relative()
+            .track_focus(&self.root_focus)
+            .on_key_down(cx.listener(|this, ev: &gpui::KeyDownEvent, window, cx| {
+                this.global_key(ev, window, cx)
+            }))
+            // A click on nothing focusable gives the keys back to the shortcuts (and ends a text
+            // field's edit, as before).
+            .on_mouse_down(
+                gpui::MouseButton::Left,
+                cx.listener(|this, _, window, cx| window.focus(&this.root_focus, cx)),
+            )
             .bg(bg3())
             .font_family(INTER)
             .text_color(text3())

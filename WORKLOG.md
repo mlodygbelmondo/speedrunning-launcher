@@ -207,6 +207,17 @@ Potem:
 
 ### 2026-11-01
 
+- **Import znajduje MultiMC tam, gdzie gracz go trzyma** (zgłoszenie Piotra: jego MultiMC w `C:\Games\MultiMC`
+  nie był wykryty, a `Downloads\MultiMC` to junction do niego, którego wyszukiwanie celowo nie śledzi).
+  - Dyski: każdy lokalny dysk stały (nie tylko systemowy), a na nim foldery o nazwie launchera w korzeniu i jeden
+    poziom niżej (`C:\Games\MultiMC`, `D:\Minecraft\PrismLauncher`), bez folderów systemowych.
+  - Zapisy komputera (`srl-import/src/records.rs`): lista uruchomionych programów Windowsa (rejestr HKCU,
+    `Compatibility Assistant\Store` i `MuiCache`; foldery `MultiMC.exe`, `prismlauncher.exe`, `polymc.exe`) oraz
+    `seenPaths` Jingle (`~/.config/Jingle/options.json`). Tylko tym ścieżkom wolno przejść przez link; pokazujemy
+    prawdziwy folder, bez `\\?\`. Z katalogu gry launcher szukany do trzech poziomów wyżej, inaczej sama instancja.
+  - Sprawdzone exe z `cargo xwin` na Windowsie Piotra: wszystko razem 0,11 s, same zapisy Windowsa i sam Jingle
+    po 0,02 s, za każdym razem wszystkie 4 instancje z `C:\Games\MultiMC`, każda raz. Testy `srl-import` zielone.
+
 - **Wydanie `v0.1.2`** (wybór Piotra). Piotr miał już 0.1.1, najnowsze wydanie, więc launcher słusznie nie miał
   czego pobrać. Ten sam kod, tylko wersja w `launcher/Cargo.toml`, żeby jego instalacja 0.1.1 zaktualizowała się sama.
 

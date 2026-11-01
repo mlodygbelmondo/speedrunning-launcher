@@ -233,6 +233,36 @@ fn linux_prism_flatpak_and_dot_minecraft() {
 }
 
 #[test]
+fn a_drive_has_launchers_at_its_root_and_one_folder_down() {
+    let t = Tmp::new("drives");
+    let drive = t.0.join("C");
+    // `C:\Games\MultiMC`, `C:\PrismLauncher-Windows`; not two folders down, nor under Windows.
+    let at = [
+        ("Games/MultiMC", "Nested"),
+        ("PrismLauncher-Windows", "Top"),
+        ("Games/Old/MultiMC", "Too deep"),
+        ("Windows/MultiMC", "System"),
+    ];
+    for (dir, name) in at {
+        write(&drive.join(dir).join("multimc.cfg"), "");
+        mmc_instance(
+            &drive.join(dir).join("instances").join(name),
+            name,
+            "1.16.1",
+            1_000,
+            ".minecraft",
+        );
+    }
+    let roots = SearchRoots {
+        drives: vec![drive],
+        ..SearchRoots::default()
+    };
+    let mut names: Vec<_> = detect(&roots).into_iter().map(|s| s.name).collect();
+    names.sort();
+    assert_eq!(names, ["Nested", "Top"]);
+}
+
+#[test]
 fn a_chosen_folder_can_be_an_instance_its_game_dir_or_a_launcher() {
     let t = Tmp::new("inspect");
     let inst = t.0.join("MultiMC/instances/RSG");
@@ -625,4 +655,68 @@ fn links_are_never_followed_and_huge_files_stay_out() {
     fs::create_dir_all(mmc.join("instances")).unwrap();
     symlink(t.0.join("src"), mmc.join("instances/Linked")).unwrap();
     assert!(detect(&SearchRoots::for_home(&home, Os::Linux)).is_empty());
+}
+
+#[cfg(unix)]
+#[test]
+fn recorded_launchers_and_jingle_paths_are_found_anywhere_even_through_links() {
+    use std::os::unix::fs::symlink;
+    let t = Tmp::new("recorded");
+    let home = t.0.join("home");
+    fs::create_dir_all(&home).unwrap();
+    // A MultiMC renamed and buried where no search looks, that Windows remembers running.
+    let buried = t.0.join("E/stuff/old/speedrun/mmc");
+    write(&buried.join("multimc.cfg"), "");
+    mmc_instance(
+        &buried.join("instances/RSG"),
+        "RSG",
+        "1.16.1",
+        2_000,
+        ".minecraft",
+    );
+    // Another one Jingle saw through a link in Downloads (a junction on Windows).
+    let real = t.0.join("Games/MultiMC");
+    write(&real.join("multimc.cfg"), "");
+    mmc_instance(
+        &real.join("instances/Ranked"),
+        "Ranked",
+        "1.16.1",
+        3_000,
+        ".minecraft",
+    );
+    fs::create_dir_all(home.join("Downloads")).unwrap();
+    symlink(&real, home.join("Downloads/MultiMC")).unwrap();
+    // An instance whose launcher keeps its instances elsewhere: found on its own.
+    let lone = t.0.join("Instances/FSG");
+    mmc_instance(&lone, "FSG", "1.16.1", 1_000, "minecraft");
+    let seen = |p: PathBuf| serde_json_str(&p);
+    write(
+        &home.join(".config/Jingle/options.json"),
+        &format!(
+            r#"{{"seenPaths":{{{}:1771516766357,{}:1,{}:2,"relative/x":3}}}}"#,
+            seen(home.join("Downloads/MultiMC/instances/Ranked/.minecraft")),
+            seen(lone.join("minecraft")),
+            seen(t.0.join("gone/.minecraft")),
+        ),
+    );
+    let mut roots = SearchRoots::for_home(&home, Os::Windows);
+    roots.recorded = vec![buried.clone(), t.0.join("deleted/MultiMC")];
+    let found = detect(&roots);
+    let mut got: Vec<_> = found
+        .iter()
+        .map(|s| (s.name.as_str(), s.game_dir.clone()))
+        .collect();
+    got.sort();
+    assert_eq!(
+        got,
+        [
+            ("FSG", lone.join("minecraft")),
+            ("RSG", buried.join("instances/RSG/.minecraft")),
+            // The real folder, not the link the record went through.
+            ("Ranked", real.join("instances/Ranked/.minecraft")),
+        ]
+    );
+    // The link alone still isn't followed by the ordinary search.
+    fs::remove_file(home.join(".config/Jingle/options.json")).unwrap();
+    assert!(detect(&SearchRoots::for_home(&home, Os::Windows)).is_empty());
 }

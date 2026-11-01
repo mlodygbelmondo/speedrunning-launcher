@@ -21,6 +21,8 @@
 //! - **The official launcher**: `%APPDATA%\.minecraft`, `~/.minecraft`, `~/Library/Application
 //!   Support/minecraft`, plus every profile in its `launcher_profiles.json` with a game
 //!   directory of its own.
+//! - **Records** (`records.rs`): the launchers Windows remembers running and the instances
+//!   Jingle has seen, wherever they are.
 use std::{
     collections::HashSet,
     fs,
@@ -28,7 +30,10 @@ use std::{
     time::UNIX_EPOCH,
 };
 
-use crate::{Contents, Launcher, Source, VERSION_1_16_1};
+use crate::{
+    Contents, Launcher, Source, VERSION_1_16_1,
+    records::{MAX_RECORDED, jingle_paths, launched_launchers},
+};
 
 /// Files bigger than this aren't read as text (a cfg, a json, options.txt).
 pub(crate) const MAX_TEXT: u64 = 8 * 1024 * 1024;
@@ -76,13 +81,19 @@ pub struct SearchRoots {
     /// Folders a portable launcher is often unpacked in (home, Desktop, Documents, Downloads):
     /// each one, its subfolders and theirs.
     pub portable: Vec<PathBuf>,
-    /// Drive roots (`C:\`): only their subfolders named like a launcher (`MultiMC*`, `Prism*`,
-    /// `MCSR*`, `PolyMC*`).
+    /// Drive roots (`C:\`, `D:\`): only folders named like a launcher (`MultiMC*`, `Prism*`,
+    /// `MCSR*`, `PolyMC*`), right under the root or one folder down (`C:\Games\MultiMC`).
     pub drives: Vec<PathBuf>,
     /// Data folders of installed launchers, checked as they are.
     pub launchers: Vec<PathBuf>,
     /// The official launcher's game folders.
     pub official: Vec<PathBuf>,
+    /// Folders the computer has a record of the player using: launcher folders or game
+    /// directories. Unlike everywhere else, links to them are followed: the record says the
+    /// player goes there.
+    pub recorded: Vec<PathBuf>,
+    /// Jingle's settings files; every game directory in their `seenPaths` counts as recorded.
+    pub jingle: Vec<PathBuf>,
 }
 
 impl SearchRoots {
@@ -139,6 +150,8 @@ impl SearchRoots {
             drives: Vec::new(),
             launchers,
             official,
+            recorded: Vec::new(),
+            jingle: vec![h(".config/Jingle/options.json")],
         }
     }
 
@@ -180,6 +193,12 @@ impl SearchRoots {
                 }
                 let drive = std::env::var("SystemDrive").unwrap_or_else(|_| "C:".into());
                 roots.drives.push(PathBuf::from(format!("{drive}\\")));
+                roots.recorded.extend(launched_launchers());
+                for other in fixed_drives() {
+                    if !roots.drives.iter().any(|d| identity(d) == identity(&other)) {
+                        roots.drives.push(other);
+                    }
+                }
             }
             Os::Linux => {
                 if let Some(data) = env_dir("XDG_DATA_HOME") {
@@ -204,17 +223,42 @@ pub fn detect(roots: &SearchRoots) -> Vec<Source> {
             launchers.push(l);
         }
     }
+    let jingle = roots.jingle.iter().flat_map(|f| jingle_paths(f));
+    for path in roots
+        .recorded
+        .iter()
+        .cloned()
+        .chain(jingle)
+        .take(MAX_RECORDED)
+    {
+        let Some(real) = resolve(&path) else {
+            continue;
+        };
+        // A game directory's launcher is up to three folders above it
+        // (`<launcher>/instances/<instance>/.minecraft`).
+        match real.ancestors().take(4).find_map(launcher_at) {
+            Some(l) => launchers.push(l),
+            None => found.extend(inspect(&real)),
+        }
+    }
     for root in &roots.portable {
         walk_portable(root, 2, &mut budget, &mut launchers);
     }
     for drive in &roots.drives {
         for child in subdirs(drive) {
-            let name = file_name(&child).to_ascii_lowercase();
-            if ["multimc", "prism", "polymc", "mcsr"]
-                .iter()
-                .any(|p| name.starts_with(p))
-            {
+            let name = file_name(&child);
+            if named_like_launcher(&name) {
                 walk_portable(&child, 1, &mut budget, &mut launchers);
+                continue;
+            }
+            if name.starts_with(['.', '$']) || SKIP.iter().any(|s| s.eq_ignore_ascii_case(&name)) {
+                continue;
+            }
+            // `C:\Games\MultiMC`, `D:\Minecraft\PrismLauncher`.
+            for grandchild in subdirs(&child) {
+                if named_like_launcher(&file_name(&grandchild)) {
+                    walk_portable(&grandchild, 1, &mut budget, &mut launchers);
+                }
             }
         }
     }
@@ -314,6 +358,17 @@ fn file_name(p: &Path) -> String {
         .unwrap_or_default()
 }
 
+/// The folder `p` really is, through any links, or `None` if there's no folder there. Without
+/// Windows' `\\?\` prefix on a drive path, so it reads as the player knows it.
+fn resolve(p: &Path) -> Option<PathBuf> {
+    let real = fs::canonicalize(p).ok().filter(|r| r.is_dir())?;
+    let s = real.to_string_lossy();
+    match s.strip_prefix(r"\\?\") {
+        Some(rest) if rest.as_bytes().get(1) == Some(&b':') => Some(PathBuf::from(rest)),
+        _ => Some(real),
+    }
+}
+
 /// A real folder, not a link to one.
 fn is_dir(p: &Path) -> bool {
     fs::symlink_metadata(p).is_ok_and(|m| m.is_dir())
@@ -336,6 +391,39 @@ fn subdirs(dir: &Path) -> Vec<PathBuf> {
         .collect();
     out.sort();
     out
+}
+
+/// A folder named like a portable launcher's: `MultiMC`, `PrismLauncher-Windows`, `MCSR`...
+fn named_like_launcher(name: &str) -> bool {
+    let name = name.to_ascii_lowercase();
+    ["multimc", "prism", "polymc", "mcsr"]
+        .iter()
+        .any(|p| name.starts_with(p))
+}
+
+/// The roots of the computer's local fixed drives (`D:\`), not removable, network or optical
+/// ones: those can be slow or ask for a disc.
+#[cfg(windows)]
+fn fixed_drives() -> Vec<PathBuf> {
+    use windows_sys::Win32::Storage::FileSystem::{GetDriveTypeW, GetLogicalDrives};
+    const DRIVE_FIXED: u32 = 3;
+    // SAFETY: no arguments; returns a bitmask of the drive letters in use.
+    let mask = unsafe { GetLogicalDrives() };
+    (0..26u8)
+        .filter(|i| mask & (1 << i) != 0)
+        .map(|i| format!("{}:\\", (b'A' + i) as char))
+        .filter(|root| {
+            let wide: Vec<u16> = root.encode_utf16().chain([0]).collect();
+            // SAFETY: `wide` is a NUL-terminated UTF-16 path that outlives the call.
+            unsafe { GetDriveTypeW(wide.as_ptr()) == DRIVE_FIXED }
+        })
+        .map(PathBuf::from)
+        .collect()
+}
+
+#[cfg(not(windows))]
+fn fixed_drives() -> Vec<PathBuf> {
+    Vec::new()
 }
 
 /// Looks for portable launchers in `dir` and up to `depth` levels below it.

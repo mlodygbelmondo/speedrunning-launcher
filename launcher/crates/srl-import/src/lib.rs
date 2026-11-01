@@ -30,6 +30,7 @@ use std::path::PathBuf;
 mod apply;
 mod detect;
 pub mod options;
+mod records;
 
 pub use apply::{MAX_FILE, Part, Report, SkipWhy, Skipped, TargetReport, import};
 pub use detect::{

@@ -21,11 +21,15 @@
 use std::{
     fs,
     path::{Path, PathBuf},
+    sync::atomic::{AtomicBool, Ordering},
     time::{SystemTime, UNIX_EPOCH},
 };
 
 use anyhow::{Context, Result};
 use srl_core::{CustomId, Instance, Mode, Paths};
+
+/// The error a duplicate ends with when `Backend::cancel_copy` stopped it.
+pub const COPY_CANCELLED: &str = "copy cancelled";
 
 /// What `Backend::create_instance` makes.
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -200,7 +204,20 @@ impl CopyPlan {
 
     /// Copies the plan from `from` into `to` (which exists). `progress(files, bytes)` is called
     /// after every file. Returns what was left out, the walk's notes first.
-    pub fn run(self, from: &Path, to: &Path, mut progress: impl FnMut(u64, u64)) -> Vec<String> {
+    pub fn run(self, from: &Path, to: &Path, progress: impl FnMut(u64, u64)) -> Vec<String> {
+        self.run_until(from, to, progress, &AtomicBool::new(false))
+            .unwrap_or_default()
+    }
+
+    /// `run`, checking `stop` before every file: `None` once it is set (what was copied stays,
+    /// for the caller to remove).
+    pub fn run_until(
+        self,
+        from: &Path,
+        to: &Path,
+        mut progress: impl FnMut(u64, u64),
+        stop: &AtomicBool,
+    ) -> Option<Vec<String>> {
         let mut skipped = self.skipped;
         let mut failed_dirs: Vec<PathBuf> = Vec::new();
         for dir in &self.dirs {
@@ -214,6 +231,9 @@ impl CopyPlan {
         }
         let (mut files, mut bytes) = (0, 0);
         for (rel, size) in &self.files {
+            if stop.load(Ordering::Relaxed) {
+                return None;
+            }
             if !failed_dirs.iter().any(|f| rel.starts_with(f))
                 && let Err(e) = fs::copy(from.join(rel), to.join(rel))
             {
@@ -224,7 +244,7 @@ impl CopyPlan {
             bytes += size;
             progress(files, bytes);
         }
-        skipped
+        Some(skipped)
     }
 }
 
@@ -382,6 +402,33 @@ mod tests {
         }
         out.sort();
         out
+    }
+
+    #[test]
+    fn a_copy_stops_when_asked() {
+        let root = temp("stop");
+        let (src, to) = (root.join("src"), root.join("to"));
+        for i in 0..5 {
+            write(&src.join(format!("saves/w{i}/level.dat")), "x");
+        }
+        fs::create_dir_all(&to).unwrap();
+        let stop = AtomicBool::new(false);
+        let mut copied = 0;
+        let answer = CopyPlan::new(&src, CopyWhat::Everything { worlds: true }).run_until(
+            &src,
+            &to,
+            |files, _| {
+                copied = files;
+                if files == 2 {
+                    stop.store(true, Ordering::Relaxed);
+                }
+            },
+            &stop,
+        );
+        assert_eq!(answer, None);
+        assert_eq!(copied, 2);
+        assert_eq!(tree(&to).len(), 2);
+        let _ = fs::remove_dir_all(&root);
     }
 
     fn source(root: &Path) -> PathBuf {

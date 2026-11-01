@@ -41,7 +41,7 @@ pub use fake::{
     fake_sign_in_first,
 };
 pub use importer::{ImportEvent, ImportPreset, ImportResult, Importer};
-pub use instances::{CopyProgress, Created, NewInstance};
+pub use instances::{COPY_CANCELLED, CopyProgress, Created, NewInstance};
 pub use practice::{PracticeEvent, PracticeMaps, PracticePreset, PracticeSnapshot};
 pub use real::RealBackend;
 pub use stats::{StatsEvent, StatsService, StatsSettings, StatsView};
@@ -1042,6 +1042,9 @@ pub trait Backend {
     /// definition goes and its directory moves to `<data>/trash/custom-<n>-<unix time>` (a
     /// rename, nothing deleted). Answers with `Event::CustomInstances` and `InstanceDeleted`.
     fn delete_instance(&self, id: CustomId);
+    /// Stops the running `duplicate_instance`s: what they copied is removed and each ends with
+    /// `InstanceCreated(Err(COPY_CANCELLED))`.
+    fn cancel_copy(&self);
     /// `add_jar` for a custom instance's Mods tab: `Event::InstanceJarAdded`.
     fn add_instance_jar(&self, id: CustomId, path: PathBuf);
     /// Opens an instance's game directory (`Paths::game_dir`) in the file manager.

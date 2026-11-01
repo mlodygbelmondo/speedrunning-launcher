@@ -223,6 +223,12 @@ Potem:
 
 ### 2026-11-01
 
+- **Anulowanie kopii instancji:** obok paska „Zrób kopię” jest Anuluj. Kopia zatrzymuje się przed następnym
+  plikiem (`CopyPlan::run_until`), skopiowane pliki i rekordy nowej instancji znikają, a strona mówi „Kopiowanie
+  anulowane. Nic nie zostało.”. Pasek pokazuje się od razu po kliknięciu („Liczenie plików…”), więc drugie
+  kliknięcie nie uruchomi drugiej kopii. Test zatrzymania w `backend/instances.rs`; sprawdzone w Xvfb. Poprawki
+  tekstów PL: „Kopiowanie …” zamiast pierwszej osoby, „Klawisze, opcje i paczki z instancji …”.
+
 - **Własne instancje na stronie Instancje** (druga połowa prośby Piotra, backend z worktree scalony wcześniej).
   - Lista po lewej: wbudowane instancje, pod nimi własne („Twoja · gra jak RSG”), przewijana, a na dole „Nowa
     instancja”.

@@ -965,5 +965,7 @@
   "inst.copy.progress": "Copying “{name}”: {done} of {total}",
   "inst.copy.skipped": "Copied, but {n} files couldn't be read and were left out.",
   "inst.copy.skipped_one": "Copied, but {n} file couldn't be read and was left out.",
-  "inst.copy.worlds_size": "With worlds ({size})"
+  "inst.copy.worlds_size": "With worlds ({size})",
+  "inst.copy.cancelled": "Copy cancelled. Nothing was kept.",
+  "inst.copy.counting": "Counting the files of “{name}”…"
 }

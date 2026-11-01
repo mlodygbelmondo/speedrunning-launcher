@@ -21,8 +21,8 @@ use crate::{
     app::{Launcher, Page},
     assets::card_path,
     backend::{
-        Created, CustomInstance, JvmArgProblem, MEMORY_CHOICES_MB, ModeState, NameProblem,
-        NewInstance,
+        COPY_CANCELLED, CopyProgress, Created, CustomInstance, JvmArgProblem, MEMORY_CHOICES_MB,
+        ModeState, NameProblem, NewInstance,
         content::{self, Content},
         index, open_folder, open_path, validate_jvm_args,
     },
@@ -1617,22 +1617,33 @@ impl Launcher {
             } else {
                 0.
             };
-            body = body.child(
-                div()
-                    .w(px(420.))
-                    .flex()
-                    .flex_col()
-                    .gap(px(8.))
-                    .child(thin_progress(frac, 3.))
-                    .child(plex(11., FontWeight::MEDIUM).text_color(muted3()).child(tf(
-                        "inst.copy.progress",
-                        &[
-                            ("name", &p.name),
-                            ("done", &size(p.bytes)),
-                            ("total", &size(p.bytes_total)),
-                        ],
-                    ))),
-            );
+            body = body
+                .child(
+                    div()
+                        .w(px(420.))
+                        .flex()
+                        .flex_col()
+                        .gap(px(8.))
+                        .child(thin_progress(frac, 3.))
+                        .child(plex(11., FontWeight::MEDIUM).text_color(muted3()).child(
+                            if p.bytes_total == 0 {
+                                tf("inst.copy.counting", &[("name", &p.name)])
+                            } else {
+                                tf(
+                                    "inst.copy.progress",
+                                    &[
+                                        ("name", &p.name),
+                                        ("done", &size(p.bytes)),
+                                        ("total", &size(p.bytes_total)),
+                                    ],
+                                )
+                            },
+                        )),
+                )
+                .child(
+                    tertiary("inst-copy-cancel", &t("v3.cancel"))
+                        .on_click(cx.listener(|this, _, _, _| this.backend().cancel_copy())),
+                );
         } else {
             let worlds = self.instances.copy_worlds;
             let saves = self.instances.content.as_ref().map_or(0, |c| c.saves_size);
@@ -1645,6 +1656,16 @@ impl Launcher {
                                 "inst.copy.name",
                                 &[("name", &this.inst_name(key))],
                             ));
+                            // Shown at once, so a second click can't start another copy
+                            // while the files are being counted.
+                            this.copying = Some(CopyProgress {
+                                id: CustomId(0),
+                                name: name.clone(),
+                                files: 0,
+                                files_total: 0,
+                                bytes: 0,
+                                bytes_total: 0,
+                            });
                             this.backend().duplicate_instance(
                                 from,
                                 name,
@@ -1727,6 +1748,9 @@ impl Launcher {
                 if made.skipped.is_empty() {
                     self.instances.tab = Tab::Mods;
                 }
+            }
+            Err(why) if why == COPY_CANCELLED => {
+                self.instances.note = Some((t("inst.copy.cancelled"), false));
             }
             Err(why) => {
                 self.instances.note = Some((tf("inst.new.failed", &[("why", &why)]), true));

@@ -90,6 +90,7 @@ enum Cmd {
     Create(NewInstance),
     Duplicate(Instance, String, bool),
     Delete(CustomId),
+    CancelCopy,
 }
 
 /// The mod lists the fake's Mods page is built from: srl-mods' test snapshot of the real
@@ -423,6 +424,9 @@ impl Backend for FakeBackend {
     fn delete_instance(&self, id: CustomId) {
         let _ = self.cmds.send(Cmd::Delete(id));
     }
+    fn cancel_copy(&self) {
+        let _ = self.cmds.send(Cmd::CancelCopy);
+    }
     fn add_instance_jar(&self, id: CustomId, path: PathBuf) {
         let _ = self.cmds.send(Cmd::AddInstanceJar(id, path));
     }
@@ -463,6 +467,13 @@ impl Worker {
                 Ok(Cmd::Cancel(instance)) => self.cancel(instance),
                 Ok(Cmd::Create(spec)) => self.create(spec),
                 Ok(Cmd::Duplicate(from, name, worlds)) => self.duplicate(from, &name, worlds),
+                Ok(Cmd::CancelCopy) => {
+                    for _ in self.copies.drain(..) {
+                        let _ = self.events.unbounded_send(Event::InstanceCreated(Err(
+                            super::COPY_CANCELLED.to_string(),
+                        )));
+                    }
+                }
                 Ok(Cmd::Delete(id)) => self.delete(id),
                 Ok(Cmd::AddInstanceJar(id, path)) => {
                     let answer = fake_jar(&path);

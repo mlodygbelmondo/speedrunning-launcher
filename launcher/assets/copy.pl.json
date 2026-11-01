@@ -989,7 +989,7 @@
   "inst.jvm_problem.empty": "Jeden z argumentów jest pusty.",
   "inst.jvm_problem.not_option": "„{arg}” nie jest opcją Javy: opcje zaczynają się od -.",
   "inst.jvm_problem.memory": "„{arg}” ustawia pamięć: użyj ustawienia Pamięć wyżej.",
-  "inst.jvm_problem.command": "„{arg}” zepsułby polecenie startu gry.",
+  "inst.jvm_problem.command": "„{arg}” zepsułby polecenie uruchomienia gry.",
   "inst.jvm_problem.agent": "„{arg}” ładuje agenta Javy, a to w runach niedozwolone.",
   "inst.name_problem.empty": "Podaj nazwę.",
   "inst.name_problem.too_long": "Nazwa może mieć najwyżej 40 znaków.",
@@ -1005,7 +1005,7 @@
   "inst.new.base": "Gra jak",
   "inst.new.base_hint": "Minecraft {mc}. Tego nie da się później zmienić, żeby światy były bezpieczne.",
   "inst.new.start": "Na start",
-  "inst.new.copy": "Klawisze, opcje i paczki z: {from}",
+  "inst.new.copy": "Klawisze, opcje i paczki z instancji {from}",
   "inst.new.create": "Utwórz",
   "inst.new.made": "„{name}” gotowa. Wybierz mody i naciśnij „Pobierz”.",
   "inst.new.failed": "Nie udało się utworzyć: {why}",
@@ -1014,10 +1014,12 @@
   "inst.copy.make": "Zrób kopię",
   "inst.copy.worlds": "Ze światami",
   "inst.copy.name": "{name} – kopia",
-  "inst.copy.progress": "Kopiuję „{name}”: {done} z {total}",
+  "inst.copy.progress": "Kopiowanie „{name}”: {done} z {total}",
   "inst.copy.skipped": "Skopiowano, ale {n} plików nie dało się odczytać i je pominięto.",
   "inst.copy.skipped_one": "Skopiowano, ale {n} pliku nie dało się odczytać i go pominięto.",
   "inst.copy.skipped_few": "Skopiowano, ale {n} plików nie dało się odczytać i je pominięto.",
   "inst.copy.skipped_many": "Skopiowano, ale {n} plików nie dało się odczytać i je pominięto.",
-  "inst.copy.worlds_size": "Ze światami ({size})"
+  "inst.copy.worlds_size": "Ze światami ({size})",
+  "inst.copy.cancelled": "Kopiowanie anulowane. Nic nie zostało.",
+  "inst.copy.counting": "Liczenie plików „{name}”…"
 }

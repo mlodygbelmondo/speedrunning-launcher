@@ -90,6 +90,8 @@ struct Inner {
     runs: Mutex<HashMap<Instance, watch::Sender<bool>>>,
     /// Instances a duplicate is copying from right now: they can't be deleted meanwhile.
     copying: Mutex<HashSet<Instance>>,
+    /// Set by `cancel_copy`: the running duplicates stop before their next file.
+    cancel_copy: std::sync::atomic::AtomicBool,
     /// One new custom instance number at a time (`instances::reserve`, then its definition).
     new_ids: Mutex<()>,
     /// The runtime, for work a blocking task starts (the update check after a create).
@@ -209,6 +211,7 @@ impl RealBackend {
             events,
             runs: Mutex::new(HashMap::new()),
             copying: Mutex::new(HashSet::new()),
+            cancel_copy: std::sync::atomic::AtomicBool::new(false),
             new_ids: Mutex::new(()),
             rt: rt.clone(),
             settings_file,
@@ -395,6 +398,9 @@ impl Backend for RealBackend {
     fn duplicate_instance(&self, from: Instance, name: String, with_worlds: bool) {
         // Marked before the task starts, so a delete right after this call is refused.
         self.inner.copying.lock().unwrap().insert(from);
+        self.inner
+            .cancel_copy
+            .store(false, std::sync::atomic::Ordering::Relaxed);
         let inner = self.inner.clone();
         self.rt.spawn_blocking(move || {
             let answer = inner
@@ -403,6 +409,12 @@ impl Backend for RealBackend {
             inner.copying.lock().unwrap().remove(&from);
             inner.created(answer);
         });
+    }
+
+    fn cancel_copy(&self) {
+        self.inner
+            .cancel_copy
+            .store(true, std::sync::atomic::Ordering::Relaxed);
     }
 
     fn delete_instance(&self, id: CustomId) {
@@ -749,14 +761,24 @@ impl Inner {
             .events
             .unbounded_send(Event::InstanceCopy(progress(0, 0)));
         let mut last = Instant::now();
-        let skipped = plan.run(&src, &dir, |files, bytes| {
-            if files == files_total || last.elapsed() >= PROGRESS_EVERY {
-                last = Instant::now();
-                let _ = self
-                    .events
-                    .unbounded_send(Event::InstanceCopy(progress(files, bytes)));
-            }
-        });
+        let copied = plan.run_until(
+            &src,
+            &dir,
+            |files, bytes| {
+                if files == files_total || last.elapsed() >= PROGRESS_EVERY {
+                    last = Instant::now();
+                    let _ = self
+                        .events
+                        .unbounded_send(Event::InstanceCopy(progress(files, bytes)));
+                }
+            },
+            &self.cancel_copy,
+        );
+        let Some(skipped) = copied else {
+            instances::discard(paths, id);
+            log(format_args!("{id}: copy cancelled, removed"));
+            anyhow::bail!(instances::COPY_CANCELLED);
+        };
         if let Err(e) = instances::fix_per_mode_files(paths, from, &dir) {
             instances::discard(paths, id);
             return Err(e);

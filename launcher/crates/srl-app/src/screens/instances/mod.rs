@@ -197,6 +197,10 @@ pub struct InstancesView {
     /// The note last drawn and when it first was, for its fade-in.
     pub note_drawn: Option<SharedString>,
     pub note_at: Option<std::time::Instant>,
+    /// The question last drawn in place of the toolbar, and when it appeared (it fades in like
+    /// the note).
+    pub confirm_drawn: Option<Confirm>,
+    pub confirm_at: Option<std::time::Instant>,
     /// The game log's last lines, read with the scan, for the Logs tab.
     pub tail: Vec<String>,
     /// The seed last copied with "Copy seed" (its button says Copied).
@@ -234,6 +238,8 @@ impl Default for InstancesView {
             note: None,
             note_drawn: None,
             note_at: None,
+            confirm_drawn: None,
+            confirm_at: None,
             tail: Vec::new(),
             copied: None,
             viewing: None,
@@ -574,6 +580,11 @@ impl Launcher {
     }
 
     pub fn render_instances(&mut self, window: &Window, cx: &mut Context<Self>) -> AnyElement {
+        let v = &mut self.instances;
+        if v.confirm != v.confirm_drawn {
+            v.confirm_at = v.confirm.is_some().then(std::time::Instant::now);
+            v.confirm_drawn = v.confirm.clone();
+        }
         let key = self.instances.sel;
         let art = self.inst_art(key);
         let fade = self.mode_fade().art;
@@ -1115,8 +1126,16 @@ impl Launcher {
         } else {
             primary("inst-yes", yes)
         };
+        let f = self.instances.confirm_at.map_or(1.0, |at| {
+            crate::app::ease_out(
+                (crate::app::ms_since(at, std::time::Instant::now()) / NOTE_MS).min(1.0),
+            )
+        });
         div()
             .flex_none()
+            .relative()
+            .top(px(4. * (1.0 - f)))
+            .when(f < 1.0, |d| d.opacity(f))
             .min_h(px(52.))
             .py(px(8.))
             .flex()

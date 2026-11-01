@@ -223,6 +223,10 @@ Potem:
 
 ### 2026-11-01
 
+- **Pytanie potwierdzenia wjeżdża jak notatka:** pasek „Usunąć na zawsze…?” w miejscu paska narzędzi pojawia się
+  w 220 ms (przezroczystość i 4 px w górę), tak jak notatka pod kartami. Klatki tylko w czasie animacji: 8 klatek,
+  potem 0 przez 3 s (SRL_TRACE_RENDERS, Xvfb).
+
 - **Druga runda krytyka zrzutów (13 ekranów EN i PL), poprawki:**
   - „Ze światami” przy kopii i w formularzu to teraz pole wyboru („Razem ze światami (1 MB)”), nie chip, który
     wyglądał jak wyłączony przycisk.

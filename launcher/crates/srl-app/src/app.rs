@@ -1134,11 +1134,11 @@ impl Render for Launcher {
         {
             self.tile_out = None;
         }
-        // A note on the Instances page fading in.
-        if self
-            .instances
-            .note_at
-            .is_some_and(|at| ms_since(at, now) < crate::screens::instances::NOTE_MS)
+        // A note or a question on the Instances page fading in.
+        if [self.instances.note_at, self.instances.confirm_at]
+            .into_iter()
+            .flatten()
+            .any(|at| ms_since(at, now) < crate::screens::instances::NOTE_MS)
         {
             window.request_animation_frame();
         }

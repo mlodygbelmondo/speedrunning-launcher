@@ -39,13 +39,9 @@ pub fn bar_fraction(p: &Progress) -> f32 {
     }
 }
 
-/// The mode's description under its name. The demo has its own wording where the prototype
-/// promises what M1 doesn't do yet (RSG: "the launcher collects your times and splits").
-pub fn mode_desc(mode: Mode) -> SharedString {
-    let key = format!("v3.desc.{}", mode.id());
-    demo::get()
-        .and_then(|_| crate::copy::t_opt(&format!("{key}.demo")))
-        .unwrap_or_else(|| t(&key))
+/// The mode's description under its name, for the modes that need one (RSG's name says it all).
+pub fn mode_desc(mode: Mode) -> Option<SharedString> {
+    crate::copy::t_opt(&format!("v3.desc.{}", mode.id()))
 }
 
 /// The longest text a failure quotes (an error chain, the game's words); the full text is in the
@@ -133,6 +129,21 @@ fn draftout_refused(reason: &str) -> Option<Option<String>> {
 }
 
 impl Launcher {
+    /// Draftout's mod ids ("planifolia, sodium") as the Mods tab names them, where it knows them.
+    fn mod_display_names(&self, mi: usize, ids: &str) -> String {
+        let known = self.modes[mi].info.catalogue.as_deref().unwrap_or_default();
+        ids.split(',')
+            .map(str::trim)
+            .map(|id| {
+                known
+                    .iter()
+                    .find(|m| m.modid.eq_ignore_ascii_case(id))
+                    .map_or_else(|| id.to_string(), |m| m.name.clone())
+            })
+            .collect::<Vec<_>>()
+            .join(", ")
+    }
+
     /// The fix of mode `mi`'s failed Play, when the failure names one.
     pub fn fix(&self, mi: usize) -> Option<Fix> {
         let ModeState::Failed(f) = self.state(mi) else {
@@ -271,7 +282,7 @@ impl Launcher {
                 );
                 (label, t(stage_key(p.stage)), false)
             }
-            ModeState::Ready => (t("v3.play"), self.play_hint(mode), true),
+            ModeState::Ready => (t("v3.play"), SharedString::default(), true),
             ModeState::UpdateAvailable => (
                 t("v3.play"),
                 tf(
@@ -318,18 +329,6 @@ impl Launcher {
             }))
         });
         div().relative().flex_none().child(btn).children(progress)
-    }
-
-    /// The hint under Play for a ready mode.
-    fn play_hint(&self, mode: Mode) -> SharedString {
-        if mode == Mode::Ranked {
-            t("v3.play_hint.ranked")
-        } else if demo::get().is_some() {
-            // "launches Minecraft and your tools": true in the prototype, where tools exist.
-            t("v3.play_hint.run")
-        } else {
-            tf("v3.play_hint.plain", &[("mc", mode.minecraft_version())])
-        }
     }
 
     /// The ghost actions next to Play: Cancel while installing; on Home, Manage instance once the
@@ -461,11 +460,17 @@ impl Launcher {
         let (head, detail) = match self.fix(mi) {
             Some(Fix::Memory { from_gb, .. }) => (tf("v3.fail.memory", &[("gb", &from_gb)]), None),
             Some(Fix::Mods(Some(names))) => (
-                tf("v3.fail.draftout_mod", &[("mode", short), ("mod", &names)]),
+                tf(
+                    "v3.fail.draftout_mod",
+                    &[
+                        ("mode", short),
+                        ("mod", &self.mod_display_names(mi, &names)),
+                    ],
+                ),
                 None,
             ),
             Some(Fix::Mods(None)) => (fill(&t("v3.fail.draftout_mods"), &[("mode", short)]), None),
-            Some(Fix::Relogin) => (fill(&t(key), &[("mode", short)]), None),
+            Some(Fix::Relogin) => (t("v3.fail.relogin"), None),
             Some(Fix::SignInFirst) => (t("v3.fail.sign_in_first"), None),
             None => (
                 fill(&t(key), &[("mode", short)]),

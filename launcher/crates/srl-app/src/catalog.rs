@@ -1,7 +1,7 @@
-//! What the launcher offers, independent of any one install: the five modes with their art and the
-//! layers they're built from, and the practice catalogue. This is product data, true by
-//! construction, so it shows without `SRL_DEMO`. Translatable text is in copy.json
-//! (`mode.<id>.*`, `layer.<id>`, `practice.cat.<id>`, `map.<id>`, `practice.credit.<id>` for a
+//! What the launcher offers, independent of any one install: the five modes with their art, and
+//! the practice catalogue. This is product data, true by construction, so it shows without
+//! `SRL_DEMO`. Translatable text is in copy.json
+//! (`mode.<id>.*`, `practice.cat.<id>`, `map.<id>`, `practice.credit.<id>` for a
 //! map with more credit than its authors, `practice.req.<id>`, `ptool.<id>`, `learn.topic.<id>`,
 //! `learn.g.<id>`).
 //!
@@ -22,9 +22,6 @@ pub struct ModeDef {
     pub short: &'static str,
     /// Art id: `art/hero/<art>.jpg` and `art/card/<art>.jpg`.
     pub art: &'static str,
-    /// Layers, top (the mode's own) to bottom (Java). A layer used by two modes is installed once
-    /// and shared on disk.
-    pub layers: &'static [&'static str],
 }
 
 /// In `Mode::ALL` order.
@@ -33,31 +30,26 @@ pub const MODES: [ModeDef; 5] = [
         mode: Mode::Ranked,
         short: "Ranked",
         art: "ranked",
-        layers: &["ranked", "rsg", "run", "perf", "game", "java"],
     },
     ModeDef {
         mode: Mode::Rsg,
         short: "RSG",
         art: "rsg",
-        layers: &["rsg", "run", "perf", "game", "java"],
     },
     ModeDef {
         mode: Mode::Fsg,
         short: "FSG",
         art: "fsg",
-        layers: &["fsg", "rsg", "run", "perf", "game", "java"],
     },
     ModeDef {
         mode: Mode::Ssg,
         short: "SSG",
         art: "ssg",
-        layers: &["ssg", "run", "perf", "game", "java"],
     },
     ModeDef {
         mode: Mode::Draftout,
         short: "Draftout",
         art: "draftout",
-        layers: &["draftout", "perf26", "game26", "java25"],
     },
 ];
 
@@ -76,14 +68,6 @@ pub fn approx_download(mode: Mode) -> u64 {
     } else {
         500 * MIB
     }
-}
-
-/// The other modes that use layer `id`.
-pub fn sharing(mode: Mode, id: &str) -> Vec<&'static ModeDef> {
-    MODES
-        .iter()
-        .filter(|d| d.mode != mode && d.layers.contains(&id))
-        .collect()
 }
 
 // ---------------------------------------------------------------------------------------------

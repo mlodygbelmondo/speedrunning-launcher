@@ -269,9 +269,16 @@ impl Launcher {
             .flex_none()
             .flex()
             .flex_col()
-            .child(kicker(
-                &tf("learn.for", &[("modes", &mode_names(&topic.modes))]),
-                accent2(),
+            // Which modes, only where the group doesn't say it already: not for a topic of all
+            // four 1.16.1 modes, nor for one mode's own topic. The line keeps its height either way,
+            // so the titles line up.
+            .child(div().h(px(13.)).children(
+                (topic.modes.len() > 1 && topic.modes.len() < Mode::SHARED.len()).then(|| {
+                    kicker(
+                        &tf("learn.for", &[("modes", &mode_names(&topic.modes))]),
+                        accent2(),
+                    )
+                }),
             ))
             .child(tight(&name, 40., FontWeight::EXTRA_BOLD, -0.025, 0.95, text3()).mt(px(14.)))
             .child(
@@ -300,8 +307,7 @@ impl Launcher {
                     .pb(px(12.))
                     .flex()
                     .flex_row()
-                    .justify_between()
-                    .child(section_head(&tn("learn.count", topic.guides.len() as u64))),
+                    .justify_between(),
             )
             // The rows scroll once they don't fit, the closing rule stays right under the last one. While
             // rows are hidden below, the bottom of the list fades out ("scroll for more"), as in

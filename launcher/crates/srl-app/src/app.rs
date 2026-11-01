@@ -764,7 +764,6 @@ impl Launcher {
     /// Stores settings in the backend and here.
     pub fn save_settings(&mut self, settings: Settings, cx: &mut Context<Self>) {
         if settings != self.settings {
-            copy::set_hide_taglines(settings.dev_hide_taglines);
             self.settings = settings.clone();
             self.backend.set_settings(settings);
             cx.notify();

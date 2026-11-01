@@ -660,7 +660,6 @@ impl Launcher {
                     .child(button)
                     .child(leave),
             )
-            .child(note(&t("import.shared_note"), faint3()).mt(px(18.)))
     }
 
     /// After the import: where everything went.

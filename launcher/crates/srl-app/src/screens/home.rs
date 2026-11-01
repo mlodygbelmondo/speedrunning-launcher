@@ -20,7 +20,7 @@ use crate::{
     app::{Launcher, Page},
     assets::{SHADE_HERO, card_path, embedded},
     catalog,
-    copy::{t, tf, tn},
+    copy::{t, tf},
     demo,
     v3::*,
 };
@@ -530,70 +530,6 @@ impl Launcher {
         )
     }
 
-    /// What installing the mode adds: its layers, new ones first, then the ones an installed mode
-    /// already brought (they're shared on disk), and only those carry a tag: when every layer is
-    /// new, "new" under each says nothing. Real data: the catalogue plus the mode states.
-    fn home_install(&self, mi: usize) -> Div {
-        let mode = self.mode(mi);
-        let have_layer = |l: &str| {
-            catalog::sharing(mode, l)
-                .iter()
-                .any(|d| self.installed(crate::backend::index(d.mode)))
-        };
-        let layers = catalog::def(mode).layers;
-        // Plain words joined by dots: they say what comes with the mode, they aren't buttons.
-        // The new layers first, then, dimmer, what an installed mode already brought.
-        let new: Vec<&str> = layers.iter().copied().filter(|l| !have_layer(l)).collect();
-        let have: Vec<&str> = layers.iter().copied().filter(|l| have_layer(l)).collect();
-        let item = |layer: &str, color: gpui::Hsla| {
-            inter(14., FontWeight::SEMIBOLD, 1.)
-                .whitespace_nowrap()
-                .text_color(color)
-                .child(t(&format!("layer.{layer}")))
-        };
-        let dot = || {
-            inter(14., FontWeight::NORMAL, 1.)
-                .text_color(faint3())
-                .child("·")
-        };
-        let mut row = div()
-            .flex()
-            .flex_row()
-            .flex_wrap()
-            .items_baseline()
-            .gap_x(px(10.))
-            .gap_y(px(6.));
-        for (i, l) in new.iter().enumerate() {
-            if i > 0 {
-                row = row.child(dot());
-            }
-            row = row.child(item(l, text3()));
-        }
-        if !have.is_empty() {
-            if !new.is_empty() {
-                row = row.child(dot());
-            }
-            for (i, l) in have.iter().enumerate() {
-                if i > 0 {
-                    row = row.child(dot());
-                }
-                row = row.child(item(l, muted3()));
-            }
-            row = row.child(
-                inter(12., FontWeight::MEDIUM, 1.)
-                    .whitespace_nowrap()
-                    .text_color(faint3())
-                    .child(format!("({})", t("v3.install_have"))),
-            );
-        }
-        div()
-            .flex()
-            .flex_col()
-            .gap(px(12.))
-            .child(Self::band_head(&t("v3.install_title"), None))
-            .child(row)
-    }
-
     /// The status word at a tile's top right.
     fn tile_badge(label: &str, color: gpui::Hsla) -> Div {
         div()
@@ -761,24 +697,14 @@ impl Launcher {
         Some(row)
     }
 
-    /// The status row under the description: the status, the mod count when known, and one
-    /// mode-specific extra. The version is in the eyebrow and the download size under the
-    /// button, so neither repeats here.
-    fn status_row(&self, mi: usize) -> Div {
+    /// The line under the description, only when there is something to know: an update waits,
+    /// who plays (a Microsoft account), or that online play needs one. Installing and failing
+    /// have their own bar and error line.
+    fn status_row(&self, mi: usize) -> Option<Div> {
         let mode = self.mode(mi);
         let status = self.status(mi);
-        let info = &self.modes[mi].info;
         let demo = demo::get();
-        let mods: Option<SharedString> = info
-            .mods
-            .filter(|_| self.installed(mi))
-            .map(|n| tn("v3.mods_checked", u64::from(n)));
-        // Another 1.16.1 mode is installed: this one isn't a fresh download.
-        let (label, color) = if self.shares_install(mi) {
-            (t("v3.status.shared"), status.color())
-        } else {
-            (t(status.key()), status.color())
-        };
+        let update = (status == Status::Update).then(|| (t(status.key()), status.color()));
         let extra: Option<SharedString> = match status {
             Status::Installing | Status::Failed => None,
             _ => match (mode, demo, self.account.active_name()) {
@@ -792,30 +718,30 @@ impl Launcher {
                 _ => None,
             },
         };
-        div()
-            .mt(px(16.))
-            .flex()
-            .flex_row()
-            .items_center()
-            .gap(px(18.))
-            .child(
-                div()
-                    .flex()
-                    .flex_row()
-                    .items_center()
-                    .child(div().flex_none().size(px(6.)).mr(px(8.)).bg(color))
-                    .child(status_text(&label, color)),
-            )
-            .children(mods.map(|m| {
-                inter(12., FontWeight::MEDIUM, 1.)
-                    .text_color(faint3())
-                    .child(m)
-            }))
-            .children(extra.map(|e| {
-                inter(12., FontWeight::MEDIUM, 1.)
-                    .text_color(faint3())
-                    .child(e)
-            }))
+        if update.is_none() && extra.is_none() {
+            return None;
+        }
+        Some(
+            div()
+                .mt(px(16.))
+                .flex()
+                .flex_row()
+                .items_center()
+                .gap(px(18.))
+                .children(update.map(|(label, color)| {
+                    div()
+                        .flex()
+                        .flex_row()
+                        .items_center()
+                        .child(div().flex_none().size(px(6.)).mr(px(8.)).bg(color))
+                        .child(status_text(&label, color))
+                }))
+                .children(extra.map(|e| {
+                    inter(12., FontWeight::MEDIUM, 1.)
+                        .text_color(faint3())
+                        .child(e)
+                })),
+        )
     }
 
     /// The eyebrow over a mode's title. Ranked names its season only when we know it (demo).
@@ -848,20 +774,14 @@ impl Launcher {
             .flex_col()
             .child(eyebrow(&self.eyebrow(mode), accent2()))
             .child(tight(d.short, 112., FontWeight::EXTRA_BOLD, -0.03, 0.86, text3()).mt(px(16.)))
-            .child(
+            .children(super::play::mode_desc(mode).map(|desc| {
                 inter(16., FontWeight::NORMAL, 1.5)
                     .mt(px(20.))
                     .whitespace_nowrap()
                     .text_color(muted3())
-                    .child(wrap(
-                        &super::play::mode_desc(mode),
-                        INTER,
-                        FontWeight::NORMAL,
-                        16.,
-                        440.,
-                    )),
-            )
-            .child(self.status_row(mi))
+                    .child(wrap_even(&desc, INTER, FontWeight::NORMAL, 16., 440.))
+            }))
+            .children(self.status_row(mi))
             .child(
                 div()
                     .mt(px(30.))
@@ -876,7 +796,7 @@ impl Launcher {
             .children(self.mods_line(mi, 560.));
 
         let band: Option<Div> = match status {
-            Status::Missing | Status::Installing => Some(self.home_install(mi)),
+            Status::Missing | Status::Installing => None,
             _ if mode == Mode::Ranked => self.home_matches(),
             _ => self.home_strip(mode),
         };

@@ -18,8 +18,7 @@ use gpui::{
 };
 use srl_core::Unit;
 use srl_practice::{
-    LinkOnlyReason, MapEntry, MapStatus, Redistribution, RequirementKind, Step, UpdateChoice,
-    WorldState, WorldView,
+    LinkOnlyReason, MapEntry, MapStatus, RequirementKind, Step, UpdateChoice, WorldState, WorldView,
 };
 
 use crate::{
@@ -84,15 +83,6 @@ fn fail_text(kind: MapFailKind, detail: &str) -> SharedString {
         MapFailKind::NotAWorld => t("practice.fail.not_a_world"),
         MapFailKind::WorldInUse => t("practice.fail.world_in_use"),
         MapFailKind::Other => tf("practice.fail.other", &[("text", detail)]),
-    }
-}
-
-fn licence_key(r: Redistribution) -> &'static str {
-    match r {
-        Redistribution::OpenLicence => "practice.licence.open-licence",
-        Redistribution::PermissionGranted => "practice.licence.permission-granted",
-        Redistribution::LinkOnly => "practice.licence.link-only",
-        Redistribution::Proprietary => "practice.licence.proprietary",
     }
 }
 
@@ -415,7 +405,12 @@ impl Launcher {
                     inter(11., FontWeight::MEDIUM, 1.)
                         .whitespace_nowrap()
                         .text_color(faint3())
-                        .child(t("practice.link_only_hint")),
+                        .child(match e.link_only.as_ref().map(|l| l.reason) {
+                            Some(LinkOnlyReason::OtherMinecraftVersion) => {
+                                tf("practice.link_only_needs", &[("mc", &e.minecraft)])
+                            }
+                            _ => t("practice.link_only_hint"),
+                        }),
                 ),
             MapStatus::NotInstalled => cell
                 .child(
@@ -802,13 +797,6 @@ impl Launcher {
                 };
                 about = about.child(small(line));
             }
-            // A map the launcher only links to: it downloads nothing, whatever the licence.
-            let licence = if e.is_installable() {
-                t(licence_key(e.licence.redistribution))
-            } else {
-                t("practice.licence.page-only")
-            };
-            about = about.child(small(licence));
             if matches!(v.status, MapStatus::Installed(_)) {
                 about = about.child(small(t("practice.tools_note")));
             }
@@ -1001,7 +989,7 @@ impl Launcher {
                 let confirm = play_button(
                     "practice-ask-reset",
                     &t("practice.ask.reset.confirm"),
-                    tf("practice.ask.reset.confirm_hint", &[("v", &plan.version)]),
+                    SharedString::default(),
                     220.,
                     50.,
                     14.,
@@ -1114,7 +1102,7 @@ impl Launcher {
                 let confirm = play_button(
                     "practice-ask-remove",
                     &t("practice.ask.remove.confirm"),
-                    t("practice.ask.remove.confirm_hint"),
+                    SharedString::default(),
                     220.,
                     50.,
                     14.,
@@ -1286,7 +1274,7 @@ impl Launcher {
                         ],
                     ),
                     rows,
-                    vec![t("practice.source_note")],
+                    vec![],
                 )
             }
             PracticeSel::Tools => {
@@ -1328,7 +1316,6 @@ impl Launcher {
 
         // The header, then the rows (they scroll once they don't fit), then the notes right under
         // the last row.
-        let n_notes = notes.len();
         let list = div()
             .mt(px(30.))
             .flex_1()
@@ -1377,14 +1364,7 @@ impl Launcher {
                     .mt(px(if i == 0 { 10. } else { 4. }))
                     .text_color(muted3())
                     .child(n)
-            }))
-            .child(
-                inter(12., FontWeight::NORMAL, 1.4)
-                    .flex_none()
-                    .mt(px(if n_notes == 0 { 10. } else { 4. }))
-                    .text_color(faint3())
-                    .child(t("practice.ranked_tip")),
-            );
+            }));
 
         div()
             .size_full()

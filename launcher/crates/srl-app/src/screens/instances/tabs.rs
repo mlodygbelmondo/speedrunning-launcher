@@ -71,16 +71,11 @@ impl Launcher {
                         .into_any_element(),
                 );
                 self.bar(
+                    // The tab counts them and the header has the size.
                     if c.worlds.is_empty() {
                         t("inst.worlds.none")
                     } else {
-                        tf(
-                            "inst.worlds.summary",
-                            &[
-                                ("n", &tn("inst.worlds.count", c.worlds.len() as u64)),
-                                ("size", &size(c.saves_size)),
-                            ],
-                        )
+                        SharedString::default()
                     },
                     actions,
                 )
@@ -190,13 +185,7 @@ impl Launcher {
                     if c.packs.is_empty() {
                         t("inst.packs.none")
                     } else {
-                        tf(
-                            "inst.packs.summary",
-                            &[
-                                ("n", &tn("inst.packs.count", c.packs.len() as u64)),
-                                ("on", &on.to_string()),
-                            ],
-                        )
+                        tf("inst.packs.summary", &[("on", &on.to_string())])
                     },
                     vec![
                         if busy {
@@ -286,10 +275,11 @@ impl Launcher {
     ) -> (Div, Vec<AnyElement>) {
         let dir = c.game_dir.join(folder);
         let bar = self.bar(
+            // The tab already counts them, so the bar speaks only when there are none.
             if items.is_empty() {
                 t(&format!("{copy}.none"))
             } else {
-                tn(&format!("{copy}.count"), items.len() as u64)
+                SharedString::default()
             },
             vec![
                 tertiary(
@@ -350,7 +340,7 @@ impl Launcher {
             if c.screenshots.is_empty() {
                 t("inst.screenshots.none")
             } else {
-                tn("inst.screenshots.count", c.screenshots.len() as u64)
+                SharedString::default()
             },
             vec![
                 tertiary(

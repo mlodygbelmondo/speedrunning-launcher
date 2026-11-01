@@ -226,6 +226,23 @@ Potem:
 
 ### 2026-11-01
 
+- **Pętla tekstów UI, runda 1** (Piotr: aplikacja jest przegadana, za dużo informacji bez wartości i bez
+  wpływu gracza; co rundę dwóch niezależnych recenzentów Opus 5.5 high ocenia teksty 1–10, aż będzie 9). Brief
+  recenzentów: `~/.cache/srl-copy/brief.md` (bez wspominania o celu), zrzuty wszystkich stanów w
+  `~/.cache/srl-copy/r<N>/`. Punkt wyjścia r0: **7 i 7**. Zmiany:
+  - Usunięte całe bloki bez wartości: „Co się zainstaluje” na Home (i dane warstw w `catalog.rs`), status
+    „gotowe/nie zainstalowano” obok przycisku, podpowiedzi pod Graj („uruchamia Minecrafta…”), kolumna Java
+    w Ustawieniach, ścieżka folderu w ustawieniach instancji, platformy i licencje na kartach Narzędzi, przypisy
+    Treningu (źródła, licencje, wskazówka o Ranked), podtytuły Ustawień, Statystyk, Narzędzi i Autorów,
+    powtórzone liczniki w zakładkach instancji, nagłówek i wstęp formularza nowej instancji, `game.body`
+    (fałszywe „Zamknij Minecrafta, żeby wrócić”).
+  - Tymczasowy przełącznik „Ukryj taglines i podtytuły” usunięty razem z `copy::is_tagline`
+    i `dev_hide_taglines` (stare `settings.json` z tym polem dalej się wczytują).
+  - Krótsze opisy trybów (RSG bez opisu), nadtytuły bez wersji, jeden tekst o pamięci, „instancja
+    treningowa” zamiast „gra treningowa”, import mówi o Speedrun 1.16.1 zamiast o folderach trybów, wygasłe
+    logowanie mówi, że wygasło, błąd Draftoutu podaje nazwę moda z listy modów, `auth.why` tylko przed
+    pierwszym logowaniem, „Wymaga 1.16.5” zamiast „instalacja ręczna” przy mapie na inną wersję.
+
 - **Wydanie `v0.2.1`** (decyzja Piotra po filmie przed i po, `~/.cache/srl-loop/video/before-after.mp4`):
   własne instancje, strona Instancje z zakładkami, animacje Home i poprawki z pętli ulepszeń poniżej. Tag `v0.2.0`
   nie dał wydania: na Windowsie padł test `extra_game_dirs_count_for_their_mode`, bo `mode_of_world_in` brał nazwę

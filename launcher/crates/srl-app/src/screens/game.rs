@@ -163,13 +163,6 @@ impl Launcher {
                             .mt(px(16.)),
                     )
                     .child(
-                        inter(16., FontWeight::NORMAL, 1.5)
-                            .mt(px(20.))
-                            .whitespace_nowrap()
-                            .text_color(muted3())
-                            .child(wrap(&t("game.body"), INTER, FontWeight::NORMAL, 16., 440.)),
-                    )
-                    .child(
                         div()
                             .mt(px(30.))
                             .flex()

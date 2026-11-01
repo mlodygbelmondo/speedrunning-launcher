@@ -29,26 +29,6 @@ use tokio::sync::watch;
 
 use super::{Event, Events, FailKind, pipeline};
 
-/// Where a tool runs, as the Tools page says it.
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub enum Platform {
-    /// A Java program: Windows, macOS and Linux.
-    All,
-    /// Windows 10 and 11 (Toolscreen).
-    Windows,
-    /// Linux, in a Wayland session (waywall).
-    Linux,
-}
-
-/// What the Tools page shows about a tool besides its state, from srl-tools' registry.
-pub fn platform(tool: ToolId) -> Platform {
-    match tool.info().os {
-        [Os::Windows] => Platform::Windows,
-        [Os::Linux] => Platform::Linux,
-        _ => Platform::All,
-    }
-}
-
 /// The tool's source without the scheme ("github.com/Ninjabrain1/Ninjabrain-Bot").
 pub fn source(tool: ToolId) -> &'static str {
     let home = tool.info().homepage;
@@ -661,7 +641,6 @@ mod tests {
             Some(Unavailable::NotSupported)
         );
         assert_eq!(mode_rule(ToolId::Waywall, Mode::Draftout), None);
-        assert_eq!(platform(ToolId::Toolscreen), Platform::Windows);
         assert_eq!(source(ToolId::Waywall), "github.com/tesselslate/waywall");
         let _ = std::fs::remove_dir_all(&root);
     }

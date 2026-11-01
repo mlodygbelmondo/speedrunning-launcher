@@ -243,11 +243,7 @@ impl Launcher {
         Self::section(
             t("settings.section_general"),
             vec![
-                Self::setting_row(
-                    t("settings.language"),
-                    Some(Self::hint(&t("settings.language_hint"), 240.)),
-                    language,
-                ),
+                Self::setting_row(t("settings.language"), None, language),
                 Self::setting_row(t("settings.player_name"), Some(name_hint), name),
                 Self::setting_row(
                     t("settings.import"),
@@ -326,34 +322,6 @@ impl Launcher {
                 ),
             ],
         )
-        .child(Self::note(&t("settings.mods_note"), LEFT_W))
-    }
-
-    /// Temporary switches for development (Piotr, 2026-10-29).
-    fn dev_section(&self, cx: &mut Context<Self>) -> Div {
-        let hide = Self::switch(
-            "settings-dev-taglines",
-            self.settings.dev_hide_taglines,
-            cx,
-            |this, on, cx| {
-                let settings = Settings {
-                    dev_hide_taglines: on,
-                    ..this.settings.clone()
-                };
-                this.save_settings(settings, cx);
-            },
-        );
-        Self::section(
-            t("settings.section_dev"),
-            vec![Self::setting_row(
-                t("settings.dev_taglines"),
-                Some(Self::hint(
-                    &t("settings.dev_taglines_hint"),
-                    RIGHT_W - 44. - GAP,
-                )),
-                hide,
-            )],
-        )
     }
 
     fn data_section(&self, cx: &mut Context<Self>) -> Div {
@@ -415,10 +383,6 @@ impl Launcher {
         );
         // The installed runtime's version when there is one ("Java 21.0.7"), else the major
         // version the modes get.
-        let java = modes
-            .iter()
-            .find_map(|m| self.modes[crate::backend::index(*m)].info.java.clone())
-            .unwrap_or_else(|| needs.java_major.to_string());
         let names: Vec<&str> = modes.iter().map(|m| catalog::def(*m).short).collect();
         let two_lines =
             |top: Div, bottom: Div| div().flex().flex_col().gap(px(6.)).child(top).child(bottom);
@@ -452,19 +416,13 @@ impl Launcher {
                 .flex_none()
                 .w(px(NAME_W)),
             )
-            .child(
-                plex(13., FontWeight::MEDIUM)
-                    .flex_1()
-                    .min_w(px(0.))
-                    .text_color(text3())
-                    .child(tf("settings.java_value", &[("n", &java)])),
-            )
+            .child(div().flex_1())
             .child(div().flex_none().child(memory))
     }
 
     fn modes_section(&self, cx: &mut Context<Self>) -> Div {
         // The column labels sit over their columns: after the 56 px art and 14 px gap, the
-        // name column, then Java; Memory is right-aligned over the choices.
+        // name column; Memory is right-aligned over the choices.
         let head = div()
             .h(px(24.))
             .flex()
@@ -475,11 +433,9 @@ impl Launcher {
                     .ml(px(70.))
                     .w(px(NAME_W + 14.)),
             )
-            .child(label(&t("settings.col_java")))
             .child(div().flex_1())
             .child(label(&t("settings.col_memory")));
         let shared: Vec<Mode> = Mode::ALL.into_iter().filter(|m| m.is_shared()).collect();
-        let draftout_min = mode_needs(Mode::Draftout).min_memory_mb / 1024;
         div()
             .flex()
             .flex_col()
@@ -487,10 +443,7 @@ impl Launcher {
             .child(head)
             .child(self.mode_settings_row(&shared, cx))
             .child(self.mode_settings_row(&[Mode::Draftout], cx))
-            .child(Self::note(
-                &tf("settings.modes_note", &[("n", &draftout_min.to_string())]),
-                RIGHT_W,
-            ))
+            .child(Self::note(&t("settings.modes_note"), RIGHT_W))
     }
 
     fn about_section(&self, cx: &mut Context<Self>) -> Div {
@@ -730,8 +683,7 @@ impl Launcher {
             .gap(px(SECTION_GAP))
             .child(self.modes_section(cx))
             .child(self.about_section(cx))
-            .child(self.keys_section())
-            .child(self.dev_section(cx));
+            .child(self.keys_section());
 
         div()
             .size_full()
@@ -774,7 +726,7 @@ impl Launcher {
                             .pb(px(40.))
                             .flex()
                             .flex_col()
-                            .child(page_title(&t("settings.title"), &t("settings.subtitle")))
+                            .child(page_title(&t("settings.title"), ""))
                             .child(
                                 div()
                                     .mt(px(32.))
@@ -877,10 +829,7 @@ impl Launcher {
                     .bottom(px(32.))
                     .flex()
                     .flex_col()
-                    .child(page_title(
-                        &t("settings.credits_title"),
-                        &t("settings.credits_subtitle"),
-                    ))
+                    .child(page_title(&t("settings.credits_title"), ""))
                     .child(
                         div().mt(px(18.)).flex().flex_row().child(
                             tertiary("credits-back", &format!("← {}", t("settings.credits_back")))

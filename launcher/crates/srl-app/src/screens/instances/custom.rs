@@ -289,11 +289,9 @@ impl Launcher {
                 };
                 (label, t(crate::screens::play::stage_key(p.stage)), false)
             }
-            ModeState::Ready | ModeState::UpdateAvailable => (
-                t("v3.play"),
-                tf("v3.play_hint.plain", &[("mc", base.minecraft_version())]),
-                true,
-            ),
+            ModeState::Ready | ModeState::UpdateAvailable => {
+                (t("v3.play"), SharedString::default(), true)
+            }
             ModeState::Running => (t("v3.running"), SharedString::default(), false),
             ModeState::Failed(_) => (t("v3.retry"), t("v3.retry_hint"), true),
         };
@@ -479,34 +477,18 @@ impl Launcher {
             .flex_col()
             .gap(px(26.))
             .child(
-                div()
-                    .flex()
-                    .flex_col()
-                    .child(kicker(&t("inst.new.eyebrow"), accent2()))
-                    .child(
-                        tight(
-                            &t("inst.new.title"),
-                            48.,
-                            FontWeight::EXTRA_BOLD,
-                            -0.03,
-                            0.95,
-                            text3(),
-                        )
-                        .mt(px(10.)),
+                div().flex().flex_col().child(
+                    tight(
+                        &t("inst.new.title"),
+                        48.,
+                        FontWeight::EXTRA_BOLD,
+                        -0.03,
+                        0.95,
+                        text3(),
                     )
-                    .child(
-                        inter(14., FontWeight::NORMAL, 1.5)
-                            .mt(px(12.))
-                            .whitespace_nowrap()
-                            .text_color(muted3())
-                            .child(wrap(
-                                &t("inst.new.body"),
-                                INTER,
-                                FontWeight::NORMAL,
-                                14.,
-                                600.,
-                            )),
-                    ),
+                    // Level with the other instances' titles, which have an eyebrow above.
+                    .mt(px(10. + 13.)),
+                ),
             )
             .child(section(
                 t("inst.new.name"),

@@ -5,7 +5,7 @@ use std::{
     collections::HashMap,
     sync::{
         OnceLock,
-        atomic::{AtomicBool, AtomicU8, Ordering},
+        atomic::{AtomicU8, Ordering},
     },
 };
 
@@ -28,38 +28,6 @@ pub fn lang() -> Language {
 pub fn set_lang(lang: Language) {
     let i = Language::ALL.iter().position(|l| *l == lang).unwrap_or(0);
     LANG.store(i as u8, Ordering::Relaxed);
-}
-
-/// A temporary developer switch (Settings, "Hide taglines and subtitles"): every tagline,
-/// eyebrow, page subtitle and short description (`is_tagline`) renders as an empty string, so
-/// Piotr can judge the screens without them.
-static HIDE_TAGLINES: AtomicBool = AtomicBool::new(false);
-
-pub fn set_hide_taglines(hide: bool) {
-    HIDE_TAGLINES.store(hide, Ordering::Relaxed);
-}
-
-/// The keys the developer switch hides: eyebrows and kickers over titles, page subtitles, the
-/// mode descriptions on Home, the intro lines of the full-window screens and the Mods page, and
-/// the one-line descriptions on the Tools and Learn cards. Dialog bodies stay.
-pub fn is_tagline(key: &str) -> bool {
-    key.ends_with(".subtitle")
-        || key.ends_with("_subtitle")
-        || key.ends_with(".eyebrow")
-        || key.starts_with("v3.eyebrow.")
-        || key.starts_with("v3.desc.")
-        || (key.starts_with("tools.") && key.ends_with(".desc"))
-        || (key.starts_with("learn.topic.") && key.ends_with(".desc"))
-        || matches!(
-            key,
-            "name.body"
-                | "name.body_msa"
-                | "import.body"
-                | "game.body"
-                | "data.body"
-                | "mods.body"
-                | "mods.body_draftout"
-        )
 }
 
 type Table = HashMap<String, SharedString>;
@@ -95,9 +63,6 @@ pub fn t(key: &str) -> SharedString {
 }
 
 pub fn t_opt(key: &str) -> Option<SharedString> {
-    if HIDE_TAGLINES.load(Ordering::Relaxed) && is_tagline(key) {
-        return Some(SharedString::default());
-    }
     let tables = tables();
     let i = Language::ALL.iter().position(|l| *l == lang()).unwrap_or(0);
     tables[i].get(key).or_else(|| tables[0].get(key)).cloned()

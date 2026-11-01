@@ -278,7 +278,7 @@ impl Launcher {
                     .bottom(px(28.))
                     .flex()
                     .flex_col()
-                    .child(page_title(&t("stats.title"), &t("stats.subtitle")))
+                    .child(page_title(&t("stats.title"), ""))
                     .child(tiles.mt(px(30.)))
                     .child(
                         div()
@@ -743,9 +743,6 @@ impl Launcher {
             .sum();
         if excluded > 0 {
             lines.push(tn("stats.excluded", u64::from(excluded)));
-        }
-        if local.skipped.count > 0 {
-            lines.push(tn("stats.skipped", u64::from(local.skipped.count)));
         }
         for (folder, _) in &local.unreadable {
             lines.push(tf(

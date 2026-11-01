@@ -159,19 +159,20 @@ impl Launcher {
                         .flex()
                         .flex_col()
                         .gap(px(5.))
+                        // Why sign in, until someone has.
                         .when(a.accounts.is_empty(), |d| {
                             d.child(
                                 inter(15., FontWeight::SEMIBOLD, 1.2)
                                     .text_color(text3())
                                     .child(t("auth.not_logged_in")),
                             )
-                        })
-                        .child(
-                            inter(12., FontWeight::NORMAL, 1.4)
-                                .whitespace_nowrap()
-                                .text_color(muted3())
-                                .child(wrap(&t("auth.why"), INTER, FontWeight::NORMAL, 12., w)),
-                        ),
+                            .child(
+                                inter(12., FontWeight::NORMAL, 1.4)
+                                    .whitespace_nowrap()
+                                    .text_color(muted3())
+                                    .child(wrap(&t("auth.why"), INTER, FontWeight::NORMAL, 12., w)),
+                            )
+                        }),
                 )
                 .child(login),
         );
@@ -187,7 +188,6 @@ impl Launcher {
             .flex_col()
             .child(section_head(&t("auth.title")).mb(px(14.)))
             .children(rows)
-            .child(note(&t("auth.policy"), faint3()))
             .when(a.keystore_file, |d| {
                 d.child(note(&t("auth.keystore_file_note"), faint3()))
             })

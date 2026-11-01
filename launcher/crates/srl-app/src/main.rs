@@ -3,7 +3,7 @@
 //!
 //! - `app`: the root view, navigation and the backend's events. `shell`: the top nav.
 //! - `screens/*`: one file per screen. `v3`: tokens and the shared primitives.
-//! - `backend`: the facade, `RealBackend` and `FakeBackend`. `catalog`: modes, layers and practice
+//! - `backend`: the facade, `RealBackend` and `FakeBackend`. `catalog`: modes and practice
 //!   maps.
 //! - `copy`: UI strings and the language. `demo`: the prototype's sample data (`SRL_DEMO=1`).
 //! - `cli`: the headless command line (`speedrunning-launcher --install <mode>`), for CI and support.
@@ -622,7 +622,6 @@ fn main() {
             };
             let saved = backend.snapshot().settings;
             copy::set_lang(lang_override.unwrap_or(saved.language));
-            copy::set_hide_taglines(saved.dev_hide_taglines);
             // Without a deep link, the mode selected last time.
             if screen.is_none()
                 && let Some(mode) = saved.last_mode

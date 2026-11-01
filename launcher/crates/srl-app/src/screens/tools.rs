@@ -15,7 +15,7 @@ use crate::{
     app::Launcher,
     backend::{
         ToolId, ToolSnapshot, ToolState,
-        tools::{self, Platform, ToolFailure},
+        tools::{self, ToolFailure},
     },
     catalog,
     copy::{size, t, tf},
@@ -192,14 +192,8 @@ impl Launcher {
                     )),
             ),
             ToolState::NotInstalled => button(t("tools.install"), Some(install_hint()), cx),
-            ToolState::UpdateAvailable => button(
-                t("tools.update"),
-                Some(tf(
-                    "tools.update_hint",
-                    &[("v", tool.latest.as_deref().unwrap_or_default())],
-                )),
-                cx,
-            ),
+            // The version line already says which version is out.
+            ToolState::UpdateAvailable => button(t("tools.update"), None, cx),
             ToolState::Failed(f) => div()
                 .flex()
                 .flex_col()
@@ -258,20 +252,7 @@ impl Launcher {
         let info = id.info();
         let unsupported = tool.state == ToolState::Unsupported;
         let (status_key, status_color) = status(&tool.state);
-        let platform = match tools::platform(id) {
-            Platform::All => "tools.platform.all",
-            Platform::Windows => "tools.platform.windows",
-            Platform::Linux => "tools.platform.linux",
-        };
-        let installed = matches!(
-            tool.state,
-            ToolState::Installed | ToolState::UpdateAvailable
-        );
         let mut notes: Vec<String> = Vec::new();
-        // A failed install says what went wrong below; the hint would only crowd it.
-        if !installed && !matches!(tool.state, ToolState::Failed(_)) {
-            notes.push(t("tools.start_hint").to_string());
-        }
         let rule = |why: Unavailable| {
             Mode::ALL
                 .iter()
@@ -346,21 +327,13 @@ impl Launcher {
                 )
                 .mt(px(20.)),
             )
-            // Where it runs, then the version on its own line: two lines on every card, so the
-            // descriptions line up.
+            // The version, or an empty line of the same height, so the descriptions line up.
             .child(
                 div()
                     .mt(px(10.))
-                    .h(px(34.))
+                    .h(px(16.))
                     .flex()
                     .flex_col()
-                    .gap(px(2.))
-                    .child(
-                        inter(13., FontWeight::MEDIUM, 1.)
-                            .line_height(px(16.))
-                            .text_color(muted3())
-                            .child(t(platform)),
-                    )
                     .children(version_line(tool).map(|v| {
                         plex(12., FontWeight::MEDIUM)
                             .line_height(px(16.))
@@ -395,10 +368,7 @@ impl Launcher {
                     .child(
                         inter(12., FontWeight::NORMAL, 1.)
                             .text_color(faint3())
-                            .child(tf(
-                                "tools.credit",
-                                &[("authors", info.credit), ("licence", info.licence)],
-                            )),
+                            .child(tf("tools.credit", &[("authors", info.credit)])),
                     )
                     .child(
                         plex(11., FontWeight::NORMAL)
@@ -423,7 +393,7 @@ impl Launcher {
                     .bottom(px(36.))
                     .flex()
                     .flex_col()
-                    .child(page_title(&t("tools.title"), &t("tools.subtitle")))
+                    .child(page_title(&t("tools.title"), ""))
                     // The cards are as tall as the tallest one, so their rules and actions line
                     // up.
                     .child(
@@ -439,13 +409,6 @@ impl Launcher {
                                     .enumerate()
                                     .map(|(i, tool)| self.tool_card(i, tool, cx)),
                             ),
-                    )
-                    .child(
-                        inter(12., FontWeight::NORMAL, 1.4)
-                            .flex_none()
-                            .mt(px(16.))
-                            .text_color(faint3())
-                            .child(t("tools.rules_note")),
                     ),
             )
             .into_any_element()

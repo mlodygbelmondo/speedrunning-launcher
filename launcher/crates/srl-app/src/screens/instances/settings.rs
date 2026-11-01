@@ -1,5 +1,5 @@
-//! The Instances page's Settings tab: name, memory, tools, Java arguments, Make a copy, folder
-//! and Remove.
+//! The Instances page's Settings tab: name, memory, tools, Java arguments, Make a copy and
+//! Remove.
 
 use super::*;
 
@@ -104,8 +104,6 @@ impl Launcher {
                                     "inst.memory_hint_floor",
                                     &[("mode", short), ("n", &floor.div_ceil(1024).to_string())],
                                 )
-                            } else if key == InstKey::Shared {
-                                t("inst.memory_hint_shared")
                             } else {
                                 t("inst.memory_hint")
                             }),
@@ -151,27 +149,6 @@ impl Launcher {
         if key != InstKey::Practice {
             col = col.child(self.copy_section(key, cx));
         }
-        let shown = self.inst_dir(key).display().to_string();
-        col = col.child(
-            div()
-                .flex()
-                .flex_col()
-                .gap(px(10.))
-                .child(section_head(&t("inst.location")))
-                .child(
-                    plex(12., FontWeight::NORMAL)
-                        .whitespace_nowrap()
-                        .text_color(muted3())
-                        .child(ellipsize(
-                            &shown,
-                            PLEX,
-                            FontWeight::NORMAL,
-                            12.,
-                            PANE_W,
-                            Cut::Middle,
-                        )),
-                ),
-        );
         if let Some(c) = custom {
             let id = c.id;
             let body = if self.instances.confirm == Some(Confirm::Instance) {

@@ -260,9 +260,6 @@ pub struct Settings {
     /// The jars the player added (copied into the content store), for any mode to turn on.
     #[serde(skip_serializing_if = "Vec::is_empty")]
     pub custom_jars: Vec<srl_mods::CustomJar>,
-    /// Temporary, for development: hide every tagline and subtitle (`copy::is_tagline`).
-    #[serde(skip_serializing_if = "std::ops::Not::not")]
-    pub dev_hide_taglines: bool,
     /// Look for a new version of the launcher on start, and install it (`update.rs`). On by
     /// default.
     pub auto_update: bool,
@@ -516,7 +513,6 @@ impl Default for Settings {
             import_offered: false,
             mod_choices: BTreeMap::new(),
             custom_jars: Vec::new(),
-            dev_hide_taglines: false,
             auto_update: true,
             custom_instances: Vec::new(),
         }

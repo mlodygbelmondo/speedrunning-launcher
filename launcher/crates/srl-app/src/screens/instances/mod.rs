@@ -861,7 +861,9 @@ impl Launcher {
                 "inst.custom.who",
                 &[("mode", catalog::MODES[index(self.inst_base(key))].short)],
             ),
-            _ => t(&format!("inst.{}.who", key.id())),
+            // Its name says it all.
+            InstKey::Draftout => SharedString::default(),
+            InstKey::Shared => t("inst.shared.who"),
         }
     }
 
@@ -899,29 +901,21 @@ impl Launcher {
                 )
                 .mt(px(10.)),
             )
-            .child(
+            // Only the instances that hold more than their name says explain themselves.
+            .children(matches!(key, InstKey::Shared | InstKey::Practice).then(|| {
                 inter(14., FontWeight::NORMAL, 1.5)
                     .mt(px(12.))
-                    // Two lines' room whatever the text, so Play and the tabs stay put when
-                    // another instance is picked.
-                    .min_h(px(2. * 14. * 1.5))
                     .whitespace_nowrap()
                     .text_color(muted3())
                     .child(wrap_even(
-                        &match key {
-                            InstKey::Custom(_) => tf(
-                                "inst.custom.body",
-                                &[("mode", catalog::MODES[index(self.inst_base(key))].short)],
-                            ),
-                            _ => t(&format!("inst.{}.body", key.id())),
-                        },
+                        &t(&format!("inst.{}.body", key.id())),
                         INTER,
                         FontWeight::NORMAL,
                         14.,
                         // The facts sit beside the title, not this: nearly the pane's width.
                         PANE_W - 80.,
-                    )),
-            );
+                    ))
+            }));
         let facts_col = div()
             .absolute()
             .right_0()

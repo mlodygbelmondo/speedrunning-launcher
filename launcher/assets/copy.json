@@ -966,7 +966,10 @@
   "inst.copy.skipped": "Copied, but {n} files couldn't be read and were left out.",
   "inst.copy.skipped_one": "Copied, but {n} file couldn't be read and was left out.",
   "inst.copy.worlds_size": "With worlds ({size})",
-  "inst.copy.cancelled": "Copy cancelled. Nothing was kept.",
+  "inst.copy.cancelled": "Copy cancelled. The copied files were removed.",
   "inst.copy.counting": "Counting the files of “{name}”…",
-  "home.customs": "Your instances"
+  "home.customs": "Your instances",
+  "inst.copy.done": "“{name}” is ready. Download sets up its game and mods.",
+  "inst.copy.failed": "Couldn't copy it: {why}",
+  "inst.jvm_problem.loader": "“{arg}” changes how Fabric loads mods, which isn't allowed in runs."
 }

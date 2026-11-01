@@ -1007,10 +1007,10 @@
   "inst.new.start": "Na start",
   "inst.new.copy": "Klawisze, opcje i paczki z instancji {from}",
   "inst.new.create": "Utwórz",
-  "inst.new.made": "„{name}” gotowa. Wybierz mody i naciśnij „Pobierz”.",
+  "inst.new.made": "Instancja „{name}” jest gotowa. Wybierz mody i naciśnij „Pobierz”.",
   "inst.new.failed": "Nie udało się utworzyć: {why}",
   "inst.copy.head": "Zrób kopię",
-  "inst.copy.hint": "Nowa instancja z opcjami, paczkami, konfiguracją i modami tej, żeby coś wypróbować bez ruszania jej.",
+  "inst.copy.hint": "Nowa instancja z opcjami, paczkami, konfiguracją i modami tej. Wypróbujesz w niej coś bez ruszania oryginału.",
   "inst.copy.make": "Zrób kopię",
   "inst.copy.worlds": "Ze światami",
   "inst.copy.name": "{name} – kopia",
@@ -1020,7 +1020,10 @@
   "inst.copy.skipped_few": "Skopiowano, ale {n} plików nie dało się odczytać i je pominięto.",
   "inst.copy.skipped_many": "Skopiowano, ale {n} plików nie dało się odczytać i je pominięto.",
   "inst.copy.worlds_size": "Ze światami ({size})",
-  "inst.copy.cancelled": "Kopiowanie anulowane. Nic nie zostało.",
+  "inst.copy.cancelled": "Kopiowanie anulowane. Skopiowane pliki usunięto.",
   "inst.copy.counting": "Liczenie plików „{name}”…",
-  "home.customs": "Twoje instancje"
+  "home.customs": "Twoje instancje",
+  "inst.copy.done": "Instancja „{name}” jest gotowa. „Pobierz” zainstaluje jej grę i mody.",
+  "inst.copy.failed": "Nie udało się skopiować: {why}",
+  "inst.jvm_problem.loader": "„{arg}” zmienia sposób ładowania modów przez Fabric, a w runach to niedozwolone."
 }

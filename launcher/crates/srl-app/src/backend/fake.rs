@@ -469,7 +469,7 @@ impl Worker {
                 Ok(Cmd::Duplicate(from, name, worlds)) => self.duplicate(from, &name, worlds),
                 Ok(Cmd::CancelCopy) => {
                     for _ in self.copies.drain(..) {
-                        let _ = self.events.unbounded_send(Event::InstanceCreated(Err(
+                        let _ = self.events.unbounded_send(Event::InstanceCopied(Err(
                             super::COPY_CANCELLED.to_string(),
                         )));
                     }
@@ -560,7 +560,7 @@ impl Worker {
 
     /// Adds a new custom instance (not installed), saves, and tells the UI, as the real
     /// backend's `add_custom` does.
-    fn add_custom(&self, def: CustomInstance, skipped: Vec<String>) {
+    fn add_custom(&self, def: CustomInstance, skipped: Vec<String>, copy: bool) {
         let created = Created {
             id: def.id,
             name: def.name.clone(),
@@ -592,9 +592,11 @@ impl Worker {
             ));
         }
         self.save_settings();
-        let _ = self
-            .events
-            .unbounded_send(Event::InstanceCreated(Ok(created)));
+        let _ = self.events.unbounded_send(if copy {
+            Event::InstanceCopied(Ok(created))
+        } else {
+            Event::InstanceCreated(Ok(created))
+        });
     }
 
     fn create(&self, spec: NewInstance) {
@@ -614,7 +616,7 @@ impl Worker {
                 })
         };
         match answer {
-            Ok(def) => self.add_custom(def, Vec::new()),
+            Ok(def) => self.add_custom(def, Vec::new(), false),
             Err(p) => {
                 let _ = self
                     .events
@@ -671,7 +673,7 @@ impl Worker {
                 bytes: if worlds { 840 * MIB } else { 96 * MIB },
             }),
             Err(e) => {
-                let _ = self.events.unbounded_send(Event::InstanceCreated(Err(e)));
+                let _ = self.events.unbounded_send(Event::InstanceCopied(Err(e)));
             }
         }
     }
@@ -807,7 +809,7 @@ impl Worker {
                 .unwrap()
                 .settings
                 .unique_instance_name(&c.def.name);
-            self.add_custom(c.def, Vec::new());
+            self.add_custom(c.def, Vec::new(), true);
         }
         let mut finished = Vec::new();
         for (ji, job) in self.jobs.iter_mut().enumerate() {
@@ -1103,9 +1105,9 @@ mod tests {
         });
 
         b.duplicate_instance(Instance::Custom(id), "seeds".into(), true);
-        wait_for(&mut rx, 5, |e| matches!(e, Event::InstanceCreated(Err(_))));
+        wait_for(&mut rx, 5, |e| matches!(e, Event::InstanceCopied(Err(_))));
         b.duplicate_instance(Instance::Custom(id), "Seeds copy".into(), true);
-        let seen = wait_for(&mut rx, 10, |e| matches!(e, Event::InstanceCreated(Ok(_))));
+        let seen = wait_for(&mut rx, 10, |e| matches!(e, Event::InstanceCopied(Ok(_))));
         assert!(
             seen.iter()
                 .filter(|e| matches!(e, Event::InstanceCopy(_)))

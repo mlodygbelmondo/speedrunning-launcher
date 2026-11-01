@@ -391,7 +391,7 @@ impl Backend for RealBackend {
         let inner = self.inner.clone();
         self.rt.spawn_blocking(move || {
             let answer = inner.create(spec).map_err(|e| format!("{e:#}"));
-            inner.created(answer);
+            inner.created(answer, false);
         });
     }
 
@@ -407,7 +407,7 @@ impl Backend for RealBackend {
                 .duplicate(from, &name, with_worlds)
                 .map_err(|e| format!("{e:#}"));
             inner.copying.lock().unwrap().remove(&from);
-            inner.created(answer);
+            inner.created(answer, true);
         });
     }
 
@@ -649,6 +649,10 @@ impl Inner {
     /// `create_instance` (blocking): reserves the directory, copies the settings asked for,
     /// then adds the definition.
     fn create(self: &Arc<Self>, spec: NewInstance) -> Result<Created> {
+        let paths = self.core.paths();
+        // Checked under the lock the definition is added under, so two creates with the same
+        // name (a double click) can't both pass.
+        let _one_at_a_time = self.new_ids.lock().unwrap();
         let name = self
             .snap
             .lock()
@@ -656,8 +660,6 @@ impl Inner {
             .settings
             .validate_instance_name(&spec.name, None)
             .map_err(|p| anyhow::anyhow!("{p}"))?;
-        let paths = self.core.paths();
-        let _one_at_a_time = self.new_ids.lock().unwrap();
         let first = self.snap.lock().unwrap().settings.next_custom_id();
         let id = instances::reserve(paths, first)?;
         let dir = paths.game_dir(Instance::Custom(id));
@@ -840,11 +842,15 @@ impl Inner {
     }
 
     /// Tells the UI how a create or duplicate ended.
-    fn created(&self, answer: Result<Created, String>) {
+    fn created(&self, answer: Result<Created, String>, copy: bool) {
         if let Err(e) = &answer {
             log(format_args!("new instance failed: {e}"));
         }
-        let _ = self.events.unbounded_send(Event::InstanceCreated(answer));
+        let _ = self.events.unbounded_send(if copy {
+            Event::InstanceCopied(answer)
+        } else {
+            Event::InstanceCreated(answer)
+        });
     }
 
     /// `delete_instance` (blocking, with the instance held in `runs`): the directory to the
@@ -1461,7 +1467,7 @@ mod tests {
                 progress += 1;
                 None
             }
-            Event::InstanceCreated(r) => Some(r.unwrap()),
+            Event::InstanceCopied(r) => Some(r.unwrap()),
             _ => None,
         });
         assert!(progress >= 2, "a start and an end");

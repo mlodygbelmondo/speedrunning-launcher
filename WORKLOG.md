@@ -223,6 +223,22 @@ Potem:
 
 ### 2026-11-01
 
+- **Poprawki po przeglądzie (świeży subagent, 7 uwag, wszystkie poprawione):**
+  1. „Posprzątaj” mogło na zawsze usunąć świat przemianowany w grze (Edit World zmienia tylko `LevelName`, folder
+     zostaje „Random Speedrun #812”) i każdy „New World”. Teraz decyduje sama nazwa świata (folder tylko, gdy
+     `level.dat` się nie czyta), a „New World” nie jest już resetem. Test na przemianowany świat.
+  2. Podwójne kliknięcie Utwórz robiło dwie instancje o tej samej nazwie: blokada w UI, a backend sprawdza nazwę
+     pod tą samą blokadą, pod którą dodaje definicję.
+  3. Edycja nazwy albo argumentów JVM mogła przepaść przy szybkim przełączeniu instancji: zapis przed zmianą.
+  4. Koniec kopii zamykał otwarty formularz „Nowa instancja” i kasował wpisaną nazwę: kopia ma własne zdarzenie
+     `InstanceCopied`, a formularz zostaje.
+  5. Dwie paczki o tej samej nazwie usunięte w tej samej sekundzie: druga nadpisywała pierwszą w koszu. Teraz
+     dostaje numer. Test.
+  6. Po Enter/Esc w znikającym polu skróty nie działały do kliknięcia: fokus wraca do okna.
+  7. Argumenty JVM: odrzucane też `-XX:MaxHeapSize`, `-XX:MaxRAMPercentage` i podobne (pamięć) oraz `-Dfabric.*`
+     (ładowanie modów spoza legalnego zestawu).
+  Sprawdzone w Xvfb: formularz przeżywa koniec kopii, podwójny Enter tworzy jedną instancję, Ctrl+1 działa od razu.
+
 - **Własne instancje na Starcie:** nad kafelkami trybów, po prawej, „Twoje instancje” z linkami do trzech
   pierwszych (dalej „+N”); link otwiera instancję na stronie Instancje. Bez własnych instancji nagłówek bez zmian.
 

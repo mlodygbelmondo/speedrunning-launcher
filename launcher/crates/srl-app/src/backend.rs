@@ -351,6 +351,9 @@ pub enum JvmArgProblem {
     Command(String),
     /// A Java agent changes the game like a mod, outside srl-mods' legal checks.
     Agent(String),
+    /// A `-Dfabric.` property: Fabric would load mods from elsewhere (`fabric.addMods`) or
+    /// otherwise than the launcher set up, outside srl-mods' legal checks.
+    Loader(String),
 }
 
 impl fmt::Display for JvmArgProblem {
@@ -363,6 +366,7 @@ impl fmt::Display for JvmArgProblem {
             }
             JvmArgProblem::Command(a) => write!(f, "{a:?} would break the launch command"),
             JvmArgProblem::Agent(a) => write!(f, "{a:?} loads a Java agent, which is not allowed"),
+            JvmArgProblem::Loader(a) => write!(f, "{a:?} changes how Fabric loads mods"),
         }
     }
 }
@@ -380,7 +384,19 @@ pub fn validate_jvm_args(args: &[String]) -> Result<(), JvmArgProblem> {
             return Err(JvmArgProblem::NotAnOption(a.clone()));
         }
         let lower = t.to_ascii_lowercase();
-        if lower.starts_with("-xmx") || lower.starts_with("-xms") {
+        // The heap's size by its other names too.
+        let heap = [
+            "-xx:maxheapsize",
+            "-xx:initialheapsize",
+            "-xx:minheapsize",
+            "-xx:maxram",
+            "-xx:initialrampercentage",
+            "-xx:minrampercentage",
+        ];
+        if lower.starts_with("-xmx")
+            || lower.starts_with("-xms")
+            || heap.iter().any(|h| lower.starts_with(h))
+        {
             return Err(JvmArgProblem::Memory(a.clone()));
         }
         let command = [
@@ -399,6 +415,9 @@ pub fn validate_jvm_args(args: &[String]) -> Result<(), JvmArgProblem> {
         }
         if lower.starts_with("-javaagent") || lower.starts_with("-agent") {
             return Err(JvmArgProblem::Agent(a.clone()));
+        }
+        if lower.starts_with("-dfabric.") {
+            return Err(JvmArgProblem::Loader(a.clone()));
         }
     }
     Ok(())
@@ -972,10 +991,11 @@ pub enum Event {
     /// `set_settings` had to keep something of it (an invalid name, a changed base): the UI
     /// puts this list into its copy of the settings as is.
     CustomInstances(Vec<CustomInstance>),
-    /// A `create_instance` or `duplicate_instance` ended: the new instance (already in the list
-    /// sent just before, with its `CustomState`) and the files a duplicate had to leave out, or
-    /// why it failed (nothing is left behind then).
+    /// A `create_instance` ended: the new instance (already in the list sent just before, with
+    /// its `CustomState`), or why it failed (nothing is left behind then).
     InstanceCreated(Result<Created, String>),
+    /// A `duplicate_instance` ended, as `InstanceCreated`, with the files it had to leave out.
+    InstanceCopied(Result<Created, String>),
     /// A `duplicate_instance` copying, at most every 50 ms.
     InstanceCopy(CopyProgress),
     /// A `delete_instance` ended: the instance is gone from the list (sent just before) and its
@@ -1036,14 +1056,14 @@ pub trait Backend {
     /// files; `saves/` only `with_worlds`) into a new custom instance with the same base mode,
     /// memory, mods and JVM arguments, in the background with `Event::InstanceCopy` progress.
     /// A file that can't be read is left out and named in the result. Ends with
-    /// `InstanceCreated`, as `create_instance` does.
+    /// `InstanceCopied`.
     fn duplicate_instance(&self, from: Instance, name: String, with_worlds: bool);
     /// Removes a custom instance: refused while it installs, runs or is being copied; else its
     /// definition goes and its directory moves to `<data>/trash/custom-<n>-<unix time>` (a
     /// rename, nothing deleted). Answers with `Event::CustomInstances` and `InstanceDeleted`.
     fn delete_instance(&self, id: CustomId);
     /// Stops the running `duplicate_instance`s: what they copied is removed and each ends with
-    /// `InstanceCreated(Err(COPY_CANCELLED))`.
+    /// `InstanceCopied(Err(COPY_CANCELLED))`.
     fn cancel_copy(&self);
     /// `add_jar` for a custom instance's Mods tab: `Event::InstanceJarAdded`.
     fn add_instance_jar(&self, id: CustomId, path: PathBuf);
@@ -1276,6 +1296,20 @@ mod tests {
         assert!(matches!(
             ok(&["-agentlib:jdwp=x"]),
             Err(JvmArgProblem::Agent(_))
+        ));
+        for heap in [
+            "-XX:MaxHeapSize=8g",
+            "-XX:MaxRAMPercentage=50",
+            "-XX:InitialHeapSize=1g",
+        ] {
+            assert!(
+                matches!(ok(&[heap]), Err(JvmArgProblem::Memory(_))),
+                "{heap}"
+            );
+        }
+        assert!(matches!(
+            ok(&["-Dfabric.addMods=/tmp/x.jar"]),
+            Err(JvmArgProblem::Loader(_))
         ));
     }
 

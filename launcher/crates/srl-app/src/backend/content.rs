@@ -178,7 +178,9 @@ fn worlds(saves: &Path, modes: Option<&srl_core::shared::WorldModes>) -> Vec<Wor
             let seed = info.as_ref().and_then(|l| l.seed);
             let mode = modes.map(|m| m.mode_of(&path, None));
             Some(World {
-                reset: is_reset_world(&name) || is_reset_world(&dir),
+                // By the world's own name: Edit World renames only that, so a kept run renamed
+                // "WR pace" still has its "Random Speedrun #812" folder.
+                reset: is_reset_world(&name),
                 size: dir_size(&path),
                 dir,
                 name,
@@ -197,8 +199,8 @@ fn worlds(saves: &Path, modes: Option<&srl_core::shared::WorldModes>) -> Vec<Wor
 }
 
 /// The names reset mods give their worlds: Atum's "Random Speedrun #N" and "Set Speedrun #N"
-/// (and its older "Speedrun #N"), SeedQueue's the same, the practice seed mods' "Practice Seed",
-/// and the game's own "New World" (a reset without Atum).
+/// (and its older "Speedrun #N"), SeedQueue's the same, the practice seed mods' "Practice Seed".
+/// Not the game's own "New World": in a custom instance that is often a world someone plays.
 pub fn is_reset_world(name: &str) -> bool {
     let n = name.trim();
     let numbered = |prefix: &str| {
@@ -212,10 +214,6 @@ pub fn is_reset_world(name: &str) -> bool {
         || numbered("Speedrun #")
         || numbered("Practice Seed #")
         || n == "Practice Seed"
-        || n == "New World"
-        || n.strip_prefix("New World (")
-            .and_then(|r| r.strip_suffix(')'))
-            .is_some_and(|d| !d.is_empty() && d.chars().all(|c| c.is_ascii_digit()))
 }
 
 /// The entries of `dir` (recursively when `deep`, never following links), sorted by path.
@@ -361,14 +359,21 @@ pub fn trash(data_dir: &Path, game_dir: &Path, folder: &str, rel: &str) -> Resul
     }
     let to_dir = trash_dir(data_dir, folder);
     fs::create_dir_all(&to_dir).with_context(|| format!("creating {}", to_dir.display()))?;
-    let to = to_dir.join(rel);
+    // Two things with the same name trashed within the same second: the second gets a number.
+    let mut to = to_dir.join(rel);
+    let mut i = 2;
+    while to.exists() {
+        to = to_dir.join(format!("{rel} ({i})"));
+        i += 1;
+    }
     fs::rename(&from, &to)
         .with_context(|| format!("moving {} to {}", from.display(), to.display()))?;
     Ok(to)
 }
 
-/// Deletes the reset worlds named `dirs` from `saves/` for good. Only folders that still read as
-/// reset worlds are deleted (a renamed world is kept). Returns how many went and the bytes freed.
+/// Deletes the reset worlds named `dirs` from `saves/` for good. Only folders whose world name
+/// (from `level.dat`, else the folder's) still reads as a reset are deleted, so a world renamed
+/// in the game since the scan is kept. Returns how many went and the bytes freed.
 pub fn delete_reset_worlds(game_dir: &Path, dirs: &[String]) -> (usize, u64) {
     let saves = game_dir.join("saves");
     let mut n = 0;
@@ -382,7 +387,7 @@ pub fn delete_reset_worlds(game_dir: &Path, dirs: &[String]) -> (usize, u64) {
             .ok()
             .and_then(|l| l.display_name())
             .unwrap_or_else(|| d.clone());
-        if !(is_reset_world(&name) || is_reset_world(d)) {
+        if !is_reset_world(&name) {
             continue;
         }
         let size = dir_size(&path);
@@ -570,8 +575,6 @@ mod tests {
             "Random Speedrun #2397",
             "Set Speedrun #4",
             "Speedrun #12",
-            "New World",
-            "New World (3)",
             "Practice Seed",
         ] {
             assert!(is_reset_world(n), "{n}");
@@ -583,9 +586,57 @@ mod tests {
             "New World Order",
             "Bastion Trainer",
             "New World ()",
+            "New World",
+            "New World (3)",
         ] {
             assert!(!is_reset_world(n), "{n}");
         }
+    }
+
+    /// Edit World renames only `LevelName`: the folder keeps its reset name, the world is kept.
+    #[test]
+    fn a_renamed_reset_world_is_kept() {
+        let d = tmp("renamed");
+        let world = d.join("saves/Random Speedrun #812");
+        fs::create_dir_all(&world).unwrap();
+        fs::write(
+            world.join("level.dat"),
+            srl_practice::level::sample_level_dat("WR pace", 1, 0),
+        )
+        .unwrap();
+        let reset = d.join("saves/Random Speedrun #813");
+        fs::create_dir_all(&reset).unwrap();
+        let c = scan(&d, None);
+        let kept = c.worlds.iter().find(|w| w.name == "WR pace").unwrap();
+        assert!(!kept.reset);
+        let dirs = vec![
+            "Random Speedrun #812".to_string(),
+            "Random Speedrun #813".to_string(),
+        ];
+        assert_eq!(delete_reset_worlds(&d, &dirs).0, 1);
+        assert!(world.exists());
+        assert!(!reset.exists());
+        let _ = fs::remove_dir_all(&d);
+    }
+
+    #[test]
+    fn trashing_the_same_name_twice_keeps_both() {
+        let d = tmp("trash2");
+        let (data, game) = (d.join("data"), d.join("game"));
+        for text in ["one", "two"] {
+            fs::create_dir_all(game.join("resourcepacks")).unwrap();
+            fs::write(game.join("resourcepacks/p.zip"), text).unwrap();
+            trash(&data, &game, "resourcepacks", "p.zip").unwrap();
+        }
+        let mut found: Vec<String> = Vec::new();
+        for e in fs::read_dir(data.join("trash")).unwrap().flatten() {
+            for f in fs::read_dir(e.path()).unwrap().flatten() {
+                found.push(fs::read_to_string(f.path()).unwrap());
+            }
+        }
+        found.sort();
+        assert_eq!(found, ["one", "two"]);
+        let _ = fs::remove_dir_all(&d);
     }
 
     #[test]

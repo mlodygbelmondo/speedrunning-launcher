@@ -191,6 +191,8 @@ pub struct Launcher {
     /// The window's own focus, so the keyboard shortcuts (`global_key`) work while no text field
     /// has the focus.
     root_focus: FocusHandle,
+    /// Set when a focused field goes away; the next render gives the focus back to the root.
+    pub refocus_root: bool,
     pub name_settings: NameField,
     /// The prompt's field was focused once (`render_name`), so a click elsewhere isn't undone.
     pub prompt_focused: bool,
@@ -375,6 +377,7 @@ impl Launcher {
                 focus: cx.focus_handle(),
             },
             root_focus,
+            refocus_root: false,
             name_settings: NameField {
                 text: name,
                 focus: settings_focus,
@@ -420,6 +423,8 @@ impl Launcher {
             },
             update,
         };
+        let sel = this.instances.sel;
+        this.load_custom_fields(sel);
         if this.shown == Page::Instances {
             this.rescan(cx);
         }
@@ -602,6 +607,7 @@ impl Launcher {
             }
             Event::CustomInstances(list) => self.customs_changed(list, cx),
             Event::InstanceCreated(answer) => self.instance_created(answer, cx),
+            Event::InstanceCopied(answer) => self.instance_copied(answer, cx),
             Event::InstanceCopy(p) => self.copying = Some(p),
             Event::InstanceDeleted(answer) => self.instance_deleted(answer, cx),
         }
@@ -1042,6 +1048,11 @@ pub fn trace(what: std::fmt::Arguments) {
 impl Render for Launcher {
     fn render(&mut self, window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
         let now = Instant::now();
+        // A field that had the focus went away (the New instance form closed): the shortcuts
+        // need it back on the root.
+        if std::mem::take(&mut self.refocus_root) {
+            window.focus(&self.root_focus, cx);
+        }
         if TRACE_RENDERS.load(Ordering::Relaxed) {
             static N: AtomicU64 = AtomicU64::new(0);
             let n = N.fetch_add(1, Ordering::Relaxed) + 1;

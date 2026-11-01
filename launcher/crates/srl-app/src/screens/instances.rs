@@ -192,6 +192,8 @@ pub struct InstancesView {
     pub jvm_problem: Option<SharedString>,
     /// "Make a copy" takes the worlds too.
     pub copy_worlds: bool,
+    /// The New instance form's create is under way.
+    pub submitting: bool,
 }
 
 impl Default for InstancesView {
@@ -212,6 +214,7 @@ impl Default for InstancesView {
             name_problem: None,
             jvm_problem: None,
             copy_worlds: false,
+            submitting: false,
         }
     }
 }
@@ -308,7 +311,13 @@ impl Launcher {
     }
 
     pub fn select_instance(&mut self, key: InstKey, cx: &mut Context<Self>) {
+        // The fields' blur saves them only at the next draw, after their text was replaced
+        // with the new instance's: save what was typed for the old one first.
         if self.instances.sel != key {
+            self.commit_rename(cx);
+            self.commit_jvm(cx);
+        }
+        if self.instances.sel != key || self.instances.creating.is_some() {
             self.kick_fade();
         }
         let v = &mut self.instances;
@@ -590,7 +599,7 @@ impl Launcher {
 
     /// One row of the list: the art, the name, the version and who plays in it.
     fn inst_row(&self, key: InstKey, cx: &mut Context<Self>) -> gpui::Stateful<Div> {
-        let on = key == self.instances.sel;
+        let on = key == self.instances.sel && self.instances.creating.is_none();
         let busy = self.inst_busy(key);
         div()
             .id(SharedString::from(format!("inst-row-{}", key.id())))
@@ -1707,7 +1716,7 @@ impl Launcher {
     }
 
     /// Fills the rename and JVM fields from the selected custom instance.
-    fn load_custom_fields(&mut self, key: InstKey) {
+    pub fn load_custom_fields(&mut self, key: InstKey) {
         self.instances.name_problem = None;
         self.instances.jvm_problem = None;
         if let InstKey::Custom(id) = key
@@ -1732,30 +1741,45 @@ impl Launcher {
         cx.notify();
     }
 
+    /// The New instance form's create ended.
     pub fn instance_created(&mut self, answer: Result<Created, String>, cx: &mut Context<Self>) {
-        self.copying = None;
+        self.instances.submitting = false;
         match answer {
             Ok(made) => {
                 self.instances.creating = None;
                 self.inst_new_name.text.clear();
+                self.refocus_root = true;
                 self.select_instance(InstKey::Custom(made.id), cx);
-                let note = if made.skipped.is_empty() {
-                    tf("inst.new.made", &[("name", &made.name)])
-                } else {
-                    tn("inst.copy.skipped", made.skipped.len() as u64)
-                };
-                self.instances.note = Some((note, !made.skipped.is_empty()));
-                if made.skipped.is_empty() {
-                    self.instances.tab = Tab::Mods;
-                }
+                self.instances.tab = Tab::Mods;
+                self.instances.note = Some((tf("inst.new.made", &[("name", &made.name)]), false));
             }
-            Err(why) if why == COPY_CANCELLED => {
-                self.instances.note = Some((t("inst.copy.cancelled"), false));
-            }
+            // Under the name field, where the form is.
             Err(why) => {
-                self.instances.note = Some((tf("inst.new.failed", &[("why", &why)]), true));
+                self.instances.name_problem = Some(tf("inst.new.failed", &[("why", &why)]));
             }
         }
+        cx.notify();
+    }
+
+    /// A "Make a copy" ended. The copy is selected, unless the New instance form is open (the
+    /// player is typing there).
+    pub fn instance_copied(&mut self, answer: Result<Created, String>, cx: &mut Context<Self>) {
+        self.copying = None;
+        let note = match answer {
+            Ok(made) => {
+                if self.instances.creating.is_none() {
+                    self.select_instance(InstKey::Custom(made.id), cx);
+                }
+                if made.skipped.is_empty() {
+                    (tf("inst.copy.done", &[("name", &made.name)]), false)
+                } else {
+                    (tn("inst.copy.skipped", made.skipped.len() as u64), true)
+                }
+            }
+            Err(why) if why == COPY_CANCELLED => (t("inst.copy.cancelled"), false),
+            Err(why) => (tf("inst.copy.failed", &[("why", &why)]), true),
+        };
+        self.instances.note = Some(note);
         cx.notify();
     }
 
@@ -1784,6 +1808,10 @@ impl Launcher {
     }
 
     pub fn submit_new_instance(&mut self, cx: &mut Context<Self>) {
+        // One create at a time: a double click or Enter then a click would make two.
+        if self.instances.submitting {
+            return;
+        }
         let Some(form) = self.instances.creating.clone() else {
             return;
         };
@@ -1797,6 +1825,7 @@ impl Launcher {
             return;
         }
         self.instances.name_problem = None;
+        self.instances.submitting = true;
         let from = Self::settings_source(form.base);
         self.backend().create_instance(NewInstance {
             name,
@@ -1862,6 +1891,7 @@ impl Launcher {
             Field::NewInstance => {
                 self.instances.creating = None;
                 self.instances.name_problem = None;
+                self.refocus_root = true;
             }
             _ => self.load_custom_fields(self.instances.sel),
         }
@@ -2075,11 +2105,7 @@ impl Launcher {
                     )
                     .child(
                         tertiary("inst-new-cancel", &t("v3.cancel")).on_click(cx.listener(
-                            |this, _, _, cx| {
-                                this.instances.creating = None;
-                                this.instances.name_problem = None;
-                                cx.notify();
-                            },
+                            |this, _, _, cx| this.cancel_inst_field(Field::NewInstance, cx),
                         )),
                     ),
             )
@@ -2262,5 +2288,6 @@ fn jvm_problem(p: &JvmArgProblem) -> SharedString {
         JvmArgProblem::Memory(a) => tf("inst.jvm_problem.memory", &[("arg", a)]),
         JvmArgProblem::Command(a) => tf("inst.jvm_problem.command", &[("arg", a)]),
         JvmArgProblem::Agent(a) => tf("inst.jvm_problem.agent", &[("arg", a)]),
+        JvmArgProblem::Loader(a) => tf("inst.jvm_problem.loader", &[("arg", a)]),
     }
 }

@@ -52,6 +52,8 @@ const PANE_X: f32 = 388.;
 const PANE_R: f32 = 48.;
 const PANE_W: f32 = 1280. - PANE_X - PANE_R;
 const ROW_H: f32 = 52.;
+/// How long a new note takes to fade and slide in.
+pub const NOTE_MS: f32 = 220.;
 
 /// An instance the page can show: a game directory under `instances/`.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
@@ -188,6 +190,9 @@ pub struct InstancesView {
     pub confirm: Option<Confirm>,
     /// What the last change did, or why it failed (`true`: a failure).
     pub note: Option<(SharedString, bool)>,
+    /// The note last drawn and when it first was, for its fade-in.
+    pub note_drawn: Option<SharedString>,
+    pub note_at: Option<std::time::Instant>,
     /// The game log's last lines, read with the scan, for the Logs tab.
     pub tail: Vec<String>,
     /// The seed last copied with "Copy seed" (its button says Copied).
@@ -220,6 +225,8 @@ impl Default for InstancesView {
             prev_art: None,
             confirm: None,
             note: None,
+            note_drawn: None,
+            note_at: None,
             tail: Vec::new(),
             copied: None,
             creating: None,
@@ -799,13 +806,7 @@ impl Launcher {
             .child(div().relative().child(head).child(facts_col))
             .child(self.inst_actions(key, cx))
             .child(self.inst_tabs(key, cx))
-            .children(self.instances.note.clone().map(|(s, bad)| {
-                inter(12., FontWeight::MEDIUM, 1.3)
-                    .flex_none()
-                    .pt(px(12.))
-                    .text_color(if bad { behind3() } else { ok3() })
-                    .child(s)
-            }))
+            .children(self.note_line())
             .child({
                 let fade = self.mode_fade();
                 div()
@@ -818,6 +819,31 @@ impl Launcher {
                     .when(fade.text < 1.0, |d| d.opacity(fade.text))
                     .child(self.inst_tab_body(key, window, cx))
             })
+    }
+
+    /// The last change's note under the tabs; a new one fades and slides in.
+    fn note_line(&mut self) -> Option<Div> {
+        let now = std::time::Instant::now();
+        let v = &mut self.instances;
+        let text = v.note.as_ref().map(|(s, _)| s.clone());
+        if text != v.note_drawn {
+            v.note_at = text.is_some().then_some(now);
+            v.note_drawn = text;
+        }
+        let (s, bad) = v.note.clone()?;
+        let f = v.note_at.map_or(1.0, |at| {
+            crate::app::ease_out((crate::app::ms_since(at, now) / NOTE_MS).min(1.0))
+        });
+        Some(
+            inter(12., FontWeight::MEDIUM, 1.3)
+                .flex_none()
+                .pt(px(12.))
+                .relative()
+                .left(px(-8. * (1.0 - f)))
+                .when(f < 1.0, |d| d.opacity(f))
+                .text_color(if bad { behind3() } else { ok3() })
+                .child(s),
+        )
     }
 
     /// Play (the selected mode in the shared instance), the mode chips, Open folder.

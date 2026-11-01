@@ -1127,6 +1127,14 @@ impl Render for Launcher {
         {
             self.tile_out = None;
         }
+        // A note on the Instances page fading in.
+        if self
+            .instances
+            .note_at
+            .is_some_and(|at| ms_since(at, now) < crate::screens::instances::NOTE_MS)
+        {
+            window.request_animation_frame();
+        }
         if let Some(start) = self.mode_switched {
             if ms_since(start, now) < MODE_MS {
                 window.request_animation_frame();
@@ -1201,10 +1209,10 @@ fn ease_in(t: f32) -> f32 {
     cubic_bezier(0.42, 0.0, 1.0, 1.0, t)
 }
 
-fn ease_out(t: f32) -> f32 {
+pub fn ease_out(t: f32) -> f32 {
     cubic_bezier(0.0, 0.0, 0.58, 1.0, t)
 }
 
-fn ms_since(start: Instant, now: Instant) -> f32 {
+pub fn ms_since(start: Instant, now: Instant) -> f32 {
     now.saturating_duration_since(start).as_secs_f32() * 1000.0
 }

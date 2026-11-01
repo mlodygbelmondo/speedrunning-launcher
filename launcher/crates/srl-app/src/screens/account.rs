@@ -1,8 +1,8 @@
 //! The Microsoft account on screen (srl-auth's "For the UI"): the Account section of Settings
 //! and the login dialog over any page.
 //!
-//! - Without a client ID in the build, Settings shows only `auth.error.not_available` (one line,
-//!   no button that can't work): `account_unavailable_line`.
+//! - Without a client ID in the build, Settings says so in the player name's hint
+//!   (`settings.player_hint_no_login`), with no button that can't work.
 //! - With one, `account_section`: each account with its face, the active one, "Log in again" for
 //!   a sign-in that can't be renewed, Use and Log out, then Log in with Microsoft (or Add another
 //!   account), who plays (`auth.policy`), the file-keystore note and the last error.
@@ -68,21 +68,6 @@ pub fn account_face(name: &str, face: Option<&crate::backend::account::Face>, si
 }
 
 impl Launcher {
-    /// The one line Settings shows in a build without Microsoft login.
-    pub fn account_unavailable_line(w: f32) -> Div {
-        inter(12., FontWeight::NORMAL, 1.4)
-            .mt(px(12.))
-            .whitespace_nowrap()
-            .text_color(faint3())
-            .child(wrap(
-                &t("auth.error.not_available"),
-                INTER,
-                FontWeight::NORMAL,
-                12.,
-                w,
-            ))
-    }
-
     /// Settings' Microsoft account section (`w` wide), in a build with Microsoft login.
     pub fn account_section(&self, w: f32, cx: &mut Context<Self>) -> Div {
         let a = &self.account;

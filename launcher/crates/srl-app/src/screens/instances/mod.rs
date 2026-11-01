@@ -665,14 +665,18 @@ impl Launcher {
                         rows
                     }),
             )
-            .child(div().flex_none().pt(px(8.)).child(
-                secondary("inst-new", &t("inst.new.open")).on_click(cx.listener(
-                    |this, _, window, cx| {
-                        this.open_new_instance(cx);
-                        window.focus(&this.inst_new_name.focus, cx);
-                    },
-                )),
-            ))
+            .child(
+                div().flex_none().pt(px(8.)).child(
+                    // Ringed like a selected row while its form is the one shown.
+                    secondary("inst-new", &t("inst.new.open"))
+                        .relative()
+                        .when(self.instances.creating.is_some(), |d| d.child(ring()))
+                        .on_click(cx.listener(|this, _, window, cx| {
+                            this.open_new_instance(cx);
+                            window.focus(&this.inst_new_name.focus, cx);
+                        })),
+                ),
+            )
     }
 
     /// One row of the list: the art, the name, the version and who plays in it.

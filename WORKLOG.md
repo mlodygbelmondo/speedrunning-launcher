@@ -10,12 +10,12 @@ commicie, który coś zmienia. Najnowsze wpisy dziennika są na górze.
 
   | Miara | Start | Teraz |
   |---|---|---|
-  | 1. Wygląd i dopracowanie | 7,5 | 8,5 (krytyk, runda 4: 8) |
+  | 1. Wygląd i dopracowanie | 7,5 | 8,5 (krytyk, runda 5: 8) |
   | 2. Ruch i płynność (animacje) | 5 | 8,5 |
   | 3. Model instancji (własne instancje: tworzenie, kopia, usuwanie) | 3 | 9 |
   | 4. Zawartość instancji (światy, mody, paczki, konfiguracja, logi) | 4 | 9 |
-  | 5. Nawigacja i układ informacji | 7 | 8,5 (krytyk, runda 4: 8) |
-  | 6. Teksty EN i PL | 7 | 8,5 (krytyk, runda 4: EN 8, PL 8) |
+  | 5. Nawigacja i układ informacji | 7 | 8,5 (krytyk, runda 5: 8) |
+  | 6. Teksty EN i PL | 7 | 9 (krytyk, runda 5: EN 8, PL 9; poprawki EN po rundzie) |
   | 7. Odporność i bezpieczeństwo danych | 7,5 | 9 |
   | 8. Wydajność (bezczynność 0 klatek, start) | 9 | 9 |
   | 9. Jakość kodu i testy | 8 | 9 |
@@ -222,6 +222,21 @@ Potem:
 ## Dziennik
 
 ### 2026-11-01
+
+- **Piąta runda krytyka zrzutów (wygląd 8, nawigacja 8, EN 8, PL 9), poprawki:**
+  - Ustawienia: zdanie o koncie Microsoft w wersji bez logowania jest teraz podpowiedzią przy Nicku („Twój nick
+    w grze offline. Mecze online…”), nie osobną linią pod „Importuj ustawienia”. `account_unavailable_line`
+    usunięte.
+  - „Nowa instancja” ma obwódkę zaznaczenia, gdy jej formularz jest otwarty (wcześniej nic na liście nie było
+    zaznaczone).
+  - „Delete”/„Usuń” przy światach i paczkach jest cichy (`tertiary_remove`: blady, bez kreski, czerwony po
+    najechaniu), więc lista nie jest ścianą podkreśleń.
+  - Pamięć w Ustawieniach tym samym krojem co na stronie Instancje (Inter, nie Plex).
+  - Trening: wiersze map bez miniatur (każda była obrazkiem kategorii z kafelka tuż nad listą).
+  - Opisy Draftoutu i treningowej instancji dłuższe i konkretniejsze, więc pod nimi nie ma dziury; „Manual
+    install”, „built into the game”.
+  - Odrzucone: „Ranked tile powinien prosić o nick” (rekordy Ranked są z SpeedRunIGT, nie z profilu), „liczby
+    w nagłówku różnymi krojami” (wszystkie są w Plex Mono).
 
 - **Home: własne instancje jako małe chipy** (24 px, jasne tło po najechaniu) obok „Twoje instancje”, nie jako
   podkreślone linki; kafelki trybów zostają na swoim miejscu.

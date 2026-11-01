@@ -233,7 +233,9 @@ impl Launcher {
         } else if available {
             Self::hint(&t("settings.player_hint_msa"), hint_w)
         } else {
-            Self::hint(&t("settings.player_hint_offline"), hint_w)
+            // A build without Microsoft login says so here, next to the name that plays, and
+            // nowhere else about accounts.
+            Self::hint(&t("settings.player_hint_no_login"), hint_w)
         };
         // "Import my current settings": the same page the first start offers.
         let import = secondary("settings-import", &t("settings.import_open"))
@@ -254,10 +256,6 @@ impl Launcher {
                 ),
             ],
         )
-        // A build without Microsoft login: this one line, and nothing else about accounts.
-        .when(!available, |d| {
-            d.child(Self::account_unavailable_line(LEFT_W))
-        })
     }
 
     /// The names Stats looks the player up by (`StatsSettings`). Not the offline name: people
@@ -403,7 +401,7 @@ impl Launcher {
         let memory = Self::segments(
             format!("settings-mem-{}", ids.join("-")),
             MEMORY_CHOICES_MB.iter().map(|mb| gb(*mb)).collect(),
-            true,
+            false,
             selected,
             |i| MEMORY_CHOICES_MB[i] >= needs.min_memory_mb,
             cx,

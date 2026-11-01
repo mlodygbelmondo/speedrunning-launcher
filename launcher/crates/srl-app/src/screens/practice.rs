@@ -39,10 +39,11 @@ use super::play::{bar_fraction, fail_detail, stage_key};
 
 const GRID_GAP: f32 = 12.;
 const ROW_H: f32 = 128.;
-/// The list's width (the page between its 64 and 48 px margins), and where a row's text starts
-/// (after the 84 px thumbnail and the 20 px gap): the details and progress line up with it.
+/// The list's width (the page between its 64 and 48 px margins), and where a row's text starts:
+/// the details and progress line up with it. Rows have no thumbnail: in a category every row's
+/// would be the category's own picture, shown on its tile just above.
 const LIST_W: f32 = 1280. - 64. - 48.;
-const INDENT: f32 = 104.;
+const INDENT: f32 = 0.;
 const DETAIL_W: f32 = LIST_W - INDENT - 170.;
 const DIALOG_W: f32 = 560.;
 
@@ -282,14 +283,8 @@ impl Launcher {
             })
     }
 
-    /// The 84×46 thumbnail, the name and authors, the description and the meta column of a row.
-    fn row_body(
-        thumb: &str,
-        name: &str,
-        authors: SharedString,
-        desc: SharedString,
-        meta: String,
-    ) -> Div {
+    /// The name and authors, the description and the meta column of a row.
+    fn row_body(name: &str, authors: SharedString, desc: SharedString, meta: String) -> Div {
         div()
             .flex_1()
             .min_w(px(0.))
@@ -298,15 +293,6 @@ impl Launcher {
             .flex_row()
             .items_center()
             .gap(px(20.))
-            .child(
-                div()
-                    .relative()
-                    .flex_none()
-                    .w(px(84.))
-                    .h(px(46.))
-                    .child(overlay(tile_bg()))
-                    .child(art_fill(card_path(thumb))),
-            )
             .child(
                 div()
                     .flex_none()
@@ -362,8 +348,6 @@ impl Launcher {
             .border_t_1()
             .border_color(line3())
             .child(Self::row_body(
-                // The web build gives tool rows the overworld card.
-                "overworld",
                 info.name,
                 info.authors,
                 info.desc,
@@ -884,7 +868,7 @@ impl Launcher {
         (row, None)
     }
 
-    fn map_row(&self, i: usize, e: &'static MapEntry, thumb: &str, cx: &mut Context<Self>) -> Div {
+    fn map_row(&self, i: usize, e: &'static MapEntry, cx: &mut Context<Self>) -> Div {
         let Some(v) = self.practice.map(&e.id).cloned() else {
             return div();
         };
@@ -921,7 +905,6 @@ impl Launcher {
                 cx.notify();
             }))
             .child(Self::row_body(
-                thumb,
                 &e.name,
                 e.authors.clone().into(),
                 t(&format!("map.{}", e.id)),
@@ -1272,7 +1255,6 @@ impl Launcher {
             .practice_sel
         {
             PracticeSel::Category(ci) => {
-                let art = Self::practice_art(ci);
                 let maps: Vec<&'static MapEntry> = catalog::maps_in(&cats[ci].id).collect();
                 let n = maps.len();
                 if self.practice_reveal {
@@ -1296,7 +1278,7 @@ impl Launcher {
                 let rows = maps
                     .into_iter()
                     .enumerate()
-                    .map(|(i, e)| self.map_row(i, e, art, cx))
+                    .map(|(i, e)| self.map_row(i, e, cx))
                     .collect();
                 (
                     tf(

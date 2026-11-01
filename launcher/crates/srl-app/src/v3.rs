@@ -927,6 +927,34 @@ pub fn secondary_off(label: &str) -> Div {
         )
 }
 
+/// A quiet link for a per-row removal ("Delete" on every world): `faint` with no hairline, so a
+/// list of rows isn't a wall of underlines; red and underlined under the pointer.
+pub fn tertiary_remove(id: impl Into<gpui::ElementId>, label: &str) -> gpui::Stateful<Div> {
+    div()
+        .id(id.into())
+        .flex_none()
+        .flex()
+        .flex_row()
+        .items_center()
+        .group("v3-remove")
+        .cursor_pointer()
+        .child(
+            inter(13., FontWeight::MEDIUM, 1.)
+                .whitespace_nowrap()
+                .pb(px(3.))
+                .border_b_1()
+                .border_color(gpui::transparent_black())
+                .text_color(faint3())
+                .group_hover("v3-remove", |s| {
+                    s.text_color(behind3()).border_color(Hsla {
+                        a: 0.6,
+                        ..behind3()
+                    })
+                })
+                .child(SharedString::from(label.to_string())),
+        )
+}
+
 /// The tertiary button: Inter Medium 13 in `color` over a hairline, white under the pointer.
 pub fn tertiary_in(
     id: impl Into<gpui::ElementId>,

@@ -142,7 +142,7 @@ impl Launcher {
                     .into_any_element()]);
                 if !busy {
                     actions.push(
-                        tertiary(("inst-world-trash", i), &t("inst.trash"))
+                        tertiary_remove(("inst-world-trash", i), &t("inst.trash"))
                             .on_click(cx.listener(move |this, _, _, cx| {
                                 this.instances.confirm = Some(Confirm::World(dir.clone()));
                                 this.instances.note = None;
@@ -237,7 +237,7 @@ impl Launcher {
                     let mut actions: Vec<AnyElement> = Vec::new();
                     if !busy {
                         actions.push(
-                            tertiary(("inst-pack-trash", i), &t("inst.trash"))
+                            tertiary_remove(("inst-pack-trash", i), &t("inst.trash"))
                                 .on_click(cx.listener(move |this, _, _, cx| {
                                     this.instances.confirm = Some(Confirm::Pack(rel2.clone()));
                                     this.instances.note = None;

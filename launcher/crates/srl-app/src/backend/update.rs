@@ -374,6 +374,7 @@ async fn update(
                 offer.tag,
                 done.old.display()
             ));
+            apps_entry::set_version(&dir, &version);
             Ok(UpdateState::Ready { version })
         }
         Err(SwapError::NotWritable(e)) => Ok(manual(&e)),
@@ -486,9 +487,108 @@ impl Updates for FakeUpdates {
     }
 }
 
+/// The installer's entry in Windows' Apps list (`tools/windows/installer.iss`). The installer
+/// writes the version it installed there; after a swap that version is the previous one, so the
+/// swap writes the new one. Best effort: a failure only logs.
+mod apps_entry {
+    use std::path::Path;
+
+    /// `HKEY_CURRENT_USER\<KEY>`: Inno Setup's uninstall key, named after the installer's
+    /// `AppId` (keep the two equal).
+    #[cfg_attr(not(windows), allow(dead_code))]
+    const KEY: &str = r"Software\Microsoft\Windows\CurrentVersion\Uninstall\{EDEC8318-C819-4254-A613-8235B80AB833}_is1";
+
+    /// Whether the entry's `InstallLocation` (`C:\Users\…\Speedrunning Launcher\`) is `dir`, the
+    /// updated exe's folder. A portable copy unzipped elsewhere leaves an installed one's entry
+    /// alone.
+    #[cfg_attr(not(windows), allow(dead_code))]
+    pub(super) fn is_installed_here(install_location: &str, dir: &Path) -> bool {
+        let folder = |s: &str| s.trim_end_matches(['\\', '/']).to_lowercase();
+        !install_location.trim().is_empty()
+            && folder(install_location) == folder(&dir.to_string_lossy())
+    }
+
+    /// Sets the entry's `DisplayVersion` to `version` when the entry exists and names `dir`.
+    #[cfg(windows)]
+    pub(super) fn set_version(dir: &Path, version: &str) {
+        use windows_sys::Win32::System::Registry::{
+            HKEY_CURRENT_USER, REG_SZ, RRF_RT_REG_SZ, RegGetValueW, RegSetKeyValueW,
+        };
+        let wide = |s: &str| s.encode_utf16().chain([0]).collect::<Vec<u16>>();
+        let key = wide(KEY);
+        let mut buf = vec![0u16; 1024];
+        let mut bytes = (buf.len() * 2) as u32;
+        // SAFETY: NUL-terminated names, and a buffer of `bytes` bytes for the value.
+        let read = unsafe {
+            RegGetValueW(
+                HKEY_CURRENT_USER,
+                key.as_ptr(),
+                wide("InstallLocation").as_ptr(),
+                RRF_RT_REG_SZ,
+                std::ptr::null_mut(),
+                buf.as_mut_ptr().cast(),
+                &mut bytes,
+            )
+        };
+        if read != 0 {
+            // Not installed with the installer (the zip), or by another user.
+            return;
+        }
+        let len = (bytes as usize / 2).min(buf.len());
+        let location = String::from_utf16_lossy(&buf[..len]);
+        let location = location.trim_end_matches('\0');
+        if !is_installed_here(location, dir) {
+            super::log(format_args!(
+                "update: the Apps list's entry is for {location}, not this copy; left as it is"
+            ));
+            return;
+        }
+        let value = wide(version);
+        // SAFETY: NUL-terminated names; `value` is `value.len() * 2` bytes with its NUL.
+        let set = unsafe {
+            RegSetKeyValueW(
+                HKEY_CURRENT_USER,
+                key.as_ptr(),
+                wide("DisplayVersion").as_ptr(),
+                REG_SZ,
+                value.as_ptr().cast(),
+                (value.len() * 2) as u32,
+            )
+        };
+        if set == 0 {
+            super::log(format_args!(
+                "update: the Apps list shows version {version} now"
+            ));
+        } else {
+            super::log(format_args!(
+                "update: couldn't set the Apps list's version (error {set})"
+            ));
+        }
+    }
+
+    /// Only Windows has the installer.
+    #[cfg(not(windows))]
+    pub(super) fn set_version(_dir: &Path, _version: &str) {}
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn the_apps_entry_names_this_folder() {
+        let dir =
+            std::path::Path::new(r"C:\Users\Violet\AppData\Local\Programs\Speedrunning Launcher");
+        for location in [
+            r"C:\Users\Violet\AppData\Local\Programs\Speedrunning Launcher\",
+            r"c:\users\violet\appdata\local\programs\speedrunning launcher",
+        ] {
+            assert!(apps_entry::is_installed_here(location, dir), "{location}");
+        }
+        for location in ["", r"D:\Games\Speedrunning Launcher\"] {
+            assert!(!apps_entry::is_installed_here(location, dir), "{location}");
+        }
+    }
 
     /// A build from this machine has no `SRL_COMMIT`: it never checks, and says why.
     #[test]

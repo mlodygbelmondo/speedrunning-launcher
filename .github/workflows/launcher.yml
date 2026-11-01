@@ -1,7 +1,9 @@
 # Speedrunning Launcher: format, test and build on Linux and Windows, install RSG, Ninjabrain Bot
-# and Toolscreen headless on Windows, and publish the Windows build (zip and its SHA-256).
+# and Toolscreen headless on Windows, and publish the Windows build: the installer
+# (speedrunning-launcher-setup.exe), the portable zip the launcher also updates itself from, and
+# the SHA-256 of each.
 # - A push to `launcher`: the `launcher-latest` prerelease, unsigned. Run by hand with `sign`
-#   ticked, the exe is signed through SignPath first.
+#   ticked, the exe and the installer are signed through SignPath first.
 # - A tag `v<version>` (the `[workspace.package]` version in launcher/Cargo.toml): the release
 #   `v<version>`, the one GitHub's `releases/latest` returns and the launcher updates itself from.
 #   Signed when SignPath is set up, else unsigned.
@@ -167,11 +169,28 @@ jobs:
           # Ninjabrain-Bot-1.5.2.jar, Toolscreen.dll and liblogger_x64.dll
           [ "$n" -eq 3 ] || { echo "expected 3 installed files, verified $n"; exit 1; }
 
-      - name: Default data folder
-        run: target/release/speedrunning-launcher.exe --status
+      # Launchers up to 0.2.3 kept their data in Roaming (%APPDATA%); the first start of a newer
+      # one moves it to Local (%LOCALAPPDATA%, srl-core's paths.rs). The RSG install from above
+      # stands in for a player's data: after the move it is in Local and RSG is still ready.
+      - name: Default data folder, moved from Roaming
+        run: |
+          roaming="$(cygpath -u "$APPDATA")/SpeedrunningLauncher"
+          local="$(cygpath -u "$LOCALAPPDATA")/SpeedrunningLauncher/data"
+          if [ -e "$local" ]; then
+            echo "::warning::$local existed before the first start; removing it"
+            rm -rf "$local"
+          fi
+          mkdir -p "$roaming"
+          mv "$RUNNER_TEMP/srl-home" "$roaming/data"
+          target/release/speedrunning-launcher.exe --status | tee "$RUNNER_TEMP/status.txt"
+          test -d "$local/instances/mcsr/mods" || { echo "the data didn't move to $local"; exit 1; }
+          test ! -e "$roaming" || { echo "$roaming is still there"; exit 1; }
+          grep -q '^rsg  *ready' "$RUNNER_TEMP/status.txt" || { echo "RSG isn't ready after the move"; exit 1; }
 
       # Signing: the tested exe goes to SignPath as an artifact, an approver confirms the request on
-      # signpath.io, and the signed exe replaces it before packaging. Needs the SIGNPATH_API_TOKEN secret
+      # signpath.io, and the signed exe replaces it before packaging. The installer, built from the
+      # signed exe, goes through a second request of its own (below), so a signed build needs two
+      # approvals. Needs the SIGNPATH_API_TOKEN secret
       # and the SIGNPATH_ORGANIZATION_ID variable (tools/windows/SIGNPATH.md). A run by hand with
       # `sign` ticked fails without them; a release tag signs when they are set and builds unsigned
       # when they aren't; a push to `launcher` never signs.
@@ -233,7 +252,9 @@ jobs:
         id: signed
         run: echo "signed=${{ steps.signing.outputs.sign }}" >> "$GITHUB_OUTPUT"
 
+      # dist/ is what both downloads hold: the zip and the installer (tools/windows/installer.iss).
       - name: Package
+        id: package
         run: |
           set -x
           rm -rf dist && mkdir -p dist/licenses
@@ -248,6 +269,7 @@ jobs:
           rm -f speedrunning-launcher-windows.zip
           (cd dist && 7z a -tzip -mx=9 ../speedrunning-launcher-windows.zip . > /dev/null)
           ls -l speedrunning-launcher-windows.zip
+          echo "version=$version" >> "$GITHUB_OUTPUT"
 
       - uses: actions/upload-artifact@v4
         with:
@@ -255,8 +277,106 @@ jobs:
           path: launcher/speedrunning-launcher-windows.zip
           if-no-files-found: error
 
-  # Only a build that passed on both systems is published. The SHA-256 goes next to the zip in
-  # sha256sum's format; the launcher's update checks the zip against it (crates/srl-update).
+      # Inno Setup comes with GitHub's Windows images; installed from Chocolatey when it doesn't.
+      # pwsh, because Git Bash would turn ISCC's /D options into paths.
+      - name: Installer
+        shell: pwsh
+        env:
+          VERSION: ${{ steps.package.outputs.version }}
+        run: |
+          $iscc = (Get-Command iscc.exe -ErrorAction SilentlyContinue).Source
+          if (-not $iscc) {
+            $iscc = Get-ChildItem "${env:ProgramFiles(x86)}\Inno Setup *\ISCC.exe", "$env:ProgramFiles\Inno Setup *\ISCC.exe" -ErrorAction SilentlyContinue |
+              Select-Object -First 1 -ExpandProperty FullName
+          }
+          if (-not $iscc) {
+            choco install innosetup -y --no-progress
+            if ($LASTEXITCODE) { throw "choco install innosetup: $LASTEXITCODE" }
+            $iscc = Get-ChildItem "${env:ProgramFiles(x86)}\Inno Setup *\ISCC.exe", "$env:ProgramFiles\Inno Setup *\ISCC.exe" |
+              Select-Object -First 1 -ExpandProperty FullName
+          }
+          Write-Host "Inno Setup: $iscc"
+          & $iscc /Qp "/DAppVersion=$env:VERSION" tools/windows/installer.iss
+          if ($LASTEXITCODE) { throw "iscc: $LASTEXITCODE" }
+          Get-Item speedrunning-launcher-setup.exe | Format-List Name, Length, VersionInfo
+
+      # The installer the way a player runs it, without the wizard: it must put the launcher in
+      # %LOCALAPPDATA%\Programs with its Apps entry and Start menu shortcut, and its uninstaller
+      # must take all that away again but keep the data folder (the move above made one).
+      - name: Install and uninstall
+        shell: pwsh
+        env:
+          VERSION: ${{ steps.package.outputs.version }}
+        run: |
+          $log = Join-Path $env:RUNNER_TEMP 'setup.log'
+          $setup = (Resolve-Path speedrunning-launcher-setup.exe).Path
+          $p = Start-Process $setup -ArgumentList '/VERYSILENT', '/SUPPRESSMSGBOXES', '/NORESTART', "/LOG=$log" -Wait -PassThru
+          if ($p.ExitCode -ne 0) { Get-Content $log; throw "setup: exit code $($p.ExitCode)" }
+          $app = Join-Path $env:LOCALAPPDATA 'Programs\Speedrunning Launcher'
+          $exe = Join-Path $app 'speedrunning-launcher.exe'
+          if (-not (Test-Path $exe)) { Get-Content $log; throw "no $exe" }
+          $key = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall\{EDEC8318-C819-4254-A613-8235B80AB833}_is1'
+          $entry = Get-ItemProperty $key
+          $entry | Format-List DisplayName, DisplayVersion, Publisher, InstallLocation
+          if ($entry.DisplayVersion -ne $env:VERSION) { throw "the Apps list says $($entry.DisplayVersion), not $env:VERSION" }
+          $lnk = Join-Path ([Environment]::GetFolderPath('Programs')) 'Speedrunning Launcher.lnk'
+          if (-not (Test-Path $lnk)) { throw "no Start menu shortcut at $lnk" }
+          & $exe --status | Out-Host
+          if ($LASTEXITCODE) { throw "the installed launcher's --status: $LASTEXITCODE" }
+          $p = Start-Process (Join-Path $app 'unins000.exe') -ArgumentList '/VERYSILENT', '/SUPPRESSMSGBOXES', '/NORESTART' -Wait -PassThru
+          if ($p.ExitCode -ne 0) { throw "uninstall: exit code $($p.ExitCode)" }
+          # The uninstaller finishes from a copy of itself; give it a moment to remove its folder.
+          for ($i = 0; $i -lt 60 -and (Test-Path $app); $i++) { Start-Sleep 1 }
+          if (Test-Path $app) { Get-ChildItem $app; throw "$app is still there after uninstalling" }
+          if (Test-Path $key) { throw 'the Apps list entry is still there after uninstalling' }
+          if (Test-Path $lnk) { throw 'the Start menu shortcut is still there after uninstalling' }
+          $data = Join-Path $env:LOCALAPPDATA 'SpeedrunningLauncher\data'
+          if (-not (Test-Path (Join-Path $data 'instances'))) { throw "uninstalling removed the data in $data" }
+
+      - name: Upload the unsigned installer
+        if: steps.signing.outputs.sign == 'yes'
+        id: unsigned-setup
+        uses: actions/upload-artifact@v4
+        with:
+          name: speedrunning-launcher-setup-unsigned
+          path: launcher/speedrunning-launcher-setup.exe
+          if-no-files-found: error
+
+      # Its own artifact configuration on SignPath (tools/windows/SIGNPATH.md).
+      - name: Sign the installer through SignPath
+        if: steps.signing.outputs.sign == 'yes'
+        uses: signpath/github-action-submit-signing-request@v3
+        with:
+          api-token: ${{ secrets.SIGNPATH_API_TOKEN }}
+          organization-id: ${{ vars.SIGNPATH_ORGANIZATION_ID }}
+          project-slug: ${{ vars.SIGNPATH_PROJECT_SLUG || 'speedrunning-launcher' }}
+          signing-policy-slug: ${{ vars.SIGNPATH_POLICY_SLUG || 'release-signing' }}
+          artifact-configuration-slug: ${{ vars.SIGNPATH_INSTALLER_ARTIFACT_CONFIGURATION_SLUG || 'installer' }}
+          github-artifact-id: ${{ steps.unsigned-setup.outputs.artifact-id }}
+          wait-for-completion: true
+          wait-for-completion-timeout-in-seconds: 3600
+          output-artifact-directory: ${{ runner.temp }}/signed-setup
+
+      - name: Use the signed installer
+        if: steps.signing.outputs.sign == 'yes'
+        shell: pwsh
+        run: |
+          $signed = Join-Path $env:RUNNER_TEMP 'signed-setup/speedrunning-launcher-setup.exe'
+          $s = Get-AuthenticodeSignature $signed
+          $s | Format-List Status, StatusMessage, SignerCertificate
+          if ($s.Status -ne 'Valid') { throw "signature: $($s.Status)" }
+          Copy-Item $signed speedrunning-launcher-setup.exe -Force
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: speedrunning-launcher-setup
+          path: launcher/speedrunning-launcher-setup.exe
+          if-no-files-found: error
+
+  # Only a build that passed on both systems is published. Each download gets its SHA-256 next to
+  # it in sha256sum's format; the launcher's update checks the zip against its own
+  # (crates/srl-update). The zip keeps its name and stays: it is the portable download and what
+  # every launcher, installed or unzipped, updates itself from.
   publish:
     needs: [linux, windows]
     runs-on: ubuntu-latest
@@ -266,10 +386,16 @@ jobs:
         with:
           name: speedrunning-launcher-windows
 
-      - name: Checksum
+      - uses: actions/download-artifact@v4
+        with:
+          name: speedrunning-launcher-setup
+
+      - name: Checksums
         run: |
-          sha256sum speedrunning-launcher-windows.zip > speedrunning-launcher-windows.zip.sha256
-          cat speedrunning-launcher-windows.zip.sha256
+          for f in speedrunning-launcher-setup.exe speedrunning-launcher-windows.zip; do
+            sha256sum "$f" > "$f.sha256"
+            cat "$f.sha256"
+          done
 
       - name: Publish prerelease launcher-latest
         if: github.ref_type != 'tag'
@@ -278,27 +404,32 @@ jobs:
           GH_REPO: ${{ github.repository }}
           SIGNED: ${{ needs.windows.outputs.signed }}
         run: |
-          mb=$(du -m speedrunning-launcher-windows.zip | cut -f1)
+          setup_mb=$(du -m speedrunning-launcher-setup.exe | cut -f1)
+          zip_mb=$(du -m speedrunning-launcher-windows.zip | cut -f1)
           if [ "$SIGNED" = yes ]; then
-            signing="The exe is signed. Free code signing provided by SignPath.io, certificate by SignPath Foundation."
+            signing="The installer and the exe are signed. Free code signing provided by SignPath.io, certificate by SignPath Foundation."
           else
             signing="This build is not signed, so Windows SmartScreen may ask: choose More info, then Run anyway."
           fi
           notes="Windows test build of Speedrunning Launcher.
 
-          Download speedrunning-launcher-windows.zip (${mb} MB), unzip it and run speedrunning-launcher.exe. README.txt in the zip says where the data and logs are.
+          Download speedrunning-launcher-setup.exe (${setup_mb} MB) and run it. It installs the launcher for your Windows user, without admin rights, and adds it to the Start menu.
+
+          Portable: speedrunning-launcher-windows.zip (${zip_mb} MB). Unzip it anywhere you can write to and run speedrunning-launcher.exe. README.txt says where the data and logs are.
 
           ${signing}
 
           Built from ${GITHUB_SHA} by run ${GITHUB_RUN_ID}."
+          files=(speedrunning-launcher-setup.exe speedrunning-launcher-setup.exe.sha256
+            speedrunning-launcher-windows.zip speedrunning-launcher-windows.zip.sha256)
           if gh release view launcher-latest > /dev/null 2>&1; then
             # move the tag to this commit, then replace the assets
             gh api -X PATCH "repos/${GITHUB_REPOSITORY}/git/refs/tags/launcher-latest" -f sha="${GITHUB_SHA}" -F force=true > /dev/null \
               || echo "warning: could not move tag launcher-latest"
-            gh release upload launcher-latest speedrunning-launcher-windows.zip speedrunning-launcher-windows.zip.sha256 --clobber
+            gh release upload launcher-latest "${files[@]}" --clobber
             gh release edit launcher-latest --prerelease --title "Launcher test build (latest)" --notes "$notes"
           else
-            gh release create launcher-latest speedrunning-launcher-windows.zip speedrunning-launcher-windows.zip.sha256 \
+            gh release create launcher-latest "${files[@]}" \
               --prerelease --target "${GITHUB_SHA}" --title "Launcher test build (latest)" --notes "$notes"
           fi
           gh release view launcher-latest --json url,assets --jq '.url, (.assets[] | .url)'
@@ -313,22 +444,29 @@ jobs:
           SIGNED: ${{ needs.windows.outputs.signed }}
           TAG: ${{ github.ref_name }}
         run: |
-          mb=$(du -m speedrunning-launcher-windows.zip | cut -f1)
+          setup_mb=$(du -m speedrunning-launcher-setup.exe | cut -f1)
+          zip_mb=$(du -m speedrunning-launcher-windows.zip | cut -f1)
           if [ "$SIGNED" = yes ]; then
-            signing="The exe is signed. Free code signing provided by SignPath.io, certificate by SignPath Foundation."
+            signing="The installer and the exe are signed. Free code signing provided by SignPath.io, certificate by SignPath Foundation."
           else
             signing="This build is not signed, so Windows SmartScreen may ask the first time: choose More info, then Run anyway."
           fi
           notes="Speedrunning Launcher ${TAG#v} for Windows 10 and 11 (x64).
 
-          New here: download speedrunning-launcher-windows.zip (${mb} MB), unzip it and run speedrunning-launcher.exe. README.txt in the zip says where the data and logs are.
+          New here: download speedrunning-launcher-setup.exe (${setup_mb} MB) and run it. It installs the launcher for your Windows user, without admin rights, and adds it to the Start menu.
+
+          Portable: speedrunning-launcher-windows.zip (${zip_mb} MB). Unzip it anywhere you can write to and run speedrunning-launcher.exe. README.txt says where the data and logs are.
 
           Already have it: the launcher finds this version on its next start, installs it and asks you to restart (Settings, About).
 
-          ${signing} SHA-256: $(cut -d' ' -f1 speedrunning-launcher-windows.zip.sha256)
+          ${signing}
+
+          SHA-256 of speedrunning-launcher-setup.exe: $(cut -d' ' -f1 speedrunning-launcher-setup.exe.sha256)
+          SHA-256 of speedrunning-launcher-windows.zip: $(cut -d' ' -f1 speedrunning-launcher-windows.zip.sha256)
 
           Built from ${GITHUB_SHA} by run ${GITHUB_RUN_ID}."
-          files=(speedrunning-launcher-windows.zip speedrunning-launcher-windows.zip.sha256)
+          files=(speedrunning-launcher-setup.exe speedrunning-launcher-setup.exe.sha256
+            speedrunning-launcher-windows.zip speedrunning-launcher-windows.zip.sha256)
           if gh release view "$TAG" > /dev/null 2>&1; then
             gh release upload "$TAG" "${files[@]}" --clobber
             gh release edit "$TAG" --prerelease=false --draft=false --latest --title "Speedrunning Launcher ${TAG#v}" --notes "$notes"

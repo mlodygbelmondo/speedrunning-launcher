@@ -177,17 +177,30 @@ GitHub's `windows-latest` has.
 
 - **Linux:** `cargo fmt --check`, `cargo clippy -D warnings`, `cargo test --workspace`, the release build.
 - **Windows:** `cargo fmt --check`, `cargo test --workspace`, the release build (its version resource must name
-  the product, `build.rs`), then a headless RSG install into an
+  the product; it also carries the icon, `assets/icon.ico`, `build.rs`), then a headless RSG install into an
   empty `SRL_HOME`, a headless install of Ninjabrain Bot and Toolscreen into another one (every file the launcher
-  reports is hashed again with coreutils and must match a hash pinned in `srl-tools`), and the zip: the exe,
-  `README.txt` (`tools/windows/README.txt`), the licences and `VERSION.txt`.
+  reports is hashed again with coreutils and must match a hash pinned in `srl-tools`), the move of a data folder
+  (that RSG install) from Roaming to Local with RSG still ready after it, the zip (the exe, `README.txt` from
+  `tools/windows/README.txt`, the licences and `VERSION.txt`) and the installer built from the same files.
+- **Installer:** `tools/windows/installer.iss` (Inno Setup, which the Windows runner has; Chocolatey installs it
+  when it doesn't), compiled with `iscc /DAppVersion=<the [workspace.package] version>`. Per user and without
+  admin rights: the launcher goes to `%LOCALAPPDATA%\Programs\Speedrunning Launcher`, a Start menu entry, an
+  optional desktop shortcut, an entry in Windows' Apps list, English and Polish, "Launch" on the last page. Its
+  uninstaller never deletes the data folder; it says where it is. CI installs it silently, runs the installed exe,
+  uninstalls it and checks that the data is still there. Its `AppId` must never change (the Apps entry's key,
+  which the self-update also writes, below).
 - **Signing:** the tested exe goes to SignPath, an approver confirms the request and the signed exe goes into the
-  zip (`tools/windows/SIGNPATH.md`). A run started by hand with `sign` ticked always signs (and fails without the
-  SignPath settings); a tag signs when the `SIGNPATH_API_TOKEN` secret and the `SIGNPATH_ORGANIZATION_ID` variable
-  are set, and builds unsigned when they aren't; a push to `launcher` never signs.
-- **Publish**, when both pass, with the zip's SHA-256 next to it (`speedrunning-launcher-windows.zip.sha256`, one
-  `sha256sum` line):
+  zip and the installer; then the installer goes through a second request (`tools/windows/SIGNPATH.md`). A run
+  started by hand with `sign` ticked always signs (and fails without the SignPath settings); a tag signs when the
+  `SIGNPATH_API_TOKEN` secret and the `SIGNPATH_ORGANIZATION_ID` variable are set, and builds unsigned when they
+  aren't; a push to `launcher` never signs.
+- **Publish**, when both pass: the installer and the zip, each with its SHA-256 next to it
+  (`speedrunning-launcher-setup.exe.sha256`, `speedrunning-launcher-windows.zip.sha256`, one `sha256sum` line
+  each). The zip stays: it is the portable download and what every launcher, installed or not, updates itself
+  from. Where they go:
   - a push to `launcher`: the assets of the `launcher-latest` prerelease, a test build:
+    <https://github.com/mlodygbelmondo/speedrunning-launcher/releases/download/launcher-latest/speedrunning-launcher-setup.exe>
+    and
     <https://github.com/mlodygbelmondo/speedrunning-launcher/releases/download/launcher-latest/speedrunning-launcher-windows.zip>;
   - a tag `vX.Y.Z`: the release `vX.Y.Z`, a normal release marked latest, so GitHub's `releases/latest` returns it
     and every installed launcher updates to it. Both jobs first check that the tag is `v` plus the
@@ -221,7 +234,10 @@ itself; a local build and other systems say so in Settings → About and do noth
   copied next to the running one as `.new`, the running exe is renamed to `speedrunning-launcher.old.exe`
   (Windows allows renaming a running exe), `.new` takes its name and the zip's other files are copied over; a
   failed rename puts the old exe back. The next start deletes the `.old.exe`. If the exe's folder can't be
-  written (Program Files), nothing is downloaded and About says so, with the release's page.
+  written (Program Files), nothing is downloaded and About says so, with the release's page. The installer puts
+  the launcher where the player can write, so an installed launcher updates itself the same way; after the swap
+  it also sets the version in its Apps list entry (`HKCU\…\Uninstall\{AppId}_is1`, `DisplayVersion`) when that
+  entry names the updated exe's folder.
 - **Restart to update** (About, the primary button while an update is ready; the gear in the top nav carries an
   accent square then) starts the new exe and quits. It waits while a game the launcher started runs or anything
   installs, and says which.

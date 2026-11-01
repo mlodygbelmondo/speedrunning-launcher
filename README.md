@@ -81,20 +81,26 @@ its author and opened in your browser.
 
 ## Download
 
-Download `speedrunning-launcher-windows.zip` from the
-[latest release](https://github.com/mlodygbelmondo/speedrunning-launcher/releases/latest), unzip it anywhere you can
-write to (not `Program Files`) and run `speedrunning-launcher.exe`. From then on the launcher updates itself: on
-start it looks for a newer release, downloads it in the background, checks it against the release's SHA-256 and
-installs it for the next start (Settings, About: "Restart to update", "Check now", and a switch to turn the
-automatic check off). Until the builds are signed (see the [Code signing policy](#code-signing-policy)),
-SmartScreen may ask: choose *More info*, then *Run anyway*. The release notes say whether a build is signed.
+Download `speedrunning-launcher-setup.exe` from the
+[latest release](https://github.com/mlodygbelmondo/speedrunning-launcher/releases/latest) and run it. It installs
+the launcher for your Windows user, without admin rights, in `%LOCALAPPDATA%\Programs\Speedrunning Launcher`, with
+a Start menu entry; uninstall it from Settings → Apps (your data stays). If you'd rather not install anything,
+`speedrunning-launcher-windows.zip` is the same launcher: unzip it anywhere you can write to (not `Program Files`)
+and run `speedrunning-launcher.exe`.
+
+From then on the launcher updates itself: on start it looks for a newer release, downloads it in the background,
+checks it against the release's SHA-256 and installs it for the next start (Settings, About: "Restart to update",
+"Check now", and a switch to turn the automatic check off). Until the builds are signed (see the
+[Code signing policy](#code-signing-policy)), SmartScreen may ask: choose *More info*, then *Run anyway*. The release
+notes say whether a build is signed.
 
 Test builds of every change on the `launcher` branch are the
 [`launcher-latest`](https://github.com/mlodygbelmondo/speedrunning-launcher/releases/tag/launcher-latest)
 prerelease. They update themselves to the next numbered release once it is newer than their version.
 
-The launcher keeps its data in `%APPDATA%\SpeedrunningLauncher\data` on Windows and in
-`~/.local/share/speedrunninglauncher` on Linux.
+The launcher keeps its data in `%LOCALAPPDATA%\SpeedrunningLauncher\data` on Windows and in
+`~/.local/share/speedrunninglauncher` on Linux. Versions up to 0.2.3 kept it in `%APPDATA%` (Roaming) on Windows; a
+newer launcher moves it on its first start.
 
 ## Build from source
 
@@ -135,7 +141,7 @@ On Windows, build with the MSVC toolchain. Release builds also need the Windows 
 - [ ] Approval as an allowed launcher on speedrun.com.
 - [ ] Auto-update: built (numbered releases from version tags, and the launcher updates itself from them); waits
   for the first release and a test on Windows.
-- [ ] Installer and code signing.
+- [ ] Installer and code signing: the installer is built (per user, no admin rights); signing waits for SignPath.
 
 Day-to-day progress is in [`WORKLOG.md`](WORKLOG.md) (in Polish).
 
@@ -172,9 +178,9 @@ Free code signing provided by [SignPath.io](https://about.signpath.io), certific
 - **Committers and reviewers:** [mlodygbelmondo](https://github.com/mlodygbelmondo)
 - **Approvers:** [mlodygbelmondo](https://github.com/mlodygbelmondo)
 
-Only `speedrunning-launcher.exe`, built by GitHub Actions from this repository
-([`.github/workflows/launcher.yml`](.github/workflows/launcher.yml)), is signed, and an approver confirms every
-signing request. The tools, mods and practice maps the launcher downloads belong to their authors and are not
+Only `speedrunning-launcher.exe` and its installer `speedrunning-launcher-setup.exe`, built by GitHub Actions from
+this repository ([`.github/workflows/launcher.yml`](.github/workflows/launcher.yml)), are signed, and an approver
+confirms every signing request. The tools, mods and practice maps the launcher downloads belong to their authors and are not
 signed by this project. How a build gets signed: [`launcher/tools/windows/SIGNPATH.md`](launcher/tools/windows/SIGNPATH.md).
 
 ### Privacy

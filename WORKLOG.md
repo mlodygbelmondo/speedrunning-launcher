@@ -226,6 +226,15 @@ Potem:
 
 ### 2026-11-01
 
+- **Pętla tekstów, runda 9** (r8: **8,5 i 8,5**). Play mówi „PB · data” i „SoB” jak Statystyki, pasek splitów to
+  „Splity PB”. Wspólna instancja nazywa się „Speedrun” (wersja jest na plakietce obok) i mówi poprawnie, co jest
+  osobne dla trybów (mody, ustawienia Atum i narzędzia). Własna instancja „Jak w RSG (3 GB)”. Okno usuwania mapy
+  bez zdania powtarzającego „usuń”; ostrzega tylko o utracie postępu. Pusta instancja Mapy treningowe ma
+  „Otwórz folder saves” (tworzy folder), więc ręczna instalacja mapy z Treningu nie kończy się ślepą uliczką.
+  Karta narzędzia, którego system nie uruchomi, bez opisu (mówi tylko, czego użyć zamiast). Bez nadtytułów RSG,
+  FSG i SSG (zostaje Draftout), bez „z mcsrranked.com” na Play, bez etykiety „Nick” pod „Wybierz nick”. Import
+  mówi, że zastępuje ustawienia i robi kopię. Wersja bez logowania: „mecze się nie połączą”.
+
 - **Pętla tekstów, runda 8** (r7: **8,5 i 8,5**). Spójne słowa: mapy „Usuń” wszędzie (tytuł, postęp, „zamknij
   grę, żeby… usunąć”), trwałe usuwanie zawsze „na dobre”, „Otwórz folder” zamiast „Pokaż folder”, stan bez konta
   to „offline” („Twój nick, gdy grasz offline”), „Ranked” zamiast „MCSR Ranked” w nagłówkach i polu nicku.

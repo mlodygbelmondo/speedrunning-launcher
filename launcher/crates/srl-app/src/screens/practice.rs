@@ -1078,12 +1078,13 @@ impl Launcher {
             }
             Question::Remove { id, worlds, kept } => {
                 let title = tf("practice.ask.remove.title", &[("map", &map_name(id))]);
-                let mut lines = vec![body(tf(
-                    "practice.ask.remove.body",
-                    &[("worlds", &names(worlds))],
-                ))];
+                // Title and button say "delete"; the body only warns about progress.
+                let mut lines = Vec::new();
                 if worlds.iter().any(|w| w.state == WorldState::Played) {
-                    lines.push(body(t("practice.ask.remove.played")));
+                    lines.push(body(tf(
+                        "practice.ask.remove.played",
+                        &[("worlds", &names(worlds))],
+                    )));
                 }
                 if !kept.is_empty() {
                     lines.push(body(tf(

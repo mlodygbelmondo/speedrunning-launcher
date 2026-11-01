@@ -288,10 +288,7 @@ impl Launcher {
                     .flex()
                     .flex_col()
                     .gap(px(12.))
-                    .child(Self::band_head(
-                        &t("v3.matches"),
-                        Some(&t("v3.matches_src")),
-                    ))
+                    .child(Self::band_head(&t("v3.matches"), None))
                     .child(
                         div()
                             .flex()
@@ -380,10 +377,7 @@ impl Launcher {
                 .flex()
                 .flex_col()
                 .gap(px(12.))
-                .child(Self::band_head(
-                    &t("v3.matches"),
-                    Some(&t("v3.matches_src")),
-                ))
+                .child(Self::band_head(&t("v3.matches"), None))
                 .child(div().flex().flex_row().gap(px(14.)).children(cells)),
         )
     }
@@ -769,7 +763,8 @@ impl Launcher {
             ),
             // "MCSR Ranked" over "Ranked" would only repeat the title.
             (Mode::Ranked, None) => SharedString::default(),
-            _ => tf(&format!("v3.eyebrow.{}", mode.id()), &[("mc", mc)]),
+            // Only Draftout's says something new; "Random Seed Glitchless" over RSG doesn't.
+            _ => crate::copy::t_opt(&format!("v3.eyebrow.{}", mode.id())).unwrap_or_default(),
         }
     }
 

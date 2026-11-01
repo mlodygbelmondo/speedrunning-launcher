@@ -7,7 +7,7 @@
   "auth.add_account": "Add another account",
   "auth.active": "active",
   "auth.needs_login": "Sign in again",
-  "auth.keystore_file_note": "No system keyring found, so sign-ins are kept in a file only you can read.",
+  "auth.keystore_file_note": "No system keyring: sign-ins are saved in a file only you can read.",
   "auth.browser_title": "Continue in your browser",
   "auth.browser_hint": "Sign in on the Microsoft page that just opened. Your password never reaches the launcher.",
   "auth.browser_not_opened": "No browser opened. Copy this link into one:",
@@ -25,7 +25,7 @@
   "auth.error.relogin_required": "Your Microsoft sign-in has expired. Sign in again.",
   "auth.error.xbox_no_account": "This Microsoft account has no Xbox profile yet. Sign in once at xbox.com (or minecraft.net) to create one, then try again.",
   "auth.error.xbox_country": "Xbox Live isn't available in this account's region, so it can't sign in to Minecraft. A VPN won't help.",
-  "auth.error.xbox_age_verification": "Microsoft needs age verification for this account (South Korea), or its playtime limit is reached. Sign in at login.live.com to verify, then try again.",
+  "auth.error.xbox_age_verification": "This account needs age verification (required in South Korea) or has reached its playtime limit. Verify at login.live.com, then try again.",
   "auth.error.xbox_child_account": "This is a child account (under 18). An adult must add it to a Microsoft family before it can play online.",
   "auth.error.xbox_banned": "This account is banned from Xbox Live, so it cannot sign in to Minecraft.",
   "auth.error.xbox_guardian": "A parent or guardian has not allowed online play for this account. They can change it at account.microsoft.com/family.",
@@ -39,6 +39,6 @@
   "auth.error.network": "Couldn't reach the sign-in servers. Check your internet connection.",
   "auth.error.service": "The sign-in service answered with an error. Try again later.",
   "auth.error.keystore": "The system keyring is locked or not answering. Unlock it and try again. If it's gone for good, sign out of every account in Settings and sign in again.",
-  "auth.error.storage": "Couldn't save or read the account list.",
+  "auth.error.storage": "Couldn't save or read the account list. Check that the data folder can be written, then try again.",
   "auth.error.unknown_account": "This account isn't on the list any more."
 }

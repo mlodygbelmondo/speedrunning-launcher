@@ -5,7 +5,7 @@
 
 ## Pictures
 
-Every picture is our own Blender render with our own textures. No file from the Minecraft game is used.
+Our own Blender renders and textures. No files from Minecraft.
 
 ## Fonts
 

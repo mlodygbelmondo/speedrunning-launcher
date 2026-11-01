@@ -74,8 +74,7 @@ impl Launcher {
                             .text_color(muted3())
                             .child(wrap(&t(body), INTER, FontWeight::NORMAL, 16., 520.)),
                     )
-                    .child(label(&t("name.label")).mt(px(34.)))
-                    .child(div().mt(px(10.)).child(field))
+                    .child(div().mt(px(34.)).child(field))
                     .child(self.name_rule(Field::Prompt, None, 360.).mt(px(10.)))
                     .child(div().mt(px(30.)).child(next)),
             )

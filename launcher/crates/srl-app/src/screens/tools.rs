@@ -347,8 +347,13 @@ impl Launcher {
                     .h(px(84.))
                     .whitespace_nowrap()
                     .text_color(if unsupported { faint3() } else { muted3() })
+                    // A tool this system can't run: its status and "use … instead" say enough.
                     .child(wrap(
-                        &t(info.copy_key),
+                        &if unsupported {
+                            SharedString::default()
+                        } else {
+                            t(info.copy_key)
+                        },
                         INTER,
                         FontWeight::NORMAL,
                         14.,

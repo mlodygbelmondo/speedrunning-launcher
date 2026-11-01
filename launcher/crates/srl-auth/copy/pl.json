@@ -7,7 +7,7 @@
   "auth.add_account": "Dodaj kolejne konto",
   "auth.active": "aktywne",
   "auth.needs_login": "Zaloguj się ponownie",
-  "auth.keystore_file_note": "Nie znaleziono systemowego magazynu haseł, więc logowania są w pliku, który możesz czytać tylko ty.",
+  "auth.keystore_file_note": "Brak systemowego magazynu haseł: logowania są w pliku, który możesz czytać tylko ty.",
   "auth.browser_title": "Dokończ w przeglądarce",
   "auth.browser_hint": "Zaloguj się na stronie Microsoftu, która właśnie się otworzyła. Hasło nigdy nie trafia do launchera.",
   "auth.browser_not_opened": "Przeglądarka się nie otworzyła. Skopiuj ten link:",
@@ -25,7 +25,7 @@
   "auth.error.relogin_required": "Logowanie Microsoft wygasło. Zaloguj się ponownie.",
   "auth.error.xbox_no_account": "To konto Microsoft nie ma jeszcze profilu Xbox. Zaloguj się raz na xbox.com (albo minecraft.net), żeby go założyć, i spróbuj ponownie.",
   "auth.error.xbox_country": "Xbox Live nie działa w regionie tego konta, więc nie zaloguje się do Minecrafta. VPN nie pomoże.",
-  "auth.error.xbox_age_verification": "Microsoft wymaga weryfikacji wieku tego konta (Korea Południowa) albo skończył się jego limit czasu gry. Zaloguj się na login.live.com, żeby to potwierdzić, i spróbuj ponownie.",
+  "auth.error.xbox_age_verification": "To konto wymaga weryfikacji wieku (obowiązkowej w Korei Południowej) albo skończył się jego limit czasu gry. Potwierdź na login.live.com i spróbuj ponownie.",
   "auth.error.xbox_child_account": "To konto dziecka (poniżej 18 lat). Dorosły musi dodać je do rodziny Microsoft, zanim będzie mogło grać online.",
   "auth.error.xbox_banned": "To konto ma blokadę w Xbox Live, więc nie może zalogować się do Minecrafta.",
   "auth.error.xbox_guardian": "Rodzic lub opiekun nie zezwolił temu kontu na grę online. Może to zmienić na account.microsoft.com/family.",
@@ -39,6 +39,6 @@
   "auth.error.network": "Nie udało się połączyć z serwerami logowania. Sprawdź internet.",
   "auth.error.service": "Usługa logowania zwróciła błąd. Spróbuj później.",
   "auth.error.keystore": "Systemowy magazyn haseł jest zablokowany albo nie odpowiada. Odblokuj go i spróbuj ponownie. Jeśli zniknął na dobre, wyloguj wszystkie konta w Ustawieniach i zaloguj się ponownie.",
-  "auth.error.storage": "Nie udało się zapisać ani odczytać listy kont.",
+  "auth.error.storage": "Nie udało się zapisać ani odczytać listy kont. Sprawdź, czy do folderu danych da się zapisywać, i spróbuj ponownie.",
   "auth.error.unknown_account": "Tego konta nie ma już na liście."
 }

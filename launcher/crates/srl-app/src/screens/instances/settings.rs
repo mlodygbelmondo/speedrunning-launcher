@@ -50,7 +50,13 @@ impl Launcher {
             let same = custom_id.map(|id| {
                 chip(
                     "inst-mem-same",
-                    &tf("inst.custom.memory_same", &[("mode", short)]),
+                    &tf(
+                        "inst.custom.memory_same",
+                        &[
+                            ("mode", short),
+                            ("n", &(self.settings.memory_mb(mode) / 1024).to_string()),
+                        ],
+                    ),
                     own.is_none(),
                     false,
                 )

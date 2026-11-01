@@ -1179,15 +1179,30 @@ impl Launcher {
                 }
             };
             let why = Some(why).filter(|w| !w.is_empty());
+            // A map from the author's page goes into the practice saves folder by hand (Practice
+            // says so), even before any map set the instance up: the button makes the folder.
+            let saves = (key == InstKey::Practice).then(|| {
+                let saves = c.game_dir.join("saves");
+                tertiary("inst-saves", &tf("inst.open_named", &[("folder", "saves")]))
+                    .mt(px(14.))
+                    .on_click(cx.listener(move |_, _, _, _| {
+                        let _ = std::fs::create_dir_all(&saves);
+                        open_folder(&saves);
+                    }))
+            });
             return div()
                 .pt(px(18.))
                 .w(px(560.))
+                .flex()
+                .flex_col()
+                .items_start()
                 .children(why.map(|why| {
                     inter(14., FontWeight::NORMAL, 1.5)
                         .whitespace_nowrap()
                         .text_color(muted3())
                         .child(wrap(&why, INTER, FontWeight::NORMAL, 14., 560.))
                 }))
+                .children(saves)
                 .into_any_element();
         }
         let busy = self.inst_busy(key);

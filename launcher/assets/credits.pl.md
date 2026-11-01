@@ -4,7 +4,7 @@
 
 ## Grafiki
 
-Każda grafika to nasz własny render z Blendera z naszymi teksturami. Nie używamy żadnego pliku z gry Minecraft.
+Nasze własne rendery z Blendera i tekstury. Żadnych plików z Minecrafta.
 
 ## Fonty
 

@@ -794,6 +794,12 @@ impl Launcher {
 
     /// Where the mode switch is: the new key art's opacity, then the hero text's opacity and how
     /// far below its place it still is (px). All settled (1, 1, 0) when no switch runs.
+    /// Starts the switch animation without a mode change (an Instances tab or instance): the
+    /// content rises in the way Home's hero does.
+    pub fn kick_fade(&mut self) {
+        self.mode_switched = Some(Instant::now());
+    }
+
     pub fn mode_fade(&self) -> ModeFade {
         let Some(start) = self.mode_switched else {
             return ModeFade::SETTLED;

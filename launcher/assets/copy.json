@@ -837,7 +837,6 @@
   "inst.draftout.who": "Draftout · Minecraft 26.3",
   "inst.draftout.body": "Draftout runs the newest Minecraft, so it keeps an instance of its own.",
   "inst.practice.name": "Practice maps",
-  "inst.practice.who": "Practice · 13 maps",
   "inst.practice.body": "The practice maps from the Practice page play here, away from your run worlds.",
   "inst.practice.open": "Open Practice",
   "inst.eyebrow": "Instance · Minecraft {mc} · Fabric",
@@ -901,5 +900,11 @@
   "inst.tools_open": "Change on Tools",
   "inst.location": "Folder",
   "inst.worlds.resets_one": "{n} reset world",
-  "inst.worlds.resets": "{n} reset worlds"
+  "inst.worlds.resets": "{n} reset worlds",
+  "inst.practice.who_one": "Practice · {n} map installed",
+  "inst.practice.who": "Practice · {n} maps installed",
+  "inst.practice.who_none": "Practice · no maps yet",
+  "inst.shared.empty": "Nothing is installed here yet. Download sets up Minecraft 1.16.1, Fabric and the selected mode's mods in this instance.",
+  "inst.draftout.empty": "Nothing is installed here yet. Download sets up Minecraft 26.3, Fabric and Draftout's mods in this instance.",
+  "inst.practice.empty": "Nothing is installed here yet. Install a map on the Practice page and play it; the practice game sets itself up here."
 }

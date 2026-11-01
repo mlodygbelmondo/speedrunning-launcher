@@ -59,6 +59,8 @@ pub struct Pack {
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct Content {
     pub game_dir: PathBuf,
+    /// The directory is there (the instance was installed or played once).
+    pub exists: bool,
     /// Newest first.
     pub worlds: Vec<World>,
     pub packs: Vec<Pack>,
@@ -85,6 +87,7 @@ impl Content {
 pub fn scan(game_dir: &Path, modes: Option<&srl_core::shared::WorldModes>) -> Content {
     let mut c = Content {
         game_dir: game_dir.to_path_buf(),
+        exists: game_dir.is_dir(),
         ..Content::default()
     };
     c.worlds = worlds(&game_dir.join("saves"), modes);

@@ -206,6 +206,9 @@ impl Launcher {
     }
 
     pub fn select_instance(&mut self, key: InstKey, cx: &mut Context<Self>) {
+        if self.instances.sel != key {
+            self.kick_fade();
+        }
         let v = &mut self.instances;
         if v.sel != key {
             v.sel = key;
@@ -233,6 +236,8 @@ impl Launcher {
         let v = &mut self.instances;
         if v.tab != tab {
             v.tab = tab;
+            self.kick_fade();
+            let v = &mut self.instances;
             v.confirm = None;
             v.note = None;
             v.scroll.set_offset(gpui::point(px(0.), px(0.)));
@@ -476,7 +481,7 @@ impl Launcher {
                             .mt(px(9.))
                             .whitespace_nowrap()
                             .text_color(muted3())
-                            .child(t(&format!("inst.{}.who", key.id()))),
+                            .child(self.inst_who(key)),
                     ),
             )
             .child(
@@ -497,9 +502,29 @@ impl Launcher {
             .child(if on { ring() } else { hover_ring("inst-row") })
     }
 
+    /// Who plays in the instance: the modes, or how many practice maps are installed.
+    fn inst_who(&self, key: InstKey) -> SharedString {
+        match key {
+            InstKey::Practice => {
+                let n = self
+                    .practice
+                    .maps
+                    .iter()
+                    .filter(|m| matches!(m.status, srl_practice::MapStatus::Installed(_)))
+                    .count();
+                if n == 0 {
+                    t("inst.practice.who_none")
+                } else {
+                    tn("inst.practice.who", n as u64)
+                }
+            }
+            _ => t(&format!("inst.{}.who", key.id())),
+        }
+    }
+
     fn inst_pane(&mut self, key: InstKey, cx: &mut Context<Self>) -> Div {
         let mut facts: Vec<(SharedString, SharedString)> = Vec::new();
-        if let Some(c) = &self.instances.content {
+        if let Some(c) = self.instances.content.as_ref().filter(|c| c.exists) {
             facts.push((t("inst.fact.worlds"), c.worlds.len().to_string().into()));
             facts.push((t("inst.fact.disk"), size(c.size).into()));
         }
@@ -574,14 +599,18 @@ impl Launcher {
             .child(div().relative().child(head).child(facts_col))
             .child(self.inst_actions(key, cx))
             .child(self.inst_tabs(key, cx))
-            .child(
+            .child({
+                let fade = self.mode_fade();
                 div()
                     .flex_1()
                     .min_h(px(0.))
                     .flex()
                     .flex_col()
-                    .child(self.inst_tab_body(key, cx)),
-            )
+                    .relative()
+                    .top(px(fade.rise))
+                    .when(fade.text < 1.0, |d| d.opacity(fade.text))
+                    .child(self.inst_tab_body(key, cx))
+            })
     }
 
     /// Play (the selected mode in the shared instance), the mode chips, Open folder.
@@ -691,6 +720,24 @@ impl Launcher {
                 .child(label(&t("inst.reading")))
                 .into_any_element();
         };
+        if !c.exists {
+            return div()
+                .pt(px(18.))
+                .w(px(560.))
+                .child(
+                    inter(14., FontWeight::NORMAL, 1.5)
+                        .whitespace_nowrap()
+                        .text_color(muted3())
+                        .child(wrap(
+                            &t(&format!("inst.{}.empty", key.id())),
+                            INTER,
+                            FontWeight::NORMAL,
+                            14.,
+                            560.,
+                        )),
+                )
+                .into_any_element();
+        }
         let busy = self.inst_busy(key);
         let (bar, rows): (Div, Vec<AnyElement>) = match self.instances.tab {
             Tab::Worlds => self.worlds_tab(&c, busy, cx),

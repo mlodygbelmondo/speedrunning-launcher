@@ -875,7 +875,6 @@
   "inst.draftout.who": "Draftout · Minecraft 26.3",
   "inst.draftout.body": "Draftout działa na najnowszym Minecrafcie, więc ma własną instancję.",
   "inst.practice.name": "Mapy treningowe",
-  "inst.practice.who": "Trening · 13 map",
   "inst.practice.body": "Tu grasz mapy ze strony Trening, z dala od światów z runów.",
   "inst.practice.open": "Otwórz Trening",
   "inst.eyebrow": "Instancja · Minecraft {mc} · Fabric",
@@ -951,5 +950,13 @@
   "inst.worlds.resets_one": "{n} świat z resetu",
   "inst.worlds.resets_few": "{n} światy z resetów",
   "inst.worlds.resets_many": "{n} światów z resetów",
-  "inst.worlds.resets": "{n} światów z resetów"
+  "inst.worlds.resets": "{n} światów z resetów",
+  "inst.practice.who_one": "Trening · {n} mapa",
+  "inst.practice.who_few": "Trening · {n} mapy",
+  "inst.practice.who_many": "Trening · {n} map",
+  "inst.practice.who": "Trening · {n} map",
+  "inst.practice.who_none": "Trening · jeszcze bez map",
+  "inst.shared.empty": "Nic tu jeszcze nie ma. Pobierz instaluje w tej instancji Minecrafta 1.16.1, Fabric i mody wybranego trybu.",
+  "inst.draftout.empty": "Nic tu jeszcze nie ma. Pobierz instaluje w tej instancji Minecrafta 26.3, Fabric i mody Draftout.",
+  "inst.practice.empty": "Nic tu jeszcze nie ma. Zainstaluj mapę na stronie Trening i zagraj; gra treningowa sama się tu zainstaluje."
 }

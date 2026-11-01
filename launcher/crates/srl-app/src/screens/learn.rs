@@ -158,7 +158,8 @@ impl Launcher {
             .group("learn-guide")
             .relative()
             .flex_none()
-            .h(px(ROW_H))
+            .min_h(px(ROW_H))
+            .py(px(8.))
             .pl(px(4.))
             .pr(px(4.))
             .flex()
@@ -181,9 +182,10 @@ impl Launcher {
                     .flex_col()
                     .gap(px(3.))
                     .child(
+                        // A video's own title can be long: it wraps once rather than lose its end.
                         inter(14., FontWeight::SEMIBOLD, 1.25)
                             .text_color(text3())
-                            .truncate()
+                            .line_clamp(2)
                             .child(SharedString::from(g.title.clone())),
                     )
                     .child(

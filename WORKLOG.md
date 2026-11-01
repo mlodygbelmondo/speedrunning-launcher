@@ -10,12 +10,12 @@ commicie, który coś zmienia. Najnowsze wpisy dziennika są na górze.
 
   | Miara | Start | Teraz |
   |---|---|---|
-  | 1. Wygląd i dopracowanie | 7,5 | 8 |
+  | 1. Wygląd i dopracowanie | 7,5 | 8 (krytyk zrzutów: 7, przed poprawkami) |
   | 2. Ruch i płynność (animacje) | 5 | 8 |
   | 3. Model instancji (własne instancje: tworzenie, kopia, usuwanie) | 3 | 9 |
   | 4. Zawartość instancji (światy, mody, paczki, konfiguracja, logi) | 4 | 9 |
-  | 5. Nawigacja i układ informacji | 7 | 8,5 |
-  | 6. Teksty EN i PL | 7 | 8 |
+  | 5. Nawigacja i układ informacji | 7 | 7,5 (krytyk: 6) |
+  | 6. Teksty EN i PL | 7 | 8 (krytyk: EN 7, PL 6) |
   | 7. Odporność i bezpieczeństwo danych | 7,5 | 9 |
   | 8. Wydajność (bezczynność 0 klatek, start) | 9 | 9 |
   | 9. Jakość kodu i testy | 8 | 9 |
@@ -222,6 +222,23 @@ Potem:
 ## Dziennik
 
 ### 2026-11-01
+
+- **Poprawki po krytyku zrzutów (świeży subagent oceniał same zrzuty EN i PL, bez kodu):**
+  - Teksty EN: „Keep it” → „Cancel”, „Change on Tools” → „Change in Tools”, „Mods on” → „Mods enabled”,
+    sprzątanie światów „…permanently? Worlds you renamed are kept.”, przycisk mówi ile („Delete 44 reset worlds”),
+    „Memory changes apply the next time you press Play”, „The launcher finds it on your PATH”, Draftout „You start
+    matches in the game”, Practice „…never into your speedrun instances.”.
+  - Teksty PL: „Mierzenie Oka Kresu”, „Nether i forteca”, „Każdy tryb podmienia…”, „Nick” zamiast „Nazwa gracza”,
+    „wersja lokalna” zamiast „build lokalny”, „Nie jesteś jeszcze w top {n}”, „nie obsługuje logowania kontem
+    Microsoft” (też w `srl-auth/copy/pl.json`, test pilnuje zgodności), „Prism Launchera… albo oficjalnego
+    launchera Minecrafta”, „Kolejkę, prywatne pokoje i Weekly Race znajdziesz w grze”, krótsze opisy w Nauce.
+  - Wygląd: obwódka zaznaczonej instancji nie jest już ucinana przez przewijaną listę; trwałe usunięcie ma
+    czerwony przycisk `danger` (kosz dalej zwykły); `faint` z 40 % na 50 % (lepszy kontrast małych napisów);
+    w Nauce długie tytuły filmów łamią się na dwie linie zamiast „…”; podpisy stron (`wrap_even`) mają równe
+    linie, bez jednego słowa w drugiej.
+  - Nawigacja: przed chipami trybów jest „Mode”/„Tryb”; linki na kartach mówią, który folder otwierają („Open
+    saves folder”, „Otwórz folder resourcepacks”); czas świata „Today 06:16”/„Dziś 06:16”.
+  - Zostało z listy krytyka: własne instancje na Home jako chipy, spójne nazwy pamięci w Ustawieniach i Instancjach.
 
 - **Kod:** `screens/instances.rs` (2600 linii) podzielony na `screens/instances/`: `mod.rs` (stan, lista, panel,
   karty), `tabs.rs` (Światy, Paczki, Konfiguracja, Logi, Zrzuty i ich wiersze), `settings.rs` (karta Ustawienia

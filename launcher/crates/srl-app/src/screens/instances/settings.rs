@@ -159,6 +159,7 @@ impl Launcher {
                 self.ask(
                     tf("inst.custom.delete_ask", &[("name", &c.name)]),
                     &t("inst.custom.delete_yes"),
+                    false,
                     move |this, cx| {
                         this.instances.confirm = None;
                         this.backend().delete_instance(id);

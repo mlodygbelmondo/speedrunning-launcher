@@ -21,7 +21,11 @@ impl Launcher {
                         ("size", &size(reset_bytes)),
                     ],
                 ),
-                &t("inst.worlds.cleanup_yes"),
+                &tf(
+                    "inst.worlds.cleanup_yes",
+                    &[("n", &tn("inst.worlds.resets", resets.len() as u64))],
+                ),
+                true,
                 |this, cx| this.cleanup_worlds(cx),
                 cx,
             ),
@@ -36,6 +40,7 @@ impl Launcher {
                 self.ask(
                     tf("inst.worlds.trash_ask", &[("name", &name)]),
                     &t("inst.trash_yes"),
+                    false,
                     move |this, cx| this.trash_item("saves", dir.clone(), cx),
                     cx,
                 )
@@ -61,7 +66,7 @@ impl Launcher {
                 }
                 let saves = c.game_dir.join("saves");
                 actions.push(
-                    tertiary("inst-saves", &t("inst.open_folder"))
+                    tertiary("inst-saves", &tf("inst.open_named", &[("folder", "saves")]))
                         .on_click(cx.listener(move |_, _, _, _| open_folder(&saves)))
                         .into_any_element(),
                 );
@@ -173,6 +178,7 @@ impl Launcher {
                 self.ask(
                     tf("inst.packs.trash_ask", &[("name", &rel)]),
                     &t("inst.trash_yes"),
+                    false,
                     move |this, cx| this.trash_item("resourcepacks", rel.clone(), cx),
                     cx,
                 )
@@ -200,9 +206,12 @@ impl Launcher {
                                 .on_click(cx.listener(|this, _, _, cx| this.pick_pack(cx)))
                                 .into_any_element()
                         },
-                        tertiary("inst-packs-folder", &t("inst.open_folder"))
-                            .on_click(cx.listener(move |_, _, _, _| open_folder(&dir)))
-                            .into_any_element(),
+                        tertiary(
+                            "inst-packs-folder",
+                            &tf("inst.open_named", &[("folder", "resourcepacks")]),
+                        )
+                        .on_click(cx.listener(move |_, _, _, _| open_folder(&dir)))
+                        .into_any_element(),
                     ],
                 )
             }
@@ -288,7 +297,7 @@ impl Launcher {
             vec![
                 tertiary(
                     SharedString::from(format!("inst-{folder}-folder")),
-                    &t("inst.open_folder"),
+                    &tf("inst.open_named", &[("folder", folder)]),
                 )
                 .on_click(cx.listener(move |_, _, _, _| open_folder(&dir)))
                 .into_any_element(),
@@ -347,9 +356,12 @@ impl Launcher {
                 tn("inst.screenshots.count", c.screenshots.len() as u64)
             },
             vec![
-                tertiary("inst-shots-folder", &t("inst.open_folder"))
-                    .on_click(cx.listener(move |_, _, _, _| open_folder(&dir)))
-                    .into_any_element(),
+                tertiary(
+                    "inst-shots-folder",
+                    &tf("inst.open_named", &[("folder", "screenshots")]),
+                )
+                .on_click(cx.listener(move |_, _, _, _| open_folder(&dir)))
+                .into_any_element(),
             ],
         );
         // Four across; only the newest 24 are drawn (each one is decoded into the atlas).

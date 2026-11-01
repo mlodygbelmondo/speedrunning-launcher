@@ -59,7 +59,7 @@ pub fn muted3() -> Hsla {
     text3a(0.64)
 }
 pub fn faint3() -> Hsla {
-    text3a(0.40)
+    text3a(0.50)
 }
 pub fn line3() -> Hsla {
     text3a(0.09)
@@ -404,6 +404,33 @@ pub fn wrap(
     let out = SharedString::from(out);
     WRAPPED.with(|c| c.borrow_mut().insert(key, out.clone()));
     out
+}
+
+/// `wrap` with its lines evened out: as many lines as at `max_w`, but at the narrowest width that
+/// still gives that many, so a two-line blurb doesn't end on one lone word.
+pub fn wrap_even(
+    s: &str,
+    family: &'static str,
+    weight: FontWeight,
+    size_px: f32,
+    max_w: f32,
+) -> SharedString {
+    let lines = |w: f32| wrap(s, family, weight, size_px, w).split('\n').count();
+    let n = lines(max_w);
+    if n < 2 {
+        return wrap(s, family, weight, size_px, max_w);
+    }
+    // Whole pixels, so the few widths tried stay in `wrap`'s cache.
+    let (mut lo, mut hi) = ((max_w / n as f32).floor(), max_w.ceil());
+    while hi - lo > 1. {
+        let mid = ((lo + hi) / 2.).floor();
+        if lines(mid) > n {
+            lo = mid;
+        } else {
+            hi = mid;
+        }
+    }
+    wrap(s, family, weight, size_px, hi.min(max_w))
 }
 
 /// Where [`ellipsize`] cuts a line that doesn't fit.
@@ -831,6 +858,37 @@ pub fn secondary(id: impl Into<gpui::ElementId>, label: &str) -> gpui::Stateful<
             inter(13., FontWeight::SEMIBOLD, 1.)
                 .whitespace_nowrap()
                 .text_color(text3())
+                .child(SharedString::from(label.to_string())),
+        )
+}
+
+/// `secondary` in the losing red, for the one answer that can't be undone ("Delete 12 reset
+/// worlds"): the edge and label in `behind3`, filled faintly on hover.
+pub fn danger(id: impl Into<gpui::ElementId>, label: &str) -> gpui::Stateful<Div> {
+    div()
+        .id(id.into())
+        .flex_none()
+        .h(px(BUTTON_H))
+        .px(px(16.))
+        .flex()
+        .items_center()
+        .justify_center()
+        .border_1()
+        .border_color(Hsla {
+            a: 0.6,
+            ..behind3()
+        })
+        .cursor_pointer()
+        .hover(|s| {
+            s.border_color(behind3()).bg(Hsla {
+                a: 0.12,
+                ..behind3()
+            })
+        })
+        .child(
+            inter(13., FontWeight::SEMIBOLD, 1.)
+                .whitespace_nowrap()
+                .text_color(behind3())
                 .child(SharedString::from(label.to_string())),
         )
 }

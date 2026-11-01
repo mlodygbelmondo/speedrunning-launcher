@@ -1476,7 +1476,7 @@ pub fn page_title(title: &str, subtitle: &str) -> Div {
                 .whitespace_nowrap()
                 .text_right()
                 .text_color(muted3())
-                .child(wrap(subtitle, INTER, FontWeight::NORMAL, 14., 420.)),
+                .child(wrap_even(subtitle, INTER, FontWeight::NORMAL, 14., 420.)),
         )
 }
 

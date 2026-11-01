@@ -38,14 +38,14 @@ use crate::{
 use super::field::Field;
 use super::stats::{fmt_date, today_and_month_ms};
 
-/// "18:40" for today, else the short date ("Oct 24").
+/// "Today 18:40" for today, else the short date ("Oct 24").
 fn fmt_when(ms: i64) -> SharedString {
     use chrono::TimeZone;
     let (today, _) = today_and_month_ms();
     if ms >= today
         && let Some(d) = chrono::Local.timestamp_millis_opt(ms).earliest()
     {
-        return d.format("%H:%M").to_string().into();
+        return tf("inst.today", &[("time", &d.format("%H:%M").to_string())]);
     }
     fmt_date(ms)
 }
@@ -611,6 +611,10 @@ impl Launcher {
                     .id("inst-keys")
                     .flex_1()
                     .min_h_0()
+                    // Room for the selected row's ring, which sits 5 px outside the row: the
+                    // scroll area clips at its padding edge.
+                    .m(px(-6.))
+                    .p(px(6.))
                     .overflow_y_scroll()
                     .track_scroll(&self.instances.list_scroll)
                     .flex()
@@ -873,15 +877,22 @@ impl Launcher {
                     .child(self.mode_play(mi, "inst-play", 200., 44., 15., cx))
                     .children(self.play_ghosts(mi, "inst", false, cx));
                 if key == InstKey::Shared {
-                    row = row.child(div().flex().flex_row().gap(px(6.)).children(
-                        Mode::SHARED.into_iter().map(|m| {
-                            let i = index(m);
-                            chip(("inst-mode", i), catalog::MODES[i].short, i == mi, false)
-                                .on_click(
-                                    cx.listener(move |this, _, _, cx| this.select_mode(i, cx)),
-                                )
-                        }),
-                    ));
+                    // The mode Play starts: its mods and Atum settings go in before the game.
+                    row = row.child(
+                        div()
+                            .flex()
+                            .flex_row()
+                            .items_center()
+                            .gap(px(6.))
+                            .child(label(&t("inst.mode_pick")).mr(px(4.)))
+                            .children(Mode::SHARED.into_iter().map(|m| {
+                                let i = index(m);
+                                chip(("inst-mode", i), catalog::MODES[i].short, i == mi, false)
+                                    .on_click(
+                                        cx.listener(move |this, _, _, cx| this.select_mode(i, cx)),
+                                    )
+                            })),
+                    );
                 }
             }
             InstKey::Practice => {
@@ -1076,9 +1087,15 @@ impl Launcher {
         &self,
         question: SharedString,
         yes: &str,
+        for_good: bool,
         on_yes: impl Fn(&mut Launcher, &mut Context<Launcher>) + 'static,
         cx: &mut Context<Self>,
     ) -> Div {
+        let yes = if for_good {
+            danger("inst-yes", yes)
+        } else {
+            primary("inst-yes", yes)
+        };
         div()
             .flex_none()
             .min_h(px(52.))
@@ -1093,10 +1110,7 @@ impl Launcher {
                     .text_color(gold())
                     .child(question),
             )
-            .child(
-                primary("inst-yes", yes)
-                    .on_click(cx.listener(move |this, _, _, cx| on_yes(this, cx))),
-            )
+            .child(yes.on_click(cx.listener(move |this, _, _, cx| on_yes(this, cx))))
             .child(
                 tertiary("inst-no", &t("inst.keep")).on_click(cx.listener(|this, _, _, cx| {
                     this.instances.confirm = None;

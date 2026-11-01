@@ -226,6 +226,20 @@ Potem:
 
 ### 2026-11-01
 
+- **Pętla tekstów, runda 2** (r1: **7,5 i 7,5**). Zgodne uwagi obu recenzentów:
+  - Zasada pierwszego logowania opisana zgodnie z `play_as`: w wersji z logowaniem Home pokazuje „zaloguj się
+    raz, żeby grać” przed pierwszym logowaniem; `name.body_msa` i `auth.why` mówią to samo.
+  - Ustawienia bez tabeli pamięci trybów (druga kontrolka tego samego, co ustawienia instancji).
+  - Kafel „Mody treningowe” tylko w demie (nie da się ich jeszcze zainstalować); Blaze zajmuje całą kolumnę.
+  - Jedno słowo „Usuń” zamiast „Usuń / Przenieś do kosza / Usuń instancję”; bez powtarzania o koszu.
+  - Bez „gra jako …” na Home (konto jest w pasku), bez „Najpopularniejsze najpierw”, bez podtytułów Treningu
+    i Nauki, bez opisów poradników powtarzających tytuł (opis jest teraz opcjonalny, test `learn_is_complete`
+    już go nie wymaga), bez notki o narzędziach w „O mapie” (jest w opisie instancji Mapy treningowe), bez
+    podwójnego procentu przy instalacji mapy, bez żółtej notki importu o innej wersji.
+  - Martwe klucze usunięte (`v3.note.*`, `mode.*`, stare `mods.*`, `v3.f_*`, `v3.layers*` i inne).
+  - Krótsze: zaproszenie do nazwy w Statystykach (jedna linia), aktualizacja mapy (co przechodzi, jest przy
+    „Zastąp”), błędy magazynu haseł i regionu Xbox, kroki logowania jako rzeczowniki, „Grafiki” w Autorach.
+
 - **Pętla tekstów UI, runda 1** (Piotr: aplikacja jest przegadana, za dużo informacji bez wartości i bez
   wpływu gracza; co rundę dwóch niezależnych recenzentów Opus 5.5 high ocenia teksty 1–10, aż będzie 9). Brief
   recenzentów: `~/.cache/srl-copy/brief.md` (bez wspominania o celu), zrzuty wszystkich stanów w

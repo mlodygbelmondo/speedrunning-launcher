@@ -223,7 +223,8 @@ mod tests {
                 assert!(Mode::from_id(m).is_some(), "{}: mode {m}", topic.id);
             }
             assert!(!topic.guides.is_empty(), "{}", topic.id);
-            // Copy for every topic and guide (copy.rs checks that both languages have it).
+            // Copy for every topic (copy.rs checks that both languages have it). A guide's
+            // description is optional: only where it says more than the title.
             let has = |k: String| crate::copy::t_opt(&k).is_some();
             assert!(has(format!("learn.group.{}", topic.group)), "{}", topic.id);
             assert!(has(format!("learn.topic.{}", topic.id)), "{}", topic.id);
@@ -234,7 +235,6 @@ mod tests {
             );
             for g in &topic.guides {
                 assert!(ids.insert(g.id.as_str()), "duplicate guide {}", g.id);
-                assert!(has(format!("learn.g.{}", g.id)), "no copy learn.g.{}", g.id);
                 assert!(
                     ["video", "series", "text", "tool"].contains(&g.kind.as_str()),
                     "{}",

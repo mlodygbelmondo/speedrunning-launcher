@@ -8,22 +8,19 @@
 //! The credits are a view of their own (`Launcher::settings_credits`): `assets/credits.md` (or
 //! `credits.pl.md`) for the player, and every adapted project's licence from
 //! `THIRD_PARTY_NOTICES.md` (Pandora Launcher, EasyInjectBundled), quoted as written.
+use crate::{
+    app::Launcher,
+    assets::{CREDITS_MD, CREDITS_PL_MD, NOTICES_MD},
+    backend::{
+        Language, Settings, UpdateState,
+        update::{Unavailable, UpdateFailure},
+    },
+    copy::{self, lang, t, tf},
+    v3::*,
+};
 use gpui::{
     AnyElement, Context, Div, FontWeight, IntoElement, ParentElement, SharedString, Styled, Window,
     div, prelude::*, px,
-};
-use srl_core::Mode;
-
-use crate::{
-    app::Launcher,
-    assets::{CREDITS_MD, CREDITS_PL_MD, NOTICES_MD, card_path},
-    backend::{
-        Language, MEMORY_CHOICES_MB, Settings, UpdateState, mode_needs,
-        update::{Unavailable, UpdateFailure},
-    },
-    catalog,
-    copy::{self, lang, t, tf},
-    v3::*,
 };
 
 use super::{
@@ -31,19 +28,12 @@ use super::{
     practice::{art_band, page_title},
 };
 
-/// The column widths: the mode table needs the wider one. 500 + 24 + 644 = 1168.
+/// The column widths. 500 + 24 + 644 = 1168.
 const LEFT_W: f32 = 500.;
 const RIGHT_W: f32 = 644.;
-/// The mode table's name column: wide enough for "Ranked · RSG · FSG · SSG".
-const NAME_W: f32 = 196.;
 const GAP: f32 = 24.;
 /// Space between the sections of a column.
 const SECTION_GAP: f32 = 30.;
-
-/// A choice in GB, the way Settings and the game screen write it ("3 GB").
-fn gb(mb: u32) -> SharedString {
-    tf("settings.memory_value", &[("n", &(mb / 1024).to_string())])
-}
 
 /// The version line: the CI build names its commit, a local build says it is one.
 fn version_line() -> SharedString {
@@ -197,15 +187,6 @@ impl Launcher {
             .child(wrap(s, INTER, FontWeight::NORMAL, 12., w))
     }
 
-    /// A note under a section, Inter 12 `faint`.
-    fn note(s: &str, w: f32) -> Div {
-        inter(12., FontWeight::NORMAL, 1.4)
-            .mt(px(12.))
-            .whitespace_nowrap()
-            .text_color(faint3())
-            .child(wrap(s, INTER, FontWeight::NORMAL, 12., w))
-    }
-
     fn general_section(&mut self, window: &mut Window, cx: &mut Context<Self>) -> Div {
         let lang_i = Language::ALL.iter().position(|l| *l == lang()).unwrap_or(0);
         let language = Self::segments(
@@ -348,102 +329,6 @@ impl Launcher {
                 open,
             )],
         )
-    }
-
-    /// One row of the mode table: the modes (the four 1.16.1 modes share one instance, so one
-    /// row sets them together), their Java and their memory.
-    fn mode_settings_row(&self, modes: &[Mode], cx: &mut Context<Self>) -> Div {
-        let first = modes[0];
-        let d = catalog::def(if modes.len() > 1 { Mode::Rsg } else { first });
-        let needs = mode_needs(first);
-        // Settings from before the shared row may give the four different values: then no
-        // choice is lit until one is picked for all of them.
-        let current = self.settings.memory_mb(first);
-        let same = modes.iter().all(|m| self.settings.memory_mb(*m) == current);
-        let selected = MEMORY_CHOICES_MB
-            .iter()
-            .position(|m| *m == current && same)
-            .unwrap_or(usize::MAX);
-        let ids: Vec<&str> = modes.iter().map(|m| m.id()).collect();
-        let row_modes = modes.to_vec();
-        let memory = Self::segments(
-            format!("settings-mem-{}", ids.join("-")),
-            MEMORY_CHOICES_MB.iter().map(|mb| gb(*mb)).collect(),
-            false,
-            selected,
-            |i| MEMORY_CHOICES_MB[i] >= needs.min_memory_mb,
-            cx,
-            move |this, i, _, cx| {
-                let mut settings = this.settings.clone();
-                for m in &row_modes {
-                    settings.set_memory_mb(*m, MEMORY_CHOICES_MB[i]);
-                }
-                this.save_settings(settings, cx);
-            },
-        );
-        // The installed runtime's version when there is one ("Java 21.0.7"), else the major
-        // version the modes get.
-        let names: Vec<&str> = modes.iter().map(|m| catalog::def(*m).short).collect();
-        let two_lines =
-            |top: Div, bottom: Div| div().flex().flex_col().gap(px(6.)).child(top).child(bottom);
-        div()
-            .h(px(60.))
-            .flex()
-            .flex_row()
-            .items_center()
-            .gap(px(14.))
-            .border_t_1()
-            .border_color(line3())
-            .child(
-                div()
-                    .relative()
-                    .flex_none()
-                    .w(px(56.))
-                    .h(px(32.))
-                    .child(overlay(tile_bg()))
-                    .child(art_fill(card_path(d.art))),
-            )
-            .child(
-                two_lines(
-                    inter(15., FontWeight::SEMIBOLD, 1.)
-                        .text_color(text3())
-                        .whitespace_nowrap()
-                        .child(SharedString::from(names.join(" · "))),
-                    plex(11., FontWeight::MEDIUM)
-                        .text_color(muted3())
-                        .child(tf("settings.mode_mc", &[("mc", first.minecraft_version())])),
-                )
-                .flex_none()
-                .w(px(NAME_W)),
-            )
-            .child(div().flex_1())
-            .child(div().flex_none().child(memory))
-    }
-
-    fn modes_section(&self, cx: &mut Context<Self>) -> Div {
-        // The column labels sit over their columns: after the 56 px art and 14 px gap, the
-        // name column; Memory is right-aligned over the choices.
-        let head = div()
-            .h(px(24.))
-            .flex()
-            .flex_row()
-            .items_start()
-            .child(
-                label(&t("settings.col_mode"))
-                    .ml(px(70.))
-                    .w(px(NAME_W + 14.)),
-            )
-            .child(div().flex_1())
-            .child(label(&t("settings.col_memory")));
-        let shared: Vec<Mode> = Mode::ALL.into_iter().filter(|m| m.is_shared()).collect();
-        div()
-            .flex()
-            .flex_col()
-            .child(section_head(&t("settings.section_modes")).mb(px(16.)))
-            .child(head)
-            .child(self.mode_settings_row(&shared, cx))
-            .child(self.mode_settings_row(&[Mode::Draftout], cx))
-            .child(Self::note(&t("settings.modes_note"), RIGHT_W))
     }
 
     fn about_section(&self, cx: &mut Context<Self>) -> Div {
@@ -681,7 +566,6 @@ impl Launcher {
             .flex()
             .flex_col()
             .gap(px(SECTION_GAP))
-            .child(self.modes_section(cx))
             .child(self.about_section(cx))
             .child(self.keys_section());
 

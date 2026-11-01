@@ -793,28 +793,15 @@ impl Launcher {
             return col
                 .child(section_head(&t("stats.ranked_plain")))
                 .child(
-                    inter(18., FontWeight::SEMIBOLD, 1.25)
+                    inter(14., FontWeight::NORMAL, 1.45)
                         .mt(px(22.))
-                        .whitespace_nowrap()
-                        .text_color(text3())
-                        .child(wrap(
-                            &t("stats.ranked_ask_title"),
-                            INTER,
-                            FontWeight::SEMIBOLD,
-                            18.,
-                            RANKED_W,
-                        )),
-                )
-                .child(
-                    inter(13., FontWeight::NORMAL, 1.45)
-                        .mt(px(8.))
                         .whitespace_nowrap()
                         .text_color(muted3())
                         .child(wrap(
                             &t("stats.ranked_ask_body"),
                             INTER,
                             FontWeight::NORMAL,
-                            13.,
+                            14.,
                             RANKED_W,
                         )),
                 )

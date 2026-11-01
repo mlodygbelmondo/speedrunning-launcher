@@ -697,8 +697,8 @@ impl Launcher {
         Some(row)
     }
 
-    /// The line under the description, only when there is something to know: an update waits,
-    /// who plays (a Microsoft account), or that online play needs one. Installing and failing
+    /// The line under the description, only when there is something to know: an update waits, a
+    /// first sign-in is needed, or online play needs a Microsoft account. Installing and failing
     /// have their own bar and error line.
     fn status_row(&self, mi: usize) -> Option<Div> {
         let mode = self.mode(mi);
@@ -708,8 +708,13 @@ impl Launcher {
         let extra: Option<SharedString> = match status {
             Status::Installing | Status::Failed => None,
             _ => match (mode, demo, self.account.active_name()) {
-                // Who plays: a Microsoft account plays every mode (`account::play_as`).
-                (_, None, Some(name)) => Some(tf("v3.plays_as", &[("name", name)])),
+                // A build that can sign in plays offline only after one sign-in
+                // (`account::play_as`): say so before Play fails on it.
+                (_, None, None) if self.account.available && !self.account.signed_in_once => {
+                    Some(t("v3.sign_in_once"))
+                }
+                // The top bar names the account that plays.
+                (_, None, Some(_)) => None,
                 (Mode::Ranked, Some(d), _) => Some(tf("v3.online", &[("n", &d.online)])),
                 (Mode::Ranked | Mode::Draftout, None, None) => Some(t("v3.online_needs_ms")),
                 (_, Some(d), _) if status != Status::Missing => {

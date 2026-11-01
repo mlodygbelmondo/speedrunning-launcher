@@ -128,14 +128,11 @@ impl Launcher {
         }
         if custom.is_some() {
             let field = self.name_input(Field::Jvm, 640., 36., 13., window, cx);
-            let below = match self.instances.jvm_problem.clone() {
-                Some(p) => inter(12., FontWeight::MEDIUM, 1.3)
+            let below = self.instances.jvm_problem.clone().map(|p| {
+                inter(12., FontWeight::MEDIUM, 1.3)
                     .text_color(behind3())
-                    .child(p),
-                None => inter(12., FontWeight::NORMAL, 1.4)
-                    .text_color(faint3())
-                    .child(t("inst.custom.jvm_hint")),
-            };
+                    .child(p)
+            });
             col = col.child(
                 div()
                     .flex()
@@ -143,7 +140,7 @@ impl Launcher {
                     .gap(px(10.))
                     .child(section_head(&t("inst.custom.jvm")))
                     .child(field)
-                    .child(below),
+                    .children(below),
             );
         }
         if key != InstKey::Practice {
@@ -179,11 +176,6 @@ impl Launcher {
                     .flex_col()
                     .gap(px(10.))
                     .child(section_head(&t("inst.custom.remove")))
-                    .child(
-                        inter(12., FontWeight::NORMAL, 1.4)
-                            .text_color(faint3())
-                            .child(t("inst.custom.remove_hint")),
-                    )
                     .child(body),
             );
         }

@@ -7,11 +7,7 @@ NOT AN OFFICIAL MINECRAFT PRODUCT. NOT APPROVED BY OR ASSOCIATED WITH MOJANG OR 
 
 ## Pictures
 
-Every picture in the launcher is our own render, made in Blender. The blocks, their textures and the scenes are built
-in code: no file from the Minecraft game is used.
-
-Where a picture shows a real place (a village, a bastion, a fortress, a stronghold), its layout comes from a world we
-generated ourselves, rebuilt block by block with our own textures.
+Every picture is our own Blender render with our own textures. No file from the Minecraft game is used.
 
 ## Fonts
 

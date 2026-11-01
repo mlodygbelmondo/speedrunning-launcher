@@ -576,17 +576,15 @@ impl Launcher {
             })
             .collect();
 
-        // One line on versions: what Draftout (or every mode) gets.
-        let version_note = source.as_ref().map(|s| {
+        // One line on versions: what Draftout (or every mode) gets. Another version's rows say
+        // what doesn't come over, so it needs no line.
+        let version_note = source.as_ref().and_then(|s| {
             if s.runs(srl_import::VERSION_1_16_1) {
-                (t("import.note_draftout"), faint3())
+                Some((t("import.note_draftout"), faint3()))
             } else if s.runs(Mode::Draftout.minecraft_version()) {
-                (t("import.note_from_draftout"), gold())
+                Some((t("import.note_from_draftout"), gold()))
             } else {
-                match &s.version {
-                    Some(v) => (tf("import.other_note", &[("v", v)]), gold()),
-                    None => (t("import.other_unknown"), gold()),
-                }
+                None
             }
         });
         let effective_choice = source

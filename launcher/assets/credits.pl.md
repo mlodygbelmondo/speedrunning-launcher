@@ -6,11 +6,7 @@ NOT AN OFFICIAL MINECRAFT PRODUCT. NOT APPROVED BY OR ASSOCIATED WITH MOJANG OR 
 
 ## Grafiki
 
-Każda grafika w launcherze to nasz własny render z Blendera. Bloki, ich tekstury i sceny powstają w kodzie: nie
-używamy żadnego pliku z gry Minecraft.
-
-Gdy grafika pokazuje prawdziwe miejsce (wioskę, bastion, fortecę, twierdzę), jej układ pochodzi ze świata, który
-sami wygenerowaliśmy, i jest odtworzony blok po bloku z naszymi teksturami.
+Każda grafika to nasz własny render z Blendera z naszymi teksturami. Nie używamy żadnego pliku z gry Minecraft.
 
 ## Fonty
 

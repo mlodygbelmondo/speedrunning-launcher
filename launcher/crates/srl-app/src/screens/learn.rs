@@ -191,13 +191,14 @@ impl Launcher {
                             .text_ellipsis()
                             .child(SharedString::from(g.title.clone())),
                     )
-                    .child(
+                    // Only where it says more than the title.
+                    .children(crate::copy::t_opt(&format!("learn.g.{}", g.id)).map(|d| {
                         inter(12., FontWeight::NORMAL, 1.3)
                             .text_color(muted3())
                             .line_clamp(2)
                             .text_ellipsis()
-                            .child(t(&format!("learn.g.{}", g.id))),
-                    ),
+                            .child(d)
+                    })),
             )
             .child(
                 div()
@@ -345,7 +346,7 @@ impl Launcher {
                     .bottom(px(28.))
                     .flex()
                     .flex_col()
-                    .child(page_title(&t("learn.title"), &t("learn.subtitle")))
+                    .child(page_title(&t("learn.title"), ""))
                     .child(
                         div()
                             .mt(px(30.))

@@ -385,14 +385,9 @@ impl Launcher {
             return cell;
         }
         let id = e.id.clone();
+        // The row's progress line has the numbers.
         if let Some(job) = v.job {
-            let pct = job
-                .progress
-                .filter(|p| p.total > 0)
-                .map(|p| SharedString::from(format!("{}%", (p.done * 100 / p.total).min(100))));
-            return cell
-                .child(status_text(&t(job_key(job.kind)), faint3()))
-                .children(pct.map(size_hint));
+            return cell.child(status_text(&t(job_key(job.kind)), faint3()));
         }
         match &v.status {
             // Its licence lets us link, not download: say so where Install would be.
@@ -797,9 +792,6 @@ impl Launcher {
                 };
                 about = about.child(small(line));
             }
-            if matches!(v.status, MapStatus::Installed(_)) {
-                about = about.child(small(t("practice.tools_note")));
-            }
             col = col.child(about);
         }
         col
@@ -1019,21 +1011,16 @@ impl Launcher {
                 carry_over,
                 ..
             } => {
-                let mut lines = vec![body(tf(
+                let lines = vec![body(tf(
                     "practice.ask.update.body",
                     &[("worlds", &names(played))],
                 ))];
-                if !carry_over.is_empty() {
-                    lines.push(body(tf(
-                        "practice.ask.update.carry",
-                        &[("what", &keep_what(id))],
-                    )));
-                }
                 let choices = [
                     (UpdateChoice::ReplaceWorlds, "practice.ask.update.replace"),
                     (UpdateChoice::KeepBoth, "practice.ask.update.both"),
                     (UpdateChoice::StoreOnly, "practice.ask.update.later"),
                 ];
+                let keep = (!carry_over.is_empty()).then(|| keep_what(id));
                 let options = choices.into_iter().enumerate().map(|(n, (choice, key))| {
                     let id = id.clone();
                     div()
@@ -1061,7 +1048,14 @@ impl Launcher {
                             inter(13., FontWeight::NORMAL, 1.45)
                                 .text_color(muted3())
                                 .child(wrap(
-                                    &tf(&format!("{key}_hint"), &[("v", to)]),
+                                    // Replacing says what carries over, where something does.
+                                    &match (&keep, choice) {
+                                        (Some(what), UpdateChoice::ReplaceWorlds) => tf(
+                                            "practice.ask.update.replace_keep",
+                                            &[("what", what)],
+                                        ),
+                                        _ => tf(&format!("{key}_hint"), &[("v", to)]),
+                                    },
                                     INTER,
                                     FontWeight::NORMAL,
                                     13.,
@@ -1205,14 +1199,25 @@ impl Launcher {
                 .child(div().h(px(ROW_H)).child(a))
                 .child(div().h(px(ROW_H)).child(b))
         };
-        let tools_tile = self.cat_tile(
-            PracticeSel::Tools,
-            t("v3.practice_tools_tile"),
-            tool_names.into(),
-            None,
-            false,
-            cx,
-        );
+        // The practice mods can't be installed yet, so outside the demo their tile isn't shown and
+        // Blaze takes the whole column.
+        let last_col = if demo::get().is_some() {
+            let tools_tile = self.cat_tile(
+                PracticeSel::Tools,
+                t("v3.practice_tools_tile"),
+                tool_names.into(),
+                None,
+                false,
+                cx,
+            );
+            col(small(3, cx), tools_tile)
+        } else {
+            div()
+                .flex_1()
+                .min_w(px(0.))
+                .h_full()
+                .child(small(3, cx).h_full())
+        };
         let grid = div()
             .mt(px(30.))
             .flex_none()
@@ -1233,7 +1238,7 @@ impl Launcher {
             }))
             .child(col(small(1, cx), small(4, cx)).flex_basis(px(0.)))
             .child(col(small(2, cx), small(5, cx)).flex_basis(px(0.)))
-            .child(col(small(3, cx), tools_tile).flex_basis(px(0.)));
+            .child(last_col.flex_basis(px(0.)));
 
         // The list for the selection, most popular first.
         let (title, rows, notes): (SharedString, Vec<Div>, Vec<SharedString>) = match self
@@ -1329,8 +1334,7 @@ impl Launcher {
                     .flex()
                     .flex_row()
                     .justify_between()
-                    .child(section_head(&title))
-                    .child(label(&t("v3.practice_sort"))),
+                    .child(section_head(&title)),
             )
             // While rows are hidden above or below, they fade into the page at that edge instead
             // of being cut by it (and never run into the header).
@@ -1400,7 +1404,7 @@ impl Launcher {
                     .bottom(px(28.))
                     .flex()
                     .flex_col()
-                    .child(page_title(&t("practice.title"), &t("practice.subtitle")))
+                    .child(page_title(&t("practice.title"), ""))
                     .child(grid)
                     .child(list),
             )

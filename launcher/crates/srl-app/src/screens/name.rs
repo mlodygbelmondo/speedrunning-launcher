@@ -56,7 +56,6 @@ impl Launcher {
                     .w(px(600.))
                     .flex()
                     .flex_col()
-                    .child(eyebrow(&t("name.eyebrow"), accent2()))
                     .child(
                         tight(
                             &t("name.title"),

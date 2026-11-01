@@ -58,6 +58,8 @@ const PANE_W: f32 = 1280. - PANE_X - PANE_R;
 const ROW_H: f32 = 52.;
 /// How long a new note takes to fade and slide in.
 pub const NOTE_MS: f32 = 220.;
+/// How long a new custom instance's row takes to slide into the list.
+pub const ROW_MS: f32 = 320.;
 
 /// An instance the page can show: a game directory under `instances/`.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
@@ -201,6 +203,10 @@ pub struct InstancesView {
     /// the note).
     pub confirm_drawn: Option<Confirm>,
     pub confirm_at: Option<std::time::Instant>,
+    /// The custom instances the list showed last (`None` before the first frame), and the one
+    /// that just joined it, sliding in.
+    pub rows_drawn: Option<Vec<CustomId>>,
+    pub row_in: Option<(CustomId, std::time::Instant)>,
     /// The game log's last lines, read with the scan, for the Logs tab.
     pub tail: Vec<String>,
     /// The seed last copied with "Copy seed" (its button says Copied).
@@ -240,6 +246,8 @@ impl Default for InstancesView {
             note_at: None,
             confirm_drawn: None,
             confirm_at: None,
+            rows_drawn: None,
+            row_in: None,
             tail: Vec::new(),
             copied: None,
             viewing: None,
@@ -585,6 +593,21 @@ impl Launcher {
             v.confirm_at = v.confirm.is_some().then(std::time::Instant::now);
             v.confirm_drawn = v.confirm.clone();
         }
+        let ids: Vec<CustomId> = self
+            .settings
+            .custom_instances
+            .iter()
+            .map(|c| c.id)
+            .collect();
+        let v = &mut self.instances;
+        if v.rows_drawn.as_ref() != Some(&ids) {
+            if let Some(old) = &v.rows_drawn
+                && let Some(new) = ids.iter().find(|id| !old.contains(id))
+            {
+                v.row_in = Some((*new, std::time::Instant::now()));
+            }
+            v.rows_drawn = Some(ids);
+        }
         let key = self.instances.sel;
         let art = self.inst_art(key);
         let fade = self.mode_fade().art;
@@ -656,10 +679,19 @@ impl Launcher {
     fn inst_row(&self, key: InstKey, cx: &mut Context<Self>) -> gpui::Stateful<Div> {
         let on = key == self.instances.sel && self.instances.creating.is_none();
         let busy = self.inst_busy(key);
+        // A row that just joined the list slides in from the left.
+        let f = match (key, self.instances.row_in) {
+            (InstKey::Custom(id), Some((new, at))) if id == new => crate::app::ease_out(
+                (crate::app::ms_since(at, std::time::Instant::now()) / ROW_MS).min(1.0),
+            ),
+            _ => 1.0,
+        };
         div()
             .id(SharedString::from(format!("inst-row-{}", key.id())))
             .group("inst-row")
             .relative()
+            .left(px(-24. * (1.0 - f)))
+            .when(f < 1.0, |d| d.opacity(f))
             .flex_none()
             .h(px(84.))
             .cursor_pointer()

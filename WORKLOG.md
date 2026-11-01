@@ -11,7 +11,7 @@ commicie, który coś zmienia. Najnowsze wpisy dziennika są na górze.
   | Miara | Start | Teraz |
   |---|---|---|
   | 1. Wygląd i dopracowanie | 7,5 | 8 (krytyk, runda 2: 7) |
-  | 2. Ruch i płynność (animacje) | 5 | 8 |
+  | 2. Ruch i płynność (animacje) | 5 | 8,5 |
   | 3. Model instancji (własne instancje: tworzenie, kopia, usuwanie) | 3 | 9 |
   | 4. Zawartość instancji (światy, mody, paczki, konfiguracja, logi) | 4 | 9 |
   | 5. Nawigacja i układ informacji | 7 | 8 (krytyk, runda 2: 7) |
@@ -222,6 +222,10 @@ Potem:
 ## Dziennik
 
 ### 2026-11-01
+
+- **Nowa instancja wjeżdża na listę:** wiersz utworzonej (albo skopiowanej, zaimportowanej) instancji wsuwa się
+  z lewej i rozjaśnia w 320 ms. Lista pamięta pokazane id (`rows_drawn`), więc przy pierwszym wejściu na stronę nic
+  nie wjeżdża. Sprawdzone w Xvfb: zrzut w trakcie, 15 klatek animacji, potem 0.
 
 - **Poprawki po przeglądzie kodu (świeży subagent, nic poważnego):** `wrap_even` ma własną pamięć wyników i
   ograniczoną liczbę kroków (bez pętli przy ogromnej szerokości); w nagłówku instancji „—” tylko dla

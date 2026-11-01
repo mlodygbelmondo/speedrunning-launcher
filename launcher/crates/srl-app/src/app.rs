@@ -1142,6 +1142,13 @@ impl Render for Launcher {
         {
             window.request_animation_frame();
         }
+        if let Some((_, at)) = self.instances.row_in {
+            if ms_since(at, now) < crate::screens::instances::ROW_MS {
+                window.request_animation_frame();
+            } else {
+                self.instances.row_in = None;
+            }
+        }
         if let Some(start) = self.mode_switched {
             if ms_since(start, now) < MODE_MS {
                 window.request_animation_frame();

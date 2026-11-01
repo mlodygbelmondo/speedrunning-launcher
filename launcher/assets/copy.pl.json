@@ -1028,5 +1028,9 @@
   "inst.jvm_problem.loader": "„{arg}” zmienia sposób ładowania modów przez Fabric, a w runach to niedozwolone.",
   "inst.new.other": "Albo przenieś instancję z innego launchera (opcje, konfigurację, paczki; mody będą stąd):",
   "inst.new.looking": "Szukanie Twoich instancji w innych launcherach…",
-  "inst.new.wait_copy": "Poczekaj, aż skończy się trwające kopiowanie."
+  "inst.new.wait_copy": "Poczekaj, aż skończy się trwające kopiowanie.",
+  "inst.view": "Pokaż",
+  "inst.view_hide": "Ukryj",
+  "inst.view_empty": "Plik jest pusty.",
+  "inst.view_failed": "Nie da się go tu pokazać: {why}. Otwórz go zamiast tego."
 }

@@ -974,5 +974,9 @@
   "inst.jvm_problem.loader": "“{arg}” changes how Fabric loads mods, which isn't allowed in runs.",
   "inst.new.other": "Or bring one over from another launcher (its options, configs, packs; mods come from here):",
   "inst.new.looking": "Looking for your instances in other launchers…",
-  "inst.new.wait_copy": "Wait for the copy under way to finish."
+  "inst.new.wait_copy": "Wait for the copy under way to finish.",
+  "inst.view": "View",
+  "inst.view_hide": "Hide",
+  "inst.view_empty": "The file is empty.",
+  "inst.view_failed": "Can't show it here: {why}. Open it instead."
 }

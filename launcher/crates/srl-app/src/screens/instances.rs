@@ -197,6 +197,9 @@ pub struct InstancesView {
     pub tail: Vec<String>,
     /// The seed last copied with "Copy seed" (its button says Copied).
     pub copied: Option<i64>,
+    /// The config file shown in the page (its path in the game directory) and its first lines,
+    /// or why it can't be shown.
+    pub viewing: Option<(String, Result<Vec<SharedString>, SharedString>)>,
     /// The New instance form, in place of the pane.
     pub creating: Option<NewForm>,
     /// Why the name in the New instance or rename field can't be saved.
@@ -229,6 +232,7 @@ impl Default for InstancesView {
             note_at: None,
             tail: Vec::new(),
             copied: None,
+            viewing: None,
             creating: None,
             name_problem: None,
             jvm_problem: None,
@@ -345,6 +349,7 @@ impl Launcher {
         if v.sel != key {
             v.sel = key;
             v.content = None;
+            v.viewing = None;
             v.tail.clear();
             v.scroll.set_offset(gpui::point(px(0.), px(0.)));
         }
@@ -374,6 +379,7 @@ impl Launcher {
             let v = &mut self.instances;
             v.confirm = None;
             v.note = None;
+            v.viewing = None;
             v.scroll.set_offset(gpui::point(px(0.), px(0.)));
             cx.notify();
         }
@@ -1380,11 +1386,18 @@ impl Launcher {
                 .into_any_element(),
             ],
         );
-        let rows = items
-            .iter()
-            .enumerate()
-            .map(|(i, it)| file_row(&c.game_dir, folder, i, it, cx).into_any_element())
-            .collect();
+        let mut rows = Vec::new();
+        for (i, it) in items.iter().enumerate() {
+            let shown = self
+                .instances
+                .viewing
+                .as_ref()
+                .filter(|(rel, _)| *rel == it.rel);
+            rows.push(file_row(&c.game_dir, folder, i, it, shown.is_some(), cx).into_any_element());
+            if let Some((_, lines)) = shown {
+                rows.push(file_view(lines).into_any_element());
+            }
+        }
         (bar, rows)
     }
 
@@ -2487,15 +2500,56 @@ fn row(
         )
 }
 
+/// How many lines, and characters per line, the config viewer shows.
+const VIEW_LINES: usize = 400;
+const VIEW_WIDTH: usize = 110;
+
 fn file_row(
     game_dir: &Path,
     folder: &'static str,
     i: usize,
     it: &content::Item,
+    shown: bool,
     cx: &mut Context<Launcher>,
 ) -> gpui::Stateful<Div> {
     let path = game_dir.join(&it.rel);
     let open = path.clone();
+    let text = content::is_text_file(&it.rel);
+    let rel = it.rel.clone();
+    // A text file opens in the page (and closes again); anything else in the system's program.
+    let toggle = move |this: &mut Launcher, cx: &mut Context<Launcher>| {
+        let v = &mut this.instances;
+        if v.viewing.as_ref().is_some_and(|(r, _)| *r == rel) {
+            v.viewing = None;
+        } else {
+            let lines = content::preview(&path, VIEW_LINES, VIEW_WIDTH)
+                .map(|l| l.into_iter().map(SharedString::from).collect())
+                .map_err(|e| SharedString::from(format!("{e:#}")));
+            v.viewing = Some((rel.clone(), lines));
+        }
+        cx.notify();
+    };
+    let mut actions = Vec::new();
+    if text {
+        let toggle = toggle.clone();
+        actions.push(
+            tertiary(
+                SharedString::from(format!("inst-{folder}-view-{i}")),
+                &t(if shown { "inst.view_hide" } else { "inst.view" }),
+            )
+            .on_click(cx.listener(move |this, _, _, cx| toggle(this, cx)))
+            .into_any_element(),
+        );
+    }
+    actions.push(
+        tertiary(
+            SharedString::from(format!("inst-{folder}-open-{i}")),
+            &t("inst.open"),
+        )
+        .on_click(cx.listener(move |_, _, _, _| open_path(&open)))
+        .into_any_element(),
+    );
+    let target = game_dir.join(&it.rel);
     row(
         SharedString::from(format!("inst-{folder}-{i}")),
         &it.rel,
@@ -2503,17 +2557,50 @@ fn file_row(
         Vec::new(),
         it.modified_ms,
         it.size,
-        vec![
-            tertiary(
-                SharedString::from(format!("inst-{folder}-open-{i}")),
-                &t("inst.open"),
-            )
-            .on_click(cx.listener(move |_, _, _, _| open_path(&open)))
-            .into_any_element(),
-        ],
+        actions,
     )
     .cursor_pointer()
-    .on_click(cx.listener(move |_, _, _, _| open_path(&path)))
+    .on_click(cx.listener(move |this, _, _, cx| {
+        if text {
+            toggle(this, cx);
+        } else {
+            open_path(&target);
+        }
+    }))
+}
+
+/// A config file's first lines under its row, in the page.
+fn file_view(lines: &Result<Vec<SharedString>, SharedString>) -> Div {
+    let body = match lines {
+        Ok(lines) if lines.is_empty() => vec![label(&t("inst.view_empty")).into_any_element()],
+        Ok(lines) => lines
+            .iter()
+            .map(|l| {
+                plex(11., FontWeight::NORMAL)
+                    .h(px(16.))
+                    .whitespace_nowrap()
+                    .text_color(muted3())
+                    .child(l.clone())
+                    .into_any_element()
+            })
+            .collect(),
+        Err(why) => vec![
+            inter(12., FontWeight::MEDIUM, 1.3)
+                .text_color(behind3())
+                .child(tf("inst.view_failed", &[("why", why)]))
+                .into_any_element(),
+        ],
+    };
+    div()
+        .mb(px(10.))
+        .px(px(16.))
+        .py(px(12.))
+        .bg(text3a(0.03))
+        .border_1()
+        .border_color(line3())
+        .flex()
+        .flex_col()
+        .children(body)
 }
 
 fn name_problem(p: NameProblem) -> SharedString {

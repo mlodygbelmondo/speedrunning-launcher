@@ -445,6 +445,63 @@ pub fn tail(path: &Path, n: usize) -> Vec<String> {
     lines
 }
 
+/// Whether a config file is text worth showing in the launcher (by its extension).
+pub fn is_text_file(rel: &str) -> bool {
+    const TEXT: [&str; 14] = [
+        "json",
+        "json5",
+        "txt",
+        "toml",
+        "properties",
+        "cfg",
+        "conf",
+        "yml",
+        "yaml",
+        "ini",
+        "csv",
+        "md",
+        "snbt",
+        "log",
+    ];
+    rel.rsplit_once('.')
+        .is_some_and(|(_, ext)| TEXT.contains(&ext.to_ascii_lowercase().as_str()))
+}
+
+/// The first lines of a text file for the in-app viewer: at most 256 KB read and `max_lines`
+/// lines, each long line cut into `width`-character pieces (a one-line JSON stays readable),
+/// tabs as four spaces. Not UTF-8, or unreadable: why, in English.
+pub fn preview(path: &Path, max_lines: usize, width: usize) -> Result<Vec<String>> {
+    use std::io::Read;
+    let mut buf = Vec::new();
+    fs::File::open(path)
+        .with_context(|| format!("opening {}", path.display()))?
+        .take(256 * 1024)
+        .read_to_end(&mut buf)?;
+    let text = std::str::from_utf8(&buf).or_else(|e| {
+        // A cut in the middle of a character at the 256 KB mark is still text.
+        if e.error_len().is_none() {
+            Ok(std::str::from_utf8(&buf[..e.valid_up_to()]).unwrap_or_default())
+        } else {
+            Err(anyhow::anyhow!("not a text file"))
+        }
+    })?;
+    let mut out = Vec::new();
+    'lines: for line in text.lines() {
+        let line = line.replace('\t', "    ");
+        let chars: Vec<char> = line.chars().collect();
+        if chars.is_empty() {
+            out.push(String::new());
+        }
+        for piece in chars.chunks(width.max(1)) {
+            if out.len() == max_lines {
+                break 'lines;
+            }
+            out.push(piece.iter().collect());
+        }
+    }
+    Ok(out)
+}
+
 /// Sample content for the fake backend's screenshots (`SRL_FAKE=1`): a shared 1.16.1 directory with
 /// a few played worlds, a pile of reset worlds, two resource packs (one on), configs, screenshots
 /// and logs. Written only into an empty `game_dir`.
@@ -566,6 +623,21 @@ mod tests {
         let _ = fs::remove_dir_all(&d);
         fs::create_dir_all(&d).unwrap();
         d
+    }
+
+    #[test]
+    fn text_previews_wrap_and_stop() {
+        let d = tmp("preview");
+        let f = d.join("a.json");
+        fs::write(&f, format!("{{\n\t\"k\": 1\n}}\n{}\n", "x".repeat(25))).unwrap();
+        let lines = preview(&f, 100, 10).unwrap();
+        assert_eq!(lines[1], "    \"k\": 1");
+        assert_eq!(&lines[3..], ["xxxxxxxxxx", "xxxxxxxxxx", "xxxxx"]);
+        assert_eq!(preview(&f, 2, 10).unwrap().len(), 2);
+        fs::write(&f, [0xff, 0xfe, 0x00]).unwrap();
+        assert!(preview(&f, 10, 10).is_err());
+        assert!(is_text_file("options/Atum.JSON") && !is_text_file("x.png"));
+        let _ = fs::remove_dir_all(&d);
     }
 
     #[test]

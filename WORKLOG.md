@@ -12,11 +12,11 @@ commicie, który coś zmienia. Najnowsze wpisy dziennika są na górze.
   |---|---|---|
   | 1. Wygląd i dopracowanie | 7,5 | 8 |
   | 2. Ruch i płynność (animacje) | 5 | 8 |
-  | 3. Model instancji (własne instancje: tworzenie, kopia, usuwanie) | 3 | 8,5 |
-  | 4. Zawartość instancji (światy, mody, paczki, konfiguracja, logi) | 4 | 8,5 |
+  | 3. Model instancji (własne instancje: tworzenie, kopia, usuwanie) | 3 | 9 |
+  | 4. Zawartość instancji (światy, mody, paczki, konfiguracja, logi) | 4 | 9 |
   | 5. Nawigacja i układ informacji | 7 | 8,5 |
   | 6. Teksty EN i PL | 7 | 8 |
-  | 7. Odporność i bezpieczeństwo danych | 7,5 | 8,5 |
+  | 7. Odporność i bezpieczeństwo danych | 7,5 | 9 |
   | 8. Wydajność (bezczynność 0 klatek, start) | 9 | 9 |
   | 9. Jakość kodu i testy | 8 | 8,5 |
   | 10. Wartość dla speedrunnera (legalność, narzędzia, trening, staty) | 8 | 9 |
@@ -222,6 +222,11 @@ Potem:
 ## Dziennik
 
 ### 2026-11-01
+
+- **Podgląd konfiguracji w launcherze:** na karcie Konfiguracja pliki tekstowe (json, txt, toml, properties, cfg,
+  yml…) mają „Pokaż”: pierwsze 400 linii pod wierszem, długie linie łamane co 110 znaków (jednowierszowy JSON
+  da się czytać); kliknięcie wiersza też pokazuje i chowa. Inne pliki dalej otwierają się w programie systemu.
+  Plik nie-UTF-8 dostaje komunikat zamiast śmieci. `content::preview` z testem.
 
 - **Poprawki po drugim przeglądzie (świeży subagent):**
   1. Skopiowane światy (kopia albo import ze światami) liczyły się w Statystykach dwa razy: światy o tym samym

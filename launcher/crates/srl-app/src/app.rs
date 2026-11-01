@@ -45,7 +45,8 @@ const MODE_TEXT_MS: f32 = 280.0;
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum Page {
     Home,
-    Modes,
+    /// Every instance and what's inside it (`screens/instances.rs`).
+    Instances,
     Practice,
     Learn,
     Tools,
@@ -58,8 +59,6 @@ pub enum Page {
     /// "Import my current settings" (full window): offered once on the first start, and from
     /// Settings.
     Import,
-    /// The selected mode's mods, turned on and off (from Modes).
-    Mods,
 }
 
 impl Page {
@@ -121,6 +120,12 @@ pub struct Start {
     pub practice_about: bool,
     /// No deep link: the first start may offer the settings import.
     pub offer_import: bool,
+    /// The Instances page's instance, tab and open question.
+    pub inst: (
+        crate::screens::instances::InstKey,
+        crate::screens::instances::Tab,
+        Option<crate::screens::instances::Confirm>,
+    ),
 }
 
 /// A confirmation the Practice page shows over itself (`Question`), with the player's choice so
@@ -209,6 +214,7 @@ pub struct Launcher {
     pub import: crate::screens::import::ImportView,
     /// The Mods page: its list's scroll and the last jar that could not be added.
     pub mods: crate::screens::mods::ModsView,
+    pub instances: crate::screens::instances::InstancesView,
     /// The launcher's own update, as the backend last reported it.
     pub update: UpdateState,
 }
@@ -357,8 +363,17 @@ impl Launcher {
                 ..Default::default()
             },
             mods: Default::default(),
+            instances: crate::screens::instances::InstancesView {
+                sel: start.inst.0,
+                tab: start.inst.1,
+                confirm: start.inst.2.clone(),
+                ..Default::default()
+            },
             update,
         };
+        if this.shown == Page::Instances {
+            this.rescan(cx);
+        }
         // Stats on start: the records (Home's PBs) and the APIs from their cache only, no
         // network. A deep link to Stats opens it like a click would.
         this.backend.stats().scan();
@@ -700,6 +715,10 @@ impl Launcher {
         if to == Page::Tools && self.target != Page::Tools {
             self.backend().tools().reload();
         }
+        // The player may have played, added or deleted something since.
+        if to == Page::Instances && self.target != Page::Instances {
+            self.rescan(cx);
+        }
         // The player may have played or deleted a practice world since.
         if to == Page::Practice && self.target != Page::Practice {
             self.backend().practice().reload();
@@ -791,7 +810,7 @@ impl Launcher {
     fn page(&mut self, window: &mut Window, cx: &mut Context<Self>) -> AnyElement {
         match self.shown {
             Page::Home => self.render_home(cx),
-            Page::Modes => self.render_modes(cx),
+            Page::Instances => self.render_instances(cx),
             Page::Practice => self.render_practice(cx),
             Page::Learn => self.render_learn(cx),
             Page::Stats => self.render_stats(cx),
@@ -800,7 +819,6 @@ impl Launcher {
             Page::Game => self.render_game(cx),
             Page::Name => self.render_name(window, cx),
             Page::Import => self.render_import(window, cx),
-            Page::Mods => self.render_mods(cx),
         }
     }
 }

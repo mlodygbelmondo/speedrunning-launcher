@@ -1,5 +1,5 @@
 //! Mods: turn the selected mode's mods on and off, the way MultiMC does, and add jars of your
-//! own. Opened from Modes. Ranked, RSG, FSG and SSG play in one instance (`srl_core::shared`), so
+//! own. The Mods tab of the Instances page. Ranked, RSG, FSG and SSG play in one instance (`srl_core::shared`), so
 //! a mode here is a set of mods; the changes go into `Settings::mod_choices` and apply on the next
 //! Play. A set that makes the run not legal for the mode says so, and the game still starts.
 use std::path::PathBuf;
@@ -12,15 +12,12 @@ use srl_core::Mode;
 use srl_mods::{Available, Concern, CustomJar};
 
 use crate::{
-    app::{Launcher, Page},
+    app::Launcher,
     catalog,
     copy::{fill, t, t_opt, tf},
     v3::*,
 };
 
-const LEFT: f32 = 64.;
-const LEFT_W: f32 = 420.;
-const LIST_X: f32 = 532.;
 const ROW_H: f32 = 60.;
 
 /// The Mods page's own state.
@@ -32,9 +29,10 @@ pub struct ModsView {
 }
 
 impl Launcher {
+    /// The Instances page on the selected mode's Mods tab (Play's "fix the mods" link).
     pub fn open_mods(&mut self, cx: &mut Context<Self>) {
         self.mods.note = None;
-        self.navigate(Page::Mods, cx);
+        self.open_instances(Some(super::instances::Tab::Mods), cx);
     }
 
     fn toggle_mod(&mut self, mode: Mode, row: &Available, cx: &mut Context<Self>) {
@@ -98,65 +96,19 @@ impl Launcher {
         cx.notify();
     }
 
-    pub fn render_mods(&mut self, cx: &mut Context<Self>) -> AnyElement {
-        let mi = self.mode_sel;
-        let mode = self.mode(mi);
+    /// The Instances page's Mods tab for `mode`: whether the set is legal, adding a jar and going
+    /// back to the mode's set, then every mod the player can turn on or off.
+    pub fn inst_mods(&mut self, mode: Mode, cx: &mut Context<Self>) -> AnyElement {
+        let mi = crate::backend::index(mode);
         let short = catalog::MODES[mi].short;
         let info = &self.modes[mi].info;
         let rows: Vec<Available> = info.catalogue.clone().unwrap_or_default();
         let concerns = info.concerns.clone();
+        let known = info.catalogue.is_some();
         let changed = self.settings.mods_changed(mode);
+        let on = rows.iter().filter(|r| r.on).count();
 
-        let body = if mode.is_shared() {
-            t("mods.body")
-        } else {
-            t("mods.body_draftout")
-        };
-        let mut left = div()
-            .absolute()
-            .left(px(LEFT))
-            .top(px(104.))
-            .w(px(LEFT_W))
-            .flex()
-            .flex_col()
-            .child(kicker(&tf("mods.eyebrow", &[("mode", short)]), accent2()))
-            .child(
-                tight(
-                    &t("mods.title"),
-                    64.,
-                    FontWeight::EXTRA_BOLD,
-                    -0.03,
-                    0.95,
-                    text3(),
-                )
-                .mt(px(12.)),
-            )
-            .child(
-                inter(14., FontWeight::NORMAL, 1.5)
-                    .mt(px(14.))
-                    .whitespace_nowrap()
-                    .text_color(muted3())
-                    .child(wrap(&body, INTER, FontWeight::NORMAL, 14., LEFT_W)),
-            )
-            .child(self.mode_chips(cx))
-            .child(concern_block(
-                mode,
-                short,
-                &concerns,
-                info.catalogue.is_some(),
-            ));
-
-        let mut actions = div()
-            .mt(px(22.))
-            .flex()
-            .flex_row()
-            .flex_wrap()
-            .items_center()
-            .gap(px(24.))
-            .child(
-                secondary("mods-add", &t("mods.add"))
-                    .on_click(cx.listener(move |this, _, _, cx| this.pick_jar(mode, cx))),
-            );
+        let mut actions = div().flex().flex_row().items_center().gap(px(20.));
         if changed {
             actions = actions.child(
                 tertiary("mods-reset", &tf("mods.reset", &[("mode", short)]))
@@ -164,61 +116,49 @@ impl Launcher {
             );
         }
         actions = actions.child(
-            tertiary("mods-back", &t("mods.back"))
-                .on_click(cx.listener(|this, _, _, cx| this.navigate(Page::Modes, cx))),
+            secondary("mods-add", &t("mods.add"))
+                .on_click(cx.listener(move |this, _, _, cx| this.pick_jar(mode, cx))),
         );
-        left = left.child(actions);
-        if let Some(note) = &self.mods.note {
-            left = left.child(
-                inter(12., FontWeight::NORMAL, 1.4)
-                    .mt(px(12.))
-                    .whitespace_nowrap()
-                    .text_color(behind3())
-                    .child(wrap(
-                        &tf("mods.add_failed", &[("error", note)]),
-                        INTER,
-                        FontWeight::NORMAL,
-                        12.,
-                        LEFT_W,
-                    )),
-            );
-        }
-        left = left.child(
-            inter(12., FontWeight::NORMAL, 1.4)
-                .mt(px(16.))
-                .text_color(faint3())
-                .child(t("mods.next_play")),
-        );
+        let bar = div()
+            .flex_none()
+            .h(px(52.))
+            .flex()
+            .flex_row()
+            .items_center()
+            .gap(px(20.))
+            .when(!rows.is_empty(), |d| {
+                d.child(label(&tf(
+                    "mods.count",
+                    &[("on", &on.to_string()), ("all", &rows.len().to_string())],
+                )))
+            })
+            .child(div().flex_1())
+            .child(
+                inter(12., FontWeight::NORMAL, 1.)
+                    .text_color(faint3())
+                    .child(t("mods.next_play")),
+            )
+            .child(actions);
 
-        let on = rows.iter().filter(|r| r.on).count();
-        let list_w = 1280. - LIST_X - 48.;
+        let list_w = 1280. - 388. - 48.;
         let items: Vec<AnyElement> = rows
             .iter()
             .enumerate()
             .map(|(i, r)| self.mod_row(i, mode, r, list_w, cx).into_any_element())
             .collect();
-        let list = div()
-            .absolute()
-            .left(px(LIST_X))
-            .right(px(48.))
-            .top(px(104.))
-            .bottom(px(40.))
+        let note = self.mods.note.clone().map(|note| {
+            inter(12., FontWeight::NORMAL, 1.4)
+                .pb(px(8.))
+                .text_color(behind3())
+                .child(tf("mods.add_failed", &[("error", &note)]))
+        });
+        div()
+            .size_full()
             .flex()
             .flex_col()
-            .child(
-                div()
-                    .flex()
-                    .flex_row()
-                    .justify_between()
-                    .pb(px(10.))
-                    .child(section_head(&t("mods.list")))
-                    .when(!rows.is_empty(), |d| {
-                        d.child(label(&tf(
-                            "mods.count",
-                            &[("on", &on.to_string()), ("all", &rows.len().to_string())],
-                        )))
-                    }),
-            )
+            .child(bar)
+            .children(note)
+            .child(concern_block(mode, short, &concerns, known, list_w).pb(px(12.)))
             .child(
                 div()
                     .flex_1()
@@ -238,27 +178,8 @@ impl Launcher {
                     // being cut by it (as on Learn).
                     .child(fade_above(self.mods.scroll.clone(), 28.))
                     .child(fade_below(self.mods.scroll.clone(), 40.)),
-            );
-
-        div()
-            .size_full()
-            .relative()
-            .children(self.hero_images())
-            .child(overlay(bg3a(0.9)))
-            .child(shade_up(1.0, 0.0, 0.6))
-            .child(left)
-            .child(list)
+            )
             .into_any_element()
-    }
-
-    /// The modes as small tabs: the page follows the selected mode.
-    fn mode_chips(&self, cx: &mut Context<Self>) -> Div {
-        div().mt(px(20.)).flex().flex_row().gap(px(6.)).children(
-            catalog::MODES.iter().enumerate().map(|(i, d)| {
-                chip(("mods-mode", i), d.short, i == self.mode_sel, false)
-                    .on_click(cx.listener(move |this, _, _, cx| this.select_mode(i, cx)))
-            }),
-        )
     }
 
     fn mod_row(
@@ -366,8 +287,8 @@ fn mode_category(mode: Mode) -> &'static str {
 }
 
 /// Whether the set is legal for the mode, and if not, why, one line per mod.
-fn concern_block(mode: Mode, short: &str, concerns: &[Concern], known: bool) -> Div {
-    let block = div().mt(px(22.)).flex().flex_col().gap(px(6.));
+fn concern_block(mode: Mode, short: &str, concerns: &[Concern], known: bool, w: f32) -> Div {
+    let block = div().flex().flex_col().gap(px(6.));
     if !known {
         return block.child(
             inter(13., FontWeight::MEDIUM, 1.3)
@@ -415,7 +336,7 @@ fn concern_block(mode: Mode, short: &str, concerns: &[Concern], known: bool) -> 
                     INTER,
                     FontWeight::NORMAL,
                     12.,
-                    LEFT_W - 14.,
+                    w - 14.,
                 )),
         );
     }

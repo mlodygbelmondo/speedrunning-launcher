@@ -207,6 +207,23 @@ Potem:
 
 ### 2026-11-01
 
+- **Strona Instancje zamiast Trybów** (prośba Piotra: launcher ma myśleć instancjami, z podglądem światów, modów,
+  konfiguracji). Nowa zakładka w nawigacji: po lewej instancje (Speedrun 1.16.1 dla Ranked, RSG, FSG i SSG,
+  Draftout, Mapy treningowe), po prawej wybrana: Graj z wyborem trybu, liczby (światy, rozmiar, mody, Java) i karty:
+  - **Światy:** lista z nazwą z `level.dat`, trybem (dla wspólnej instancji), datą i rozmiarem; Otwórz, Usuń (do
+    `<dane>/trash/`). „Posprzątaj N światów z resetów” usuwa na zawsze tylko światy o nazwach z Atum/SeedQueue
+    („Random Speedrun #N”, „Set Speedrun #N”, „New World”, „Practice Seed”), po potwierdzeniu; nazwane zostają.
+  - **Mody:** dawna strona Mody jako karta (ta sama lista, legalność, własny jar).
+  - **Paczki zasobów:** włączanie i wyłączanie (zapis do `options.txt`, atomowo), dodawanie `.zip`, usuwanie do
+    kosza; w czasie gry zablokowane, bo gra nadpisuje opcje przy wyjściu.
+  - **Konfiguracja, Zrzuty ekranu, Logi:** pliki otwierane w programie systemu, miniatury 24 najnowszych zrzutów,
+    koniec `latest.log` na miejscu.
+  - **Ustawienia:** pamięć trybu, narzędzia startujące z grą, folder.
+  Praca na plikach w tle (`backend/content.rs`, 6 testów). Stare identyfikatory `modes*`/`mods*` otwierają
+  Instancje. Strona Tryby usunięta (jej pytanie „Tryby względem Startu” z oceny ekranów tym samym zamknięte).
+  Sprawdzone w Xvfb: wszystkie karty, sprzątanie usuwa 44 z 47 światów próbki i zostawia 3 nazwane.
+  Własne instancje (tworzenie, kopiowanie, usuwanie) robi równolegle subagent w osobnym worktree.
+
 - **Przejście między trybami na Starcie** (prośba Piotra: „brakuje animacji”). Klik w kafelek trybu: nowa grafika
   przenika starą przez 420 ms, a tytuł, opis, Graj, liczby po prawej i pasek pod spodem wjeżdżają 10 px z dołu
   z przezroczystości (280 ms, liczby chwilę później). Klatki tylko w czasie przejścia: w Xvfb 28 klatek na

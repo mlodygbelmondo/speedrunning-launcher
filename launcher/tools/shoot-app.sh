@@ -24,7 +24,8 @@ suffix=${SHOOT_SUFFIX:-}
 out=${1:?outDir}; shift || true
 ids=("$@")
 # Every screen id (crates/srl-app/README.md "Screen ids").
-[ ${#ids[@]} -gt 0 ] || ids=(home home-rsg home-fsg home-ssg home-draftout modes modes-ssg practice practice-end
+[ ${#ids[@]} -gt 0 ] || ids=(home home-rsg home-fsg home-ssg home-draftout instances instances-packs instances-config
+  instances-screenshots instances-logs instances-settings instances-cleanup instances-draftout practice practice-end
   learn tools tools-installing tools-update tools-failed stats stats-scanning stats-empty stats-unknown
   stats-offline stats-unreachable stats-new settings settings-stats settings-credits home-stats home-rsg-stats
   name installing error crash stopped-draftout running account account-list login login-nobrowser login-steps

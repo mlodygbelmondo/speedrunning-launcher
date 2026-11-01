@@ -34,7 +34,7 @@ output, and when CI pipes the output it writes there.
 | `src/main.rs` | Startup, the window, the dev switches and the `SRL_SCREEN` deep links. |
 | `src/app.rs` | `Launcher`, the root view: pages, navigation, the page transition, backend events. |
 | `src/shell.rs` | The top nav and the account block. |
-| `src/screens/*.rs` | One file per screen: `home`, `modes`, `practice`, `learn`, `tools`, `stats`, `settings` (with the credits view), `game` (Minecraft is running), `name` (first-run prompt), `import` (the settings import); `play` (Play button, progress, errors) and `field` (text input) are shared. |
+| `src/screens/*.rs` | One file per screen: `home`, `instances` (with `mods`, its Mods tab), `practice`, `learn`, `tools`, `stats`, `settings` (with the credits view), `game` (Minecraft is running), `name` (first-run prompt), `import` (the settings import); `play` (Play button, progress, errors) and `field` (text input) are shared. |
 | `src/v3.rs` | Tokens and primitives ported from the prototype (letter-spacing, rings, pixel corners, gradients, the fade veil), and the UI system every screen uses (below, "Buttons and labels"). |
 | `src/backend.rs` | The facade and the settings file. |
 | `src/backend/pipeline.rs` | What Play does, over `srl-game`, `srl-mods` and `srl-tools`: `Core::prepare` (metadata, game, mods, the tools), `Core::launch` (through the tools' launch hook, then the tools start), `Game::startup` (title screen or startup failure), `Game::wait` (the game and its tools), `Core::install_tool`, `Core::local_state` (the start-up check). Shared by the window and the CLI. |
@@ -48,6 +48,7 @@ output, and when CI pipes the output it writes there.
 | `src/backend/practice.rs` | The practice extension of the facade: `PracticeMaps`, `PracticeSnapshot`, `PracticeEvent`, `RealPractice` (srl-practice built once, and the practice game through the pipeline) and `FakePractice`. Decides what the practice instance runs (`target`, `mod_set`, `TOOLS_LIKE`). |
 | `src/backend/importer.rs` | The settings import's extension of the facade: `Importer`, `ImportEvent`, `ImportResult`, `targets` (every mode and the practice instance, Draftout with its seeded line), `effective` (the ticks a source can bring), `RealImport` (srl-import on the blocking pool, instances whose game runs or installs left out) and `FakeImport` (`ImportPreset`). |
 | `src/backend/update.rs` | The launcher's own update (srl-update): `Updates`, `UpdateState`, `RealUpdates` (when a build checks, the check on start and by hand, the swap right after the verified download, Restart) and `FakeUpdates` (`UpdatePreset`). Settings → About shows it; the gear in the top nav carries an accent square while an update is ready. |
+| `src/screens/instances.rs` | The Instances page (`InstancesView`): the instances on the left; the selected one's Play, facts and tabs (worlds with the reset-world clean-up, mods, resource packs, config, screenshots, logs, settings). The folder work is `backend/content.rs`, run with `cx.background_spawn`. Single deletes go to `<data>/trash/`; only the clean-up deletes for good. |
 | `src/screens/import.rs` | The Import page (`ImportView`): the instances found, "Choose folder…", the four ticks, Import, the result; the first start's offer. |
 | `src/cli.rs` | The headless command line. |
 | `src/catalog.rs` | Static data: modes, their layers, the practice maps (srl-practice's catalogue, the one source), Practice's categories and tools (`assets/practice.json`), Learn's topics and guides (`assets/learn.json`). |
@@ -69,7 +70,7 @@ Every screen takes its buttons and labels from `src/v3.rs`, never its own:
   whose rules ban the tool. `disclosure` opens and closes a block ("About this map").
 - **Labels.** Tracked caps (`caps`) only in the top nav, on the primary buttons and in one
   `eyebrow` per hero (Home, the game screen, the name prompt, the data-folder problem). Other
-  pages put the same line in sentence case (`kicker`: Modes, Mods, Learn). Section heads are
+  pages put the same line in sentence case (`kicker`: Instances, Learn). Section heads are
   `section_head`, a label over a value or a column is `label`, a value with its label is `fact`,
   a status word is `status_text` (`status_dot` with its square). `upper` never upper-cases a
   version ("v1.2.2").
@@ -324,7 +325,8 @@ Learn is real: other runners' guides in `assets/learn.json`, each with its autho
 | Id | Shows |
 |---|---|
 | `home`, `home-<mode>` | Home with that mode selected. |
-| `modes`, `modes-<mode>` | Modes with that mode selected. |
+| `instances[-<instance>][-<tab>][-cleanup]` | Instances: `shared` (default), `draftout` or `practice`; tab `worlds` (default), `mods`, `packs`, `config`, `screenshots`, `logs`, `settings`; `cleanup` asks to delete the reset worlds. With the fake backend the shared instance gets sample content (`content::write_sample`: 47 worlds, two packs, configs, screenshots, logs) in the throwaway `SRL_HOME`. |
+| `modes`, `modes-<mode>` | Instances on that mode's instance (the Modes page became Instances). |
 | `practice`, `practice-<category>`, `practice-tools` | Practice; categories `all-in-one`, `overworld`, `bastion`, `blaze`, `stronghold`, `end`. Nothing installed. |
 | `practice-installed` | Overworld with maps installed (BT Practice fresh and open, Portal Practice v2 played; Zero Practice with an update, The MCSR Practice Map and End Portal Fill elsewhere). |
 | `practice-about` | The same with BT Practice's "About this map" open. |
@@ -354,7 +356,7 @@ Learn is real: other runners' guides in `assets/learn.json`, each with its autho
 | `import` | The Import page as the first start offers it (Skip): MultiMC's RSG selected, Prism's Ranked, MCSR Launcher's MCSR Ranked and the official `.minecraft` (1.21.4). |
 | `import-scanning`, `import-none`, `import-other` | The same while the scan runs; with nothing found; with only instances on other versions (only keys, mouse and FOV can come over). |
 | `import-importing`, `import-done` | An import 412 of 1038 files through; the result (everything into the 1.16.1 modes, keys into Draftout, RSG's backup). |
-| `mods`, `mods-<mode>` | The Mods page of the mode (Ranked by default): the mode's set first, then every other mod the lists know for its version; `SHOOT_SETTINGS='"mod_choices":{...}'` shows changes and their concerns. |
+| `mods`, `mods-<mode>` | Instances on the Mods tab of the mode (Ranked by default): the mode's set first, then every other mod the lists know for its version; `SHOOT_SETTINGS='"mod_choices":{...}'` shows changes and their concerns. |
 | `installing`, `installing-<mode>` | Home with the mode installing (assets, 148 of 352 MB). |
 | `error`, `error-<mode>` | Home with the mode's last install failed. |
 | `crash`, `crash-<mode>` | Home with the game closed while starting (exit code 1 and its last log message). |

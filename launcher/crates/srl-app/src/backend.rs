@@ -23,6 +23,7 @@ use serde::{Deserialize, Serialize};
 use srl_core::{Mode, Progress};
 
 pub mod account;
+pub mod content;
 mod fake;
 pub mod importer;
 pub mod pipeline;
@@ -613,6 +614,37 @@ pub fn open_folder(dir: &Path) {
             std::thread::spawn(move || child.wait());
         }
         Err(e) => eprintln!("could not open {} with {program}: {e}", dir.display()),
+    }
+}
+
+/// Opens `path` (a file: a config, a log, a screenshot) in the app the system picks for it,
+/// without waiting. Unlike `open_folder`, creates nothing. A failure is only logged.
+pub fn open_path(path: &Path) {
+    let (program, args): (&str, &[&str]) = if cfg!(windows) {
+        // `start` is a cmd built-in; the empty title keeps a quoted path from becoming the title.
+        ("cmd", &["/C", "start", ""])
+    } else if cfg!(target_os = "macos") {
+        ("open", &[])
+    } else {
+        ("xdg-open", &[])
+    };
+    let mut cmd = std::process::Command::new(program);
+    cmd.args(args)
+        .arg(path)
+        .stdin(std::process::Stdio::null())
+        .stdout(std::process::Stdio::null())
+        .stderr(std::process::Stdio::null());
+    #[cfg(windows)]
+    {
+        use std::os::windows::process::CommandExt;
+        // CREATE_NO_WINDOW: no console flashes up for cmd.
+        cmd.creation_flags(0x0800_0000);
+    }
+    match cmd.spawn() {
+        Ok(mut child) => {
+            std::thread::spawn(move || child.wait());
+        }
+        Err(e) => eprintln!("could not open {} with {program}: {e}", path.display()),
     }
 }
 

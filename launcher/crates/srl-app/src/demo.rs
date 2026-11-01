@@ -85,13 +85,6 @@ pub struct Runs {
 }
 
 #[derive(Deserialize)]
-pub struct Layer {
-    #[serde(default)]
-    pub detail: Option<String>,
-    pub mods: Vec<(String, String)>,
-}
-
-#[derive(Deserialize)]
 pub struct MapDemo {
     pub status: String,
     pub downloads: String,
@@ -108,7 +101,6 @@ pub struct Demo {
     pub ranked: Ranked,
     pub runs: HashMap<String, Runs>,
     pub key_tools: HashMap<String, String>,
-    pub layers: HashMap<String, Layer>,
     pub maps: HashMap<String, MapDemo>,
     pub tools: HashMap<String, String>,
 }

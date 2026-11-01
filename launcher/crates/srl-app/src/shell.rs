@@ -17,7 +17,7 @@ use crate::{
 /// Nav items, in order: copy key and page.
 const NAV: [(&str, Page); 6] = [
     ("nav.play", Page::Home),
-    ("nav.modes", Page::Modes),
+    ("nav.instances", Page::Instances),
     ("nav.practice", Page::Practice),
     ("nav.learn", Page::Learn),
     ("nav.tools", Page::Tools),
@@ -123,11 +123,7 @@ impl Launcher {
     }
 
     pub fn top_nav(&self, cx: &mut Context<Self>) -> Div {
-        // Mods belongs to Modes.
-        let active = match self.shown {
-            Page::Mods => Page::Modes,
-            page => page,
-        };
+        let active = self.shown;
 
         let brand = div()
             .id("nav-brand")

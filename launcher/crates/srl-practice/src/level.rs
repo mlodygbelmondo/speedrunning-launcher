@@ -174,6 +174,35 @@ pub fn parse(raw: &[u8]) -> Result<LevelInfo> {
     Ok(r.info)
 }
 
+/// A minimal 1.16.1 `level.dat` (gzip NBT: `Data.DataVersion`, `Data.LevelName`,
+/// `Data.Version.Name`) for sample worlds: the launcher's screenshot data and other crates' tests.
+pub fn sample_level_dat(name: &str) -> Vec<u8> {
+    use std::io::Write;
+    fn named(out: &mut Vec<u8>, tag: u8, name: &str) {
+        out.push(tag);
+        out.extend((name.len() as u16).to_be_bytes());
+        out.extend(name.as_bytes());
+    }
+    fn string(out: &mut Vec<u8>, s: &str) {
+        out.extend((s.len() as u16).to_be_bytes());
+        out.extend(s.as_bytes());
+    }
+    let mut n = Vec::new();
+    named(&mut n, 10, "");
+    named(&mut n, 10, "Data");
+    named(&mut n, 3, "DataVersion");
+    n.extend(2567i32.to_be_bytes());
+    named(&mut n, 8, "LevelName");
+    string(&mut n, name);
+    named(&mut n, 10, "Version");
+    named(&mut n, 8, "Name");
+    string(&mut n, "1.16.1");
+    n.extend([0, 0, 0]);
+    let mut e = flate2::write::GzEncoder::new(Vec::new(), flate2::Compression::fast());
+    e.write_all(&n).expect("writing to a Vec");
+    e.finish().expect("writing to a Vec")
+}
+
 #[cfg(test)]
 pub(crate) mod tests {
     use super::*;

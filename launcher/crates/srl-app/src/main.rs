@@ -45,6 +45,7 @@ use backend::{
     AccountsPreset, Backend, FakeBackend, FakeOptions, ImportPreset, Language, ModeState,
     PracticePreset, RealBackend, Settings, StatsPreset, ToolsPreset, UpdatePreset,
 };
+use screens::instances::{Confirm, InstKey, Tab};
 
 fn flag(name: &str) -> bool {
     std::env::var(name)
@@ -158,6 +159,7 @@ fn deep_link(id: &str, data_dir: &Path) -> Option<(Start, Option<Preset>)> {
         practice_open: None,
         practice_about: false,
         offer_import: false,
+        inst: (InstKey::Shared, Tab::Worlds, None),
     };
     // `home-stats`, `home-<mode>-stats`: Home with the stats sample (PB, sum of best, elo).
     if let Some(home) = id.strip_suffix("-stats").filter(|h| h.starts_with("home")) {
@@ -183,13 +185,39 @@ fn deep_link(id: &str, data_dir: &Path) -> Option<(Start, Option<Preset>)> {
     let mut preset = None;
     match base {
         "home" => pick_mode(&mut start)?,
-        "modes" => {
+        // The Modes page became Instances; its old ids open the instance of the mode.
+        "modes" | "mods" => {
             pick_mode(&mut start)?;
-            start.page = Page::Modes;
+            start.page = Page::Instances;
+            let key = if start.mode.is_shared() {
+                InstKey::Shared
+            } else {
+                InstKey::Draftout
+            };
+            let tab = if base == "mods" {
+                Tab::Mods
+            } else {
+                Tab::Worlds
+            };
+            start.inst = (key, tab, None);
         }
-        "mods" => {
-            pick_mode(&mut start)?;
-            start.page = Page::Mods;
+        // `instances[-<instance>][-<tab>][-cleanup]`, e.g. `instances-draftout-logs`.
+        "instances" => {
+            start.page = Page::Instances;
+            for part in mode.unwrap_or("").split('-').filter(|p| !p.is_empty()) {
+                if let Some(k) = InstKey::from_id(part) {
+                    start.inst.0 = k;
+                    if k == InstKey::Draftout {
+                        start.mode = Mode::Draftout;
+                    }
+                } else if let Some(t) = Tab::from_id(part) {
+                    start.inst.1 = t;
+                } else if part == "cleanup" {
+                    start.inst.2 = Some(Confirm::Cleanup);
+                } else {
+                    start.mode = Mode::from_id(part)?;
+                }
+            }
         }
         "practice" => {
             start.page = Page::Practice;
@@ -566,6 +594,20 @@ fn main() {
 
             let (tx, rx) = futures::channel::mpsc::unbounded();
             let backend: Rc<dyn Backend> = if fake {
+                // The Instances page reads real folders: give the shared instance something to
+                // show (worlds, packs, configs, screenshots, logs).
+                // Only in a throwaway home (the screenshot tools set SRL_HOME), never in the
+                // player's real data folder.
+                if std::env::var_os("SRL_HOME").is_some()
+                    && let Err(e) = backend::content::write_sample(
+                        &options
+                            .data_dir
+                            .join("instances")
+                            .join(srl_core::shared::DIR),
+                    )
+                {
+                    eprintln!("sample instance content: {e:#}");
+                }
                 Rc::new(FakeBackend::new(tx, options))
             } else {
                 match RealBackend::new(tx) {

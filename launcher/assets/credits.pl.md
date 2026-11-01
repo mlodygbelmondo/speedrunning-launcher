@@ -10,7 +10,7 @@ Każda grafika to nasz własny render z Blendera z naszymi teksturami. Nie używ
 
 | Font | Autor | Licencja |
 |---|---|---|
-| Archivo (statyczne wersje o szerokości 112, pod nazwą „Archivo SRL”) | Omnibus-Type, autorzy projektu Archivo | SIL Open Font License 1.1 |
+| Archivo (jako „Archivo SRL”) | Omnibus-Type, autorzy projektu Archivo | SIL Open Font License 1.1 |
 | IBM Plex Mono | IBM | SIL Open Font License 1.1 |
 | Inter | Rasmus Andersson, autorzy projektu Inter | SIL Open Font License 1.1 |
 

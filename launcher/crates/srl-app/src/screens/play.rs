@@ -313,10 +313,10 @@ impl Launcher {
             ),
             ModeState::Failed(f) => (
                 t("v3.retry"),
-                // Only an install picks up where it stopped; a launch just starts again.
+                // Only an install picks up where it stopped; that a launch or a sign-in starts
+                // again goes without saying.
                 match f.kind {
-                    FailKind::Launch => t("v3.retry_hint.launch"),
-                    FailKind::SignIn => t("v3.retry_hint.sign_in"),
+                    FailKind::Launch | FailKind::SignIn => SharedString::default(),
                     FailKind::Offline | FailKind::Install => t("v3.retry_hint"),
                 },
                 true,

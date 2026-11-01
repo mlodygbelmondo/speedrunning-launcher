@@ -226,6 +226,16 @@ Potem:
 
 ### 2026-11-01
 
+- **Pętla tekstów, runda 8** (r7: **8,5 i 8,5**). Spójne słowa: mapy „Usuń” wszędzie (tytuł, postęp, „zamknij
+  grę, żeby… usunąć”), trwałe usuwanie zawsze „na dobre”, „Otwórz folder” zamiast „Pokaż folder”, stan bez konta
+  to „offline” („Twój nick, gdy grasz offline”), „Ranked” zamiast „MCSR Ranked” w nagłówkach i polu nicku.
+  Wygasłe logowanie na kaflu to „zaloguj się ponownie”, nie czerwone „błąd”. Kafle PB: „PB · data”. Bez
+  podpowiedzi pod „Spróbuj ponownie” przy starcie i logowaniu (oczywiste), bez „jest v…” przy rozwiniętej mapie
+  (jest „Aktualizuj do v…”), bez nadtytułu wersji w Instancjach, bez opisu kopii zwykłej instancji (kopia
+  wspólnej mówi tylko, jak który tryb gra). Mapa Lamy pod nazwą z jej strony („Lama's Practice Map”, Lama), bez
+  linii prostującej nazwę. Autorzy: „Archivo (jako „Archivo SRL”)”. Krótsze opisy modów (Sodium, Antigone,
+  SpeedrunAPI, CommandQ).
+
 - **Pętla tekstów, runda 7** (r6: **8,5 i 8,5**). Zasada konta bez sprzeczności: „potrzebne raz przed pierwszą
   grą i do każdego meczu”, a nick „używany, gdy nie jesteś zalogowany” (wcześniej „nick offline działa
   wszędzie” kłóciło się z „każdy tryb startuje z tym kontem”). Okno logowania bez rzędu kroków (Microsoft, Xbox

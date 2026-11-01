@@ -455,10 +455,12 @@ impl Launcher {
                         )),
                     )
                     // Where the map is in the game is in the details ("In the Singleplayer
-                    // list"), so only an update needs a word here.
+                    // list"), so only an update needs a word here, and only while the details
+                    // (with "Update to v…") are closed.
                     .children(
                         m.update
                             .as_ref()
+                            .filter(|_| self.practice_open.as_deref() != Some(e.id.as_str()))
                             .map(|new| hint(tf("practice.update_hint", &[("v", new)]))),
                     )
                 }

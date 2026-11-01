@@ -283,18 +283,19 @@ impl Launcher {
             .flex_col()
             .gap(px(10.))
             .child(section_head(&t("inst.copy.head")))
-            .child(
-                inter(12., FontWeight::NORMAL, 1.4)
-                    .text_color(faint3())
-                    .child(
-                        match self.inst_mode(key).filter(|_| key == InstKey::Shared) {
-                            // The shared instance's copy plays as the mode picked on Play.
-                            Some(m) => {
-                                tf("inst.copy.hint_mode", &[("mode", catalog::def(m).short)])
-                            }
-                            None => t("inst.copy.hint"),
-                        },
-                    ),
+            // The shared instance's copy plays as the mode picked on Play, so it says which; any
+            // other copy is simply the same instance again.
+            .children(
+                self.inst_mode(key)
+                    .filter(|_| key == InstKey::Shared)
+                    .map(|m| {
+                        inter(12., FontWeight::NORMAL, 1.4)
+                            .text_color(faint3())
+                            .child(tf(
+                                "inst.copy.hint_mode",
+                                &[("mode", catalog::def(m).short)],
+                            ))
+                    }),
             )
             .child(body)
     }

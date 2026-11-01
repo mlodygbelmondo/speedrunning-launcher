@@ -554,6 +554,10 @@ impl Launcher {
                 Status::Failed if matches!(self.fix(i), Some(super::play::Fix::SignInFirst)) => {
                     Some(Self::tile_badge(&t("v3.sign_in_once"), muted3()))
                 }
+                // Nor is an expired sign-in: nothing broke.
+                Status::Failed if matches!(self.fix(i), Some(super::play::Fix::Relogin)) => {
+                    Some(Self::tile_badge(&t("v3.sign_in_again"), muted3()))
+                }
                 Status::Update | Status::Running | Status::Failed => {
                     Some(Self::tile_badge(&t(status.key()), status.color()))
                 }

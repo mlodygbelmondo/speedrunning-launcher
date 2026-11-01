@@ -897,12 +897,6 @@ impl Launcher {
         let head = div()
             .flex()
             .flex_col()
-            // "Minecraft 1.16.1" over "Speedrun 1.16.1" would say the version twice.
-            .children({
-                let mc = self.inst_minecraft(key);
-                (!self.inst_name(key).contains(mc))
-                    .then(|| kicker(&tf("inst.eyebrow", &[("mc", mc)]), accent2()))
-            })
             .child(
                 tight(
                     &self.inst_name(key),

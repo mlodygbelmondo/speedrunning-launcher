@@ -11,7 +11,7 @@ Every picture is our own Blender render with our own textures. No file from the 
 
 | Font | By | Licence |
 |---|---|---|
-| Archivo (static instances at width 112, named "Archivo SRL") | Omnibus-Type, the Archivo Project Authors | SIL Open Font License 1.1 |
+| Archivo (as “Archivo SRL”) | Omnibus-Type, the Archivo Project Authors | SIL Open Font License 1.1 |
 | IBM Plex Mono | IBM | SIL Open Font License 1.1 |
 | Inter | Rasmus Andersson, the Inter Project Authors | SIL Open Font License 1.1 |
 

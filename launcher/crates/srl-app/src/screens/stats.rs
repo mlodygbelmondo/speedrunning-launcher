@@ -311,7 +311,10 @@ impl Launcher {
         let local = self.stats.local.as_deref();
         let history = local.map(|l| l.mode(mode));
         let pb_body = |h: &RunHistory| match h.headline_pb() {
-            Some(pb) => TileBody::Value(fmt_igt(pb.record.igt_ms), fmt_date(pb.record.date_ms)),
+            Some(pb) => TileBody::Value(
+                fmt_igt(pb.record.igt_ms),
+                tf("stats.pb_date", &[("date", &fmt_date(pb.record.date_ms))]),
+            ),
             None if h.run_count > 0 => {
                 TileBody::Text(tn("stats.runs_none_finished", u64::from(h.run_count)))
             }

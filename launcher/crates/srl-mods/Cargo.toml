@@ -16,3 +16,4 @@ tokio.workspace = true
 [dev-dependencies]
 hex.workspace = true
 sha2.workspace = true
+zip.workspace = true

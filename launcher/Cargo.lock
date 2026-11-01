@@ -5482,6 +5482,7 @@ dependencies = [
  "sha2",
  "srl-core",
  "tokio",
+ "zip",
 ]
 
 [[package]]

@@ -1,0 +1,49 @@
+# Daily: does the newest Draftout on Modrinth still match the launcher? It must run on the Minecraft
+# version the launcher installs for Draftout, and its list of allowed mods (Draftout refuses to
+# start with any other mod) must be `allowed_only(Mode::Draftout)` in crates/srl-mods/src/resolve.rs.
+# A failed run says what changed; GitHub emails a failed scheduled run to whoever last changed
+# this schedule. The check: crates/srl-mods/tests/draftout_upstream.rs.
+name: draftout-check
+
+on:
+  schedule:
+    - cron: '17 6 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: launcher
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: launcher
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: launcher -> target
+          shared-key: draftout-check
+
+      - name: Newest Draftout against the launcher
+        run: |
+          # The shell runs with -e and pipefail: catch the test's failure to write the summary first.
+          status=0
+          cargo test --locked -p srl-mods --test draftout_upstream -- --ignored --nocapture 2>&1 | tee check.log || status=$?
+          {
+            echo '### Draftout check'
+            echo '```'
+            grep -E "^Draftout |allowed mods changed|is for Minecraft|panicked" check.log || true
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+          exit "$status"

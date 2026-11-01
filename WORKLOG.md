@@ -79,12 +79,14 @@ commicie, który coś zmienia. Najnowsze wpisy dziennika są na górze.
   - Nikt nie uruchomił paczki na pulpicie Windowsa. CI instaluje na Windowsie bez okna RSG, Ninjabrain Bota
     i Toolscreen. Wstrzyknięcie Toolscreen było sprawdzone tylko pod wine (testowa DLL w notatniku), nigdy w grze.
   - waywall nie był uruchomiony z grą, bo test E2E działa w Xvfb, a nie w sesji Wayland.
-  - Toolscreen nie jest jeszcze przygotowany dla Draftout (26.3 potrzebuje jego warstwy Vulkan).
+  - Toolscreen nie jest jeszcze przygotowany dla Draftout (26.3 renderuje przez Vulkan). Wyniki badania
+    z 2026-11-02 w dzienniku; czeka na wydanie 1.5.x (nie prerelease) i test na Windowsie.
   - Katalog danych na Windowsie: Roaming czy LocalAppData, do decyzji.
   - Samoaktualizacja tylko na Linuksie i w testach: zmiana nazwy działającego exe, start nowego i usunięcie
     `.old.exe` przy następnym starcie trzeba sprawdzić na prawdziwym Windowsie (też z Defenderem i folderem
     w Program Files, gdzie launcher ma pokazać link do wydań).
-  - Listę modów Draftout trzeba sprawdzać ręcznie przy każdej nowej wersji Draftout.
+  - Lista modów Draftout jest sprawdzana codziennie przez CI (`draftout-check`); gdy się zmieni, `allowed_only`
+    trzeba poprawić ręcznie.
   - Ekrany M3 bez pełnego przeglądu kodu (29.10 przejrzany był backend: wspólna instancja, import, trening, pod
     kątem utraty danych i Windowsa; wyniki w dzienniku). Niesprawdzone końcówki: kod z telefonu i Anuluj
     w logowaniu, ostrzeżenie „ważne do” w wierszu treningu, ponowienie po ponownym zalogowaniu, Aktualizuj
@@ -227,6 +229,26 @@ Potem:
 
 ### 2026-11-02
 
+- **Draftout: codzienne sprawdzenie** (prośba Piotra). Nowy workflow `.github/workflows/draftout-check.yml`
+  (codziennie o 6:17 UTC i ręcznie) uruchamia `crates/srl-mods/tests/draftout_upstream.rs`: bierze
+  najnowszego Draftouta z Modrinth, sprawdza, że jest na 26.3, i wyciąga `ALLOWED_MODS` z
+  `DisallowedModsChecker.class` (literały z puli stałych). Lista musi być równa `allowed_only(Draftout)`;
+  inaczej run pada i mówi, co doszło, a co zniknęło (GitHub wysyła mail o nieudanym runie z harmonogramu).
+  Dziś (Draftout 1.18.0) zgadza się co do moda. Osobny plik, żeby nie mieszać z `launcher.yml`.
+- **Toolscreen w Draftout: badanie** (bez zmian w kodzie):
+  - Toolscreen 1.5.0 (prerelease z 2026-10-10) dodaje 26.3 z Vulkanem. legal-dlls.csv ma już DLL-e
+    1.5.0 i 1.5.1 (x64 i arm64, liblogger 1.1.0 i 1.1.1), ale na GitHubie 1.5.1 jeszcze nie ma,
+    a 1.5.0 jest tylko prerelease. Launcher bierze prerelease tylko na ARM64.
+  - Vulkan w Toolscreen to hooki MinHook na `vkGetInstanceProcAddr` (LWJGL), zakładane leniwie po
+    wstrzyknięciu. Warstwa `VK_LAYER_TOOLSCREEN_obs_redirect` służy tylko przechwytywaniu przez OBS: sam
+    DLL dopisuje ją do `VK_INSTANCE_LAYERS` swojego procesu, jeśli obok niego leży
+    `VK_LAYER_TOOLSCREEN_obs_redirect.json` i plik nazywa się `Toolscreen.dll`. My wypakowujemy
+    `Toolscreen_x64.dll` bez tego JSON-a, więc do OBS trzeba by zapisać DLL jako `Toolscreen.dll`
+    i dołożyć manifest (jar 1.5.0 ma go w `dlls/VK_LAYER_TOOLSCREEN_obs_redirect.json`).
+  - Do zrobienia, gdy 1.5.x wyjdzie jako wydanie: przypiąć je w `toolscreen.rs`, zdjąć blokadę
+    `(Toolscreen, Draftout) => NotSupported` w `registry.rs` i sprawdzić na Windowsie, czy wstrzyknięcie
+    po pojawieniu się okna (jak dla 1.16.1) łapie już utworzony swapchain Vulkana. Trzeba też potwierdzić
+    w zasadach Draftout, że Toolscreen jest tam dozwolony. Bez Windowsa tego nie sprawdzę.
 - **Odporność** (prośba Piotra: luki z „Czego jeszcze brakuje”):
   - Gra zostawiona przez poprzednią sesję launchera (zamknięty albo wysypany w trakcie gry) jest od
     pierwszej klatki pokazywana jako trwająca, z działającym Zatrzymaj. Launcher czyta `logs/<id>.pid`,

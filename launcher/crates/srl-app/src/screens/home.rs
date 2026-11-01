@@ -541,55 +541,57 @@ impl Launcher {
                 .any(|d| self.installed(crate::backend::index(d.mode)))
         };
         let layers = catalog::def(mode).layers;
-        let chip = |layer: &str, tag: Option<SharedString>| {
-            div()
-                .flex_none()
-                .h(px(40.))
-                .px(px(16.))
-                .flex()
-                .flex_col()
-                .justify_center()
-                .gap(px(4.))
-                // Outlined, not filled: these say what comes with the mode, they aren't buttons.
-                .border_1()
-                .border_color(line3())
-                .child(
-                    inter(13., FontWeight::SEMIBOLD, 1.)
-                        .text_color(if tag.is_some() { muted3() } else { text3() })
-                        .whitespace_nowrap()
-                        .child(t(&format!("layer.{layer}"))),
-                )
-                .children(tag.map(|tag| {
-                    inter(11., FontWeight::MEDIUM, 1.)
-                        .whitespace_nowrap()
-                        .text_color(faint3())
-                        .child(tag)
-                }))
+        // Plain words joined by dots: they say what comes with the mode, they aren't buttons.
+        // The new layers first, then, dimmer, what an installed mode already brought.
+        let new: Vec<&str> = layers.iter().copied().filter(|l| !have_layer(l)).collect();
+        let have: Vec<&str> = layers.iter().copied().filter(|l| have_layer(l)).collect();
+        let item = |layer: &str, color: gpui::Hsla| {
+            inter(14., FontWeight::SEMIBOLD, 1.)
+                .whitespace_nowrap()
+                .text_color(color)
+                .child(t(&format!("layer.{layer}")))
         };
-        let have_tag = t("v3.install_have");
+        let dot = || {
+            inter(14., FontWeight::NORMAL, 1.)
+                .text_color(faint3())
+                .child("·")
+        };
+        let mut row = div()
+            .flex()
+            .flex_row()
+            .flex_wrap()
+            .items_baseline()
+            .gap_x(px(10.))
+            .gap_y(px(6.));
+        for (i, l) in new.iter().enumerate() {
+            if i > 0 {
+                row = row.child(dot());
+            }
+            row = row.child(item(l, text3()));
+        }
+        if !have.is_empty() {
+            if !new.is_empty() {
+                row = row.child(dot());
+            }
+            for (i, l) in have.iter().enumerate() {
+                if i > 0 {
+                    row = row.child(dot());
+                }
+                row = row.child(item(l, muted3()));
+            }
+            row = row.child(
+                inter(12., FontWeight::MEDIUM, 1.)
+                    .whitespace_nowrap()
+                    .text_color(faint3())
+                    .child(format!("({})", t("v3.install_have"))),
+            );
+        }
         div()
             .flex()
             .flex_col()
             .gap(px(12.))
             .child(Self::band_head(&t("v3.install_title"), None))
-            .child(
-                div()
-                    .flex()
-                    .flex_row()
-                    .gap(px(3.))
-                    .children(
-                        layers
-                            .iter()
-                            .filter(|l| !have_layer(l))
-                            .map(|l| chip(l, None)),
-                    )
-                    .children(
-                        layers
-                            .iter()
-                            .filter(|l| have_layer(l))
-                            .map(|l| chip(l, Some(have_tag.clone()))),
-                    ),
-            )
+            .child(row)
     }
 
     /// The status word at a tile's top right.

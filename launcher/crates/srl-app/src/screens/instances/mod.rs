@@ -841,23 +841,18 @@ impl Launcher {
         if self.instances.creating.is_some() {
             return self.new_instance_pane(window, cx);
         }
-        // Worlds and size for every instance: a dash when it isn't installed, "…" while its
-        // folder is still being read.
+        // What the tabs don't count: the size on disk (a dash when it isn't installed, "…" while
+        // its folder is still being read) and the Java it runs on. Worlds and mods are counted
+        // on their tabs.
         let mut facts: Vec<(SharedString, SharedString)> = Vec::new();
-        let (worlds, disk): (SharedString, SharedString) = match &self.instances.content {
-            Some(c) if c.exists => (c.worlds.len().to_string().into(), size(c.size).into()),
-            Some(_) => ("—".into(), "—".into()),
-            None => ("…".into(), "…".into()),
+        let disk: SharedString = match &self.instances.content {
+            Some(c) if c.exists => size(c.size).into(),
+            Some(_) => "—".into(),
+            None => "…".into(),
         };
-        facts.push((t("inst.fact.worlds"), worlds));
         facts.push((t("inst.fact.disk"), disk));
-        if let Some(info) = self.inst_info(key) {
-            if let Some(n) = Self::mods_on(info) {
-                facts.push((t("inst.fact.mods"), n.to_string().into()));
-            }
-            if let Some(java) = &info.java {
-                facts.push((t("inst.fact.java"), java.clone().into()));
-            }
+        if let Some(java) = self.inst_info(key).and_then(|info| info.java.as_ref()) {
+            facts.push((t("inst.fact.java"), java.clone().into()));
         }
         let head = div()
             .flex()

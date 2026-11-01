@@ -223,6 +223,18 @@ Potem:
 
 ### 2026-11-01
 
+- **Siódma runda krytyka, skalibrowana (9 = jak Modrinth App, 10 = Linear/Raycast): 8,5 we wszystkich czterech.**
+  Poprawki:
+  - Jeden styl niedostępnej opcji: `chip_off` jest przyciemniony jak segment w Ustawieniach, bez przekreślenia
+    (powód i tak stoi w linii pod spodem).
+  - Home: „Co się zainstaluje” to zwykłe słowa rozdzielone kropkami (nowe jasne, już zainstalowane przygaszone
+    z dopiskiem „(już masz)”), nie ramki, które wyglądały jak przyciski.
+  - Nagłówek instancji nie powtarza liczników z kart: zostaje rozmiar na dysku i Java.
+  - Ustawienia: notka pod pamięcią mówi, że własne instancje ustawiają ją na stronie Instancje.
+  - PL „Rekordy osobiste” zamiast „Rekordy” (czytane jak rekordy świata).
+  - Odrzucone: „MCSR Ranked · MCSR Launcher” (to nazwa instancji w innym launcherze, nie nasz tekst),
+    tłumaczenie autora „speedrun.com moderators” (to podpis źródła).
+
 - **Instancje z klawiatury:** ↑ i ↓ wybierają poprzednią albo następną instancję (z zawinięciem, lista przewija
   się do wybranej), ← i → przełączają karty (Trening bez karty Mody). Działa, gdy żadne pole nie ma fokusu
   i formularz nowej instancji jest zamknięty. Lista skrótów w Ustawieniach to mówi. Lista instancji wygasza się

@@ -1035,7 +1035,8 @@ pub fn chip(
         )
 }
 
-/// A chip that can't be picked (a mode whose rules ban the tool): struck through, no fill.
+/// A chip that can't be picked (a mode whose rules ban the tool, memory under the floor):
+/// dimmed like a `Settings::segments` choice that can't be picked; the line under says why.
 pub fn chip_off(label: &str) -> Div {
     div()
         .flex_none()
@@ -1045,22 +1046,12 @@ pub fn chip_off(label: &str) -> Div {
         .flex()
         .items_center()
         .justify_center()
-        .border_1()
-        .border_color(line3())
+        .bg(text3a(0.02))
         .child(
             inter(12., FontWeight::SEMIBOLD, 1.)
                 .whitespace_nowrap()
-                .text_color(text3a(0.26))
+                .text_color(text3a(0.22))
                 .child(SharedString::from(label.to_string())),
-        )
-        .child(
-            div()
-                .absolute()
-                .left(px(6.))
-                .right(px(6.))
-                .top(px(14.))
-                .h(px(1.))
-                .bg(text3a(0.3)),
         )
 }
 

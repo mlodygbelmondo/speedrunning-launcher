@@ -664,15 +664,10 @@ impl Launcher {
     /// After the import: where everything went.
     fn import_result(&mut self, r: &ImportResult, cx: &mut Context<Self>) -> Div {
         let source = self.import.selected_source().cloned();
-        // The shared 1.16.1 instance is its four modes, so a list of targets reads "Ranked, RSG,
-        // FSG, SSG and Practice", not "Ranked, RSG, FSG and SSG and Practice".
+        // The shared 1.16.1 instance by its name, as the hints above call it ("into Speedrun").
         let names = |id: &str| -> Vec<String> {
             if id == srl_core::shared::DIR {
-                return Mode::ALL
-                    .into_iter()
-                    .filter(|m| m.is_shared())
-                    .map(|m| catalog::def(m).short.to_string())
-                    .collect();
+                return vec![t("inst.shared.name").to_string()];
             }
             vec![match instance_of(id) {
                 Some(Instance::Mode(m)) => catalog::def(m).short.to_string(),

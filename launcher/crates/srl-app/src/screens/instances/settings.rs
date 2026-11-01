@@ -47,13 +47,19 @@ impl Launcher {
             let custom_id = custom.as_ref().map(|c| c.id);
             let floor = crate::backend::mode_needs(mode).min_memory_mb;
             let short = catalog::MODES[index(mode)].short;
+            // A 1.16.1 base's memory is the Speedrun instance's (one value for its four modes).
+            let mem_from: SharedString = if mode.is_shared() {
+                t("inst.shared.name")
+            } else {
+                short.into()
+            };
             let same = custom_id.map(|id| {
                 chip(
                     "inst-mem-same",
                     &tf(
                         "inst.custom.memory_same",
                         &[
-                            ("mode", short),
+                            ("mode", &mem_from),
                             ("n", &(self.settings.memory_mb(mode) / 1024).to_string()),
                         ],
                     ),

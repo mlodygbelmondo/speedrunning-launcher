@@ -226,6 +226,13 @@ Potem:
 
 ### 2026-11-01
 
+- **Pętla tekstów zakończona: r11 = 9 i 8,5** (cel 9 osiągnięty; historia: r0 7/7, r1 7,5/7,5, r2 8/8, r3 8/8,
+  r4–r10 8,5/8,5, r11 9/8,5). Poprawki po ostatniej ocenie (wskazane przez obu albo błędne): podsumowanie importu
+  mówi „Speedrun i Mapy treningowe”, nie cztery tryby; pamięć własnej instancji 1.16.1 to „Jak w Speedrun (3 GB)”
+  (ta wartość należy do wspólnej instancji, nie do RSG); ręczne mapy „rozpakuj świat do …” (autorzy dają zipy);
+  wersja bez logowania na Home: „mecze się nie połączą” bez wyliczania obu trybów. Porównania przed/po:
+  `~/.cache/srl-copy/compare/`.
+
 - **Pętla tekstów, runda 11** (r10: **8,5 i 8,5**). Błąd z rundy 4: przy usuniętym świecie mapy podpowiedź mówiła
   „Graj zainstaluje go ponownie”, a przycisk to „Zainstaluj” — teraz „„Zainstaluj” go przywróci”. Zajęta mapa:
   „Na liście Singleplayer w działającej grze”; „zamknij grę, żeby…” dopiero, gdy gra działa (nie przy starcie).

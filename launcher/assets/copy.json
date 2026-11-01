@@ -850,7 +850,7 @@
   "inst.trash": "Delete",
   "inst.trash_yes": "Move to trash",
   "inst.keep": "Keep it",
-  "inst.trashed": "{name} is in the trash folder of the launcher's data folder.",
+  "inst.trashed": "“{name}” is in the trash folder of the launcher's data folder.",
   "inst.reading": "Reading the folder…",
   "inst.wait_game": "The game is running. Packs can change once it's closed, because the game rewrites its options when it exits.",
   "inst.tab.worlds": "Worlds",
@@ -915,7 +915,7 @@
   "settings.section_keys": "Keyboard shortcuts",
   "settings.keys.pages": "Play, Instances, Practice, Learn, Tools, Stats",
   "settings.keys.settings": "Settings",
-  "settings.keys.modes": "Previous or next mode, on Play",
-  "settings.keys.play": "Play the selected mode, on Play",
+  "settings.keys.modes": "Previous or next mode (Play page)",
+  "settings.keys.play": "Play the selected mode (Play page)",
   "settings.keys.back": "Close a question, or leave the game screen"
 }

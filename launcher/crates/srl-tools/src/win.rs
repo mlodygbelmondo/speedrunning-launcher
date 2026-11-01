@@ -186,6 +186,39 @@ pub fn java_windows_titled(prefix: &str) -> Vec<u32> {
     search.pids
 }
 
+/// Whether process `pid` has a visible top-level window with a title (EasyInject's
+/// `getVisibleTopLevelWindowTitle`): the game has opened its window.
+pub fn has_titled_window(pid: u32) -> bool {
+    struct Search {
+        pid: u32,
+        found: bool,
+    }
+    unsafe extern "system" fn each(hwnd: HWND, data: LPARAM) -> i32 {
+        // SAFETY: `data` is the &mut Search passed to EnumWindows below, alive for the call.
+        let search = unsafe { &mut *(data as *mut Search) };
+        let mut title = [0u16; 8];
+        // SAFETY: plain Win32 calls on a window handle EnumWindows gave us.
+        unsafe {
+            let mut pid = 0u32;
+            GetWindowThreadProcessId(hwnd, &mut pid);
+            if pid != search.pid || IsWindowVisible(hwnd) == 0 {
+                return 1;
+            }
+            if GetWindowTextW(hwnd, title.as_mut_ptr(), title.len() as i32) > 0 {
+                search.found = true;
+                return 0;
+            }
+        }
+        1
+    }
+    let mut search = Search { pid, found: false };
+    // SAFETY: the callback only touches `search`, which outlives the call.
+    unsafe {
+        EnumWindows(Some(each), &mut search as *mut Search as LPARAM);
+    }
+    search.found
+}
+
 fn is_java(pid: u32) -> bool {
     // SAFETY: Win32 calls with checked results; the handle is closed by `Handle`.
     unsafe {

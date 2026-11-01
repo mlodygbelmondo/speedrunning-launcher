@@ -12,13 +12,18 @@
 //! game, after checking the jar's hash against its meta. Either way the jar then starts a
 //! watcher that polls for a Java process whose working directory is the instance, and injects
 //! **liblogger first, then Toolscreen.dll**, into that JVM with `CreateRemoteThread` +
-//! `LoadLibraryW`, as soon as it finds it ("before native graphics initialization can race
-//! ahead of the injector"). In launcher mode the jar also checks GitHub for a newer Toolscreen
-//! and can replace itself.
+//! `LoadLibraryW`. The 1.4.7 jar (`com.easyinject.Main`, read from its bytecode and its
+//! `injector.log`: "Waiting for process to create a window...") waits until the JVM has a
+//! visible titled window (polled every 500 ms, up to 120 s), then 500 ms, injects liblogger,
+//! waits 100 ms and injects Toolscreen.dll. Injecting earlier, while the JVM starts, crashes the
+//! game on Windows (seen with 1.4.7: an access violation in Toolscreen's GL setup, or a
+//! NullPointerException in Minecraft's block shapes). In launcher mode the jar also checks GitHub
+//! for a newer Toolscreen and can replace itself.
 //!
 //! We do the injection step ourselves instead of running the installer jar:
 //!
-//! - we start the JVM, so we know its pid at once and need no watcher or polling;
+//! - we start the JVM, so we know its pid at once and only wait for its window, with the same
+//!   timing (`inject_when_ready` in `lib.rs`);
 //! - the bytes we inject are the ones we checked: the DLLs come out of the pinned jar (sha256),
 //!   each must match its pinned sha512 **and** be in `legal-dlls.csv` (rule A.8.16 allows only
 //!   listed DLLs, and only with a listed liblogger), and they are hashed again before every

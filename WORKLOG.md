@@ -207,6 +207,19 @@ Potem:
 
 ### 2026-11-01
 
+- **Toolscreen wstrzykiwany dopiero po otwarciu okna gry** (zgłoszenie Piotra: Ranked padał z
+  NullPointerException w Lithium przy kształtach bloków, FSG z naruszeniem dostępu `0xC0000005` złapanym przez
+  Toolscreen). Launcher wstrzykiwał DLL-e zaraz po starcie JVM. Wstrzykiwacz z Toolscreen 1.4.7 (bajtkod
+  `com.easyinject.Main` i `injector.log` Piotra z MultiMC) czeka na widoczne okno gry z tytułem (co 500 ms, do
+  120 s), potem 500 ms, liblogger, 100 ms, Toolscreen.dll. Teraz robimy to samo w tle (`inject_when_ready`),
+  więc Ninjabrain Bot, stan „Gra działa” i Stop nie czekają; błąd późnego wstrzyknięcia trafia tylko do logu.
+  - Sprawdzone na Windowsie Piotra (osobny `SRL_HOME`, za jego zgodą): wydane 0.1.3 z Toolscreen padło 2 z 2 razy
+    (Ranked, FSG), poprawione `srl-tools.exe launch` z Toolscreen doszło do ekranu tytułowego 4 z 4 razy (Ranked 3x,
+    FSG), Toolscreen wstrzyknięty, bez wyjątków w jego logu. Bez Toolscreen 0.1.3 też startowało.
+  - Budowanie na Windows z WSL: `ring` potrzebuje `clang-cl`; zastępczo clang z `pip install ziglang` w venv
+    (`~/.cache/srl-zig-bin/clang-cl` z `/imsvc <ziglang>/lib/include`). Całego `srl-app` tak nie zbudujemy (zasób
+    GPUI `gpui.manifest.xml` w `llvm-rc`), więc test szedł przez `srl-tools.exe`.
+
 - **Wydanie `v0.1.3`** (decyzja Piotra): nowe wykrywanie importu poniżej, żeby jego 0.1.2 zaktualizowało się samo.
   Przed tagiem poprawka clippy (`sort_by_key`), na której padł Linux w CI; testy `srl-import` przeszły też jako exe
   na Windowsie Piotra.

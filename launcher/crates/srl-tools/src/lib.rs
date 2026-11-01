@@ -49,8 +49,8 @@
 //!   only set up for the 1.16.1 modes) and [`ToolSelection::defaults`].
 //! - **The launch hook:** [`Tools::prepare`] returns the command to start (wrapped in
 //!   `waywall wrap --` when waywall is on) and checks what will run; [`Tools::start`], called
-//!   right after the game process exists, injects Toolscreen (Windows) and starts Ninjabrain Bot
-//!   unless one is already running, and returns a [`ToolSession`] that stops what it started
+//!   right after the game process exists, starts Ninjabrain Bot unless one is already running,
+//!   injects Toolscreen (Windows) once the game's window is open, and returns a [`ToolSession`] that stops what it started
 //!   when the game exits. A tool that can't run never blocks the game: it is left out with a
 //!   [`ToolNote`].
 //!
@@ -251,7 +251,8 @@ pub struct ToolSession {
     pub notes: Vec<ToolNote>,
     /// Started by the launcher for this game (or shared with another game it started them for).
     pub started: Vec<ToolId>,
-    /// Injected into the game (Toolscreen).
+    /// Injected into the game (Toolscreen), or to be once its window opens; a later failure is
+    /// only logged.
     pub injected: Vec<ToolId>,
     done: watch::Receiver<bool>,
 }
@@ -488,8 +489,9 @@ impl Tools {
         prepared
     }
 
-    /// Right after the game process started: injects Toolscreen into it (Windows) and starts
-    /// Ninjabrain Bot with `java` unless one is running. The returned session stops what it
+    /// Right after the game process started: starts Ninjabrain Bot with `java` unless one is
+    /// running, and injects Toolscreen into the game (Windows) in the background once its window
+    /// is open (`inject_when_ready`). The returned session stops what it
     /// started when `game` exits.
     pub async fn start(&self, prepared: Prepared, game: &GameProcess, java: &Path) -> ToolSession {
         let mut notes = prepared.notes;
@@ -497,10 +499,13 @@ impl Tools {
         let mut started = Vec::new();
 
         if let Some(inj) = prepared.toolscreen {
-            match inject(game.pid(), inj.dlls).await {
-                Ok(()) => injected.push(ToolId::Toolscreen),
-                Err(e) => notes.push(ToolNote::Failed(ToolId::Toolscreen, format!("{e:#}"))),
-            }
+            let game = game.clone();
+            tokio::spawn(async move {
+                if let Err(e) = inject_when_ready(&game, inj.dlls).await {
+                    eprintln!("Toolscreen: not injected into pid {}: {e:#}", game.pid());
+                }
+            });
+            injected.push(ToolId::Toolscreen);
         }
 
         if let Some(jar) = prepared.ninjabrain {
@@ -687,20 +692,51 @@ impl Tools {
     }
 }
 
-/// Loads the DLLs into the game in order (liblogger first). Windows only.
+/// How often, and how long, to look for the game's window before injecting Toolscreen.
 #[cfg(windows)]
-async fn inject(pid: u32, dlls: Vec<PathBuf>) -> Result<()> {
-    tokio::task::spawn_blocking(move || {
-        for dll in &dlls {
-            win::inject(pid, dll)?;
+const WINDOW_POLL: Duration = Duration::from_millis(500);
+#[cfg(windows)]
+const WINDOW_TIMEOUT: Duration = Duration::from_secs(120);
+
+/// Loads the DLLs into the game in order (liblogger first), the way Toolscreen's own injector
+/// (EasyInject in Toolscreen 1.4.7, `Main`) does: once the game has a visible titled window,
+/// 500 ms later, and 100 ms after liblogger. Injected while the JVM is still starting, the same
+/// DLLs crash it (an access violation, or a NullPointerException inside Minecraft's startup).
+/// Windows only.
+#[cfg(windows)]
+async fn inject_when_ready(game: &GameProcess, dlls: Vec<PathBuf>) -> Result<()> {
+    let pid = game.pid();
+    let waited = tokio::time::timeout(WINDOW_TIMEOUT, async {
+        loop {
+            if !game.is_running() {
+                bail!("the game closed before its window opened");
+            }
+            if tokio::task::spawn_blocking(move || win::has_titled_window(pid)).await? {
+                return anyhow::Ok(());
+            }
+            tokio::time::sleep(WINDOW_POLL).await;
         }
-        anyhow::Ok(())
     })
-    .await?
+    .await;
+    match waited {
+        Ok(r) => r?,
+        Err(_) => bail!("the game opened no window in {}s", WINDOW_TIMEOUT.as_secs()),
+    }
+    tokio::time::sleep(Duration::from_millis(500)).await;
+    for (i, dll) in dlls.into_iter().enumerate() {
+        if i > 0 {
+            tokio::time::sleep(Duration::from_millis(100)).await;
+        }
+        if !game.is_running() {
+            bail!("the game closed before {} was injected", dll.display());
+        }
+        tokio::task::spawn_blocking(move || win::inject(pid, &dll)).await??;
+    }
+    Ok(())
 }
 
 #[cfg(not(windows))]
-async fn inject(_pid: u32, _dlls: Vec<PathBuf>) -> Result<()> {
+async fn inject_when_ready(_game: &GameProcess, _dlls: Vec<PathBuf>) -> Result<()> {
     bail!("Toolscreen runs on Windows only")
 }
 

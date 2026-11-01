@@ -187,9 +187,6 @@ impl Launcher {
             .flex_col()
             .child(section_head(&t("auth.title")).mb(px(14.)))
             .children(rows)
-            .when(a.keystore_file, |d| {
-                d.child(note(&t("auth.keystore_file_note"), faint3()))
-            })
             .children(a.problem.as_ref().map(|p| {
                 div()
                     .flex()

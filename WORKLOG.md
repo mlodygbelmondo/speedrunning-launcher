@@ -226,6 +226,15 @@ Potem:
 
 ### 2026-11-01
 
+- **Pętla tekstów, runda 11** (r10: **8,5 i 8,5**). Błąd z rundy 4: przy usuniętym świecie mapy podpowiedź mówiła
+  „Graj zainstaluje go ponownie”, a przycisk to „Zainstaluj” — teraz „„Zainstaluj” go przywróci”. Zajęta mapa:
+  „Na liście Singleplayer w działającej grze”; „zamknij grę, żeby…” dopiero, gdy gra działa (nie przy starcie).
+  Wymagania map: ścieżka kończy się na folderze mods, bez znacznika „launcher go nie instaluje”. Import
+  i Dostępność mówią „Speedrun” zamiast listy czterech trybów. Bez notki o pliku zamiast magazynu haseł, bez
+  opisu instancji Mapy treningowe, bez „Runy z tego trybu pojawią się tu”, bez nadtytułu Draftout, bez zdania
+  o haśle w logowaniu. Pamięć: „z SeedQueue daj 4 GB lub więcej”. Błędy aktualizacji odsyłają do strony
+  Releases zamiast do logu albo „sumy kontrolnej”.
+
 - **Pętla tekstów, runda 10** (r9: **8,5 i 8,5**). Nauka: opis tematu jest opcjonalny (test już go nie wymaga)
   i zostaje tylko przy „Pierwszych krokach” i „Mierzeniu oczu”; reszta streszczała listę poniżej. Bez opisów
   poradników powtarzających tytuł (twierdza, podróż w Netherze, one-cycle, start w Draftout, zasady i seedy

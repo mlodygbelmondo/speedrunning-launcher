@@ -521,24 +521,22 @@ impl Launcher {
         };
         let panel = panel.child(band_head(&left, &right));
         if total == 0 {
-            let (title, body) = match scope {
-                Some(_) => (t("stats.no_runs"), t("stats.empty_mode")),
-                None => (t("stats.no_runs"), t("stats.empty_body")),
-            };
+            // One mode with no runs needs no explaining; the whole page says where runs come from.
+            let body = scope.is_none().then(|| t("stats.empty_body"));
             return panel
                 .child(
                     inter(18., FontWeight::SEMIBOLD, 1.2)
                         .mt(px(26.))
                         .text_color(text3())
-                        .child(title),
+                        .child(t("stats.no_runs")),
                 )
-                .child(
+                .children(body.map(|body| {
                     inter(14., FontWeight::NORMAL, 1.45)
                         .mt(px(8.))
                         .whitespace_nowrap()
                         .text_color(muted3())
-                        .child(wrap(&body, INTER, FontWeight::NORMAL, 14., 520.)),
-                )
+                        .child(wrap(&body, INTER, FontWeight::NORMAL, 14., 520.))
+                }))
                 .children(self.local_notes(local, &histories).map(|(_, d)| d));
         }
         // The newest listed runs over the modes in scope (each mode's runs are newest first). Notes

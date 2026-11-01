@@ -908,14 +908,14 @@ impl Launcher {
                 )
                 .mt(px(10.)),
             )
-            // Only the instances that hold more than their name says explain themselves.
-            .children(matches!(key, InstKey::Shared | InstKey::Practice).then(|| {
+            // Only the shared instance holds more than its name says.
+            .children((key == InstKey::Shared).then(|| {
                 inter(14., FontWeight::NORMAL, 1.5)
                     .mt(px(12.))
                     .whitespace_nowrap()
                     .text_color(muted3())
                     .child(wrap_even(
-                        &t(&format!("inst.{}.body", key.id())),
+                        &t("inst.shared.body"),
                         INTER,
                         FontWeight::NORMAL,
                         14.,

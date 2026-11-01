@@ -777,15 +777,12 @@ impl Launcher {
         if about_open {
             let mut about = div().pl(px(19.)).flex().flex_col().gap(px(6.));
             for r in &e.requirements {
-                // Mods and datapacks are things to add; settings and notes are advice.
+                // Mods and datapacks are things to add (their line says where); settings and notes
+                // are advice.
                 let mut tags = Vec::new();
-                if matches!(r.kind, RequirementKind::Mod | RequirementKind::Datapack) {
-                    if r.optional {
-                        tags.push(t("practice.req.optional").to_string());
-                    }
-                    if !r.provided {
-                        tags.push(t("practice.req.not_installed").to_string());
-                    }
+                if matches!(r.kind, RequirementKind::Mod | RequirementKind::Datapack) && r.optional
+                {
+                    tags.push(t("practice.req.optional").to_string());
                 }
                 let line = t(&format!("practice.req.{}", r.id));
                 let line: SharedString = if tags.is_empty() {
@@ -824,7 +821,10 @@ impl Launcher {
         let busy = self.practice.game_busy();
         let row = div().flex().flex_row().items_center().gap(px(24.));
         if busy || working {
-            let why = busy.then(|| {
+            // Only a running game has something to close; while it starts, the greyed actions say
+            // enough.
+            let running = matches!(self.practice.game.state, ModeState::Running);
+            let why = running.then(|| {
                 inter(12., FontWeight::NORMAL, 1.4)
                     .text_color(faint3())
                     .child(t("practice.game_busy"))

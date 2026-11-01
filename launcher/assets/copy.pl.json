@@ -963,5 +963,5 @@
   "inst.worlds.seed": "seed {seed}",
   "inst.worlds.copy_seed": "Kopiuj seed",
   "inst.worlds.copied": "Skopiowany",
-  "inst.busy": "W tej instancji działa gra, więc nic nie zmieniłem. Spróbuj, gdy ją zamkniesz."
+  "inst.busy": "W tej instancji działa gra, więc nic się nie zmieniło. Spróbuj ponownie, gdy ją zamkniesz."
 }

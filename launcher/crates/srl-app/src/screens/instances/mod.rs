@@ -746,18 +746,16 @@ impl Launcher {
         if self.instances.creating.is_some() {
             return self.new_instance_pane(window, cx);
         }
-        // The same facts for every instance, a dash for what isn't there yet.
+        // Worlds and size for every instance: a dash when it isn't installed, "…" while its
+        // folder is still being read.
         let mut facts: Vec<(SharedString, SharedString)> = Vec::new();
-        match self.instances.content.as_ref().filter(|c| c.exists) {
-            Some(c) => {
-                facts.push((t("inst.fact.worlds"), c.worlds.len().to_string().into()));
-                facts.push((t("inst.fact.disk"), size(c.size).into()));
-            }
-            None => {
-                facts.push((t("inst.fact.worlds"), "—".into()));
-                facts.push((t("inst.fact.disk"), "—".into()));
-            }
-        }
+        let (worlds, disk): (SharedString, SharedString) = match &self.instances.content {
+            Some(c) if c.exists => (c.worlds.len().to_string().into(), size(c.size).into()),
+            Some(_) => ("—".into(), "—".into()),
+            None => ("…".into(), "…".into()),
+        };
+        facts.push((t("inst.fact.worlds"), worlds));
+        facts.push((t("inst.fact.disk"), disk));
         if let Some(info) = self.inst_info(key) {
             if let Some(n) = Self::mods_on(info) {
                 facts.push((t("inst.fact.mods"), n.to_string().into()));

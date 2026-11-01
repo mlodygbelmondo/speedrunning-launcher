@@ -492,7 +492,7 @@ pub(super) fn row(
         .child(
             plex(11., FontWeight::MEDIUM)
                 .flex_none()
-                .w(px(70.))
+                .w(px(80.))
                 .text_color(faint3())
                 .child(when.map(fmt_when).unwrap_or_default()),
         )

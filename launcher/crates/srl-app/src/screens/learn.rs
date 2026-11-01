@@ -188,12 +188,14 @@ impl Launcher {
                         inter(14., FontWeight::SEMIBOLD, 1.25)
                             .text_color(text3())
                             .line_clamp(2)
+                            .text_ellipsis()
                             .child(SharedString::from(g.title.clone())),
                     )
                     .child(
                         inter(12., FontWeight::NORMAL, 1.3)
                             .text_color(muted3())
                             .line_clamp(2)
+                            .text_ellipsis()
                             .child(t(&format!("learn.g.{}", g.id))),
                     ),
             )

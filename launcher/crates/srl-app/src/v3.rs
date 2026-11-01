@@ -415,22 +415,37 @@ pub fn wrap_even(
     size_px: f32,
     max_w: f32,
 ) -> SharedString {
+    thread_local! {
+        static EVEN: RefCell<HashMap<ShapeKey, SharedString>> = RefCell::new(HashMap::new());
+    }
+    let key = (
+        s.to_string(),
+        family,
+        weight.0.to_bits(),
+        size_px.to_bits(),
+        max_w.to_bits(),
+    );
+    if let Some(hit) = EVEN.with(|c| c.borrow().get(&key).cloned()) {
+        return hit;
+    }
     let lines = |w: f32| wrap(s, family, weight, size_px, w).split('\n').count();
     let n = lines(max_w);
-    if n < 2 {
-        return wrap(s, family, weight, size_px, max_w);
-    }
-    // Whole pixels, so the few widths tried stay in `wrap`'s cache.
+    // Whole pixels, so the few widths tried stay in `wrap`'s cache. A pane is never wider than
+    // a few thousand px; the bound keeps the halving finite on any input.
     let (mut lo, mut hi) = ((max_w / n as f32).floor(), max_w.ceil());
-    while hi - lo > 1. {
+    let mut steps = 0;
+    while n > 1 && hi - lo > 1. && steps < 16 {
         let mid = ((lo + hi) / 2.).floor();
         if lines(mid) > n {
             lo = mid;
         } else {
             hi = mid;
         }
+        steps += 1;
     }
-    wrap(s, family, weight, size_px, hi.min(max_w))
+    let out = wrap(s, family, weight, size_px, hi.min(max_w));
+    EVEN.with(|c| c.borrow_mut().insert(key, out.clone()));
+    out
 }
 
 /// Where [`ellipsize`] cuts a line that doesn't fit.

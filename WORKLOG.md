@@ -223,6 +223,11 @@ Potem:
 
 ### 2026-11-01
 
+- **Poprawki po przeglądzie kodu (świeży subagent, nic poważnego):** `wrap_even` ma własną pamięć wyników i
+  ograniczoną liczbę kroków (bez pętli przy ogromnej szerokości); w nagłówku instancji „—” tylko dla
+  niezainstalowanej, „…” w czasie czytania folderu; tytuły i opisy w Nauce mają „…”, gdy nie zmieszczą się w dwóch
+  liniach; kolumna czasu w Światach szersza na „Today 18:40”; próg pamięci zaokrąglany w górę.
+
 - **Pytanie potwierdzenia wjeżdża jak notatka:** pasek „Usunąć na zawsze…?” w miejscu paska narzędzi pojawia się
   w 220 ms (przezroczystość i 4 px w górę), tak jak notatka pod kartami. Klatki tylko w czasie animacji: 8 klatek,
   potem 0 przez 3 s (SRL_TRACE_RENDERS, Xvfb).

@@ -90,7 +90,7 @@ impl Launcher {
                             .child(if floor > MEMORY_CHOICES_MB[0] {
                                 tf(
                                     "inst.memory_hint_floor",
-                                    &[("mode", short), ("n", &(floor / 1024).to_string())],
+                                    &[("mode", short), ("n", &floor.div_ceil(1024).to_string())],
                                 )
                             } else {
                                 t("inst.memory_hint")

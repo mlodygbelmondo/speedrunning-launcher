@@ -39,7 +39,7 @@ pub(crate) fn jingle_paths(options: &Path) -> Vec<PathBuf> {
         .map(|(p, t)| (t.as_u64().unwrap_or(0), PathBuf::from(p.trim())))
         .filter(|(_, p)| p.is_absolute())
         .collect();
-    paths.sort_by(|a, b| b.0.cmp(&a.0));
+    paths.sort_by_key(|p| std::cmp::Reverse(p.0));
     paths.into_iter().map(|(_, p)| p).collect()
 }
 

@@ -85,7 +85,16 @@ impl Launcher {
                     .child(
                         inter(12., FontWeight::NORMAL, 1.4)
                             .text_color(faint3())
-                            .child(t("inst.memory_hint")),
+                            // SeedQueue advice only where SeedQueue is; a mode with a floor
+                            // (Draftout) says why the smaller choices are off.
+                            .child(if floor > MEMORY_CHOICES_MB[0] {
+                                tf(
+                                    "inst.memory_hint_floor",
+                                    &[("mode", short), ("n", &(floor / 1024).to_string())],
+                                )
+                            } else {
+                                t("inst.memory_hint")
+                            }),
                     ),
             );
             col = col.child(
@@ -270,7 +279,7 @@ impl Launcher {
                     )),
                 )
                 .child(
-                    chip(
+                    self.tick_line(
                         "inst-copy-worlds",
                         &if saves > 0 {
                             tf("inst.copy.worlds_size", &[("size", &size(saves))])
@@ -278,7 +287,6 @@ impl Launcher {
                             t("inst.copy.worlds")
                         },
                         worlds,
-                        true,
                     )
                     .on_click(cx.listener(|this, _, _, cx| {
                         this.instances.copy_worlds = !this.instances.copy_worlds;

@@ -421,10 +421,18 @@ impl Launcher {
                 .children(pct.map(size_hint));
         }
         match &v.status {
-            MapStatus::LinkOnly => cell.child(
-                tertiary(("practice-page", i), &t("practice.open_page"))
-                    .on_click(open_url(e.source_page.clone(), cx)),
-            ),
+            // Its licence lets us link, not download: say so where Install would be.
+            MapStatus::LinkOnly => cell
+                .child(
+                    tertiary(("practice-page", i), &t("practice.open_page"))
+                        .on_click(open_url(e.source_page.clone(), cx)),
+                )
+                .child(
+                    inter(11., FontWeight::MEDIUM, 1.)
+                        .whitespace_nowrap()
+                        .text_color(faint3())
+                        .child(t("practice.link_only_hint")),
+                ),
             MapStatus::NotInstalled => cell
                 .child(
                     secondary(("practice-install", i), &t("practice.install")).on_click(

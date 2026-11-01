@@ -29,9 +29,11 @@ const TOPIC_H: f32 = 48.;
 const ROW_H: f32 = 52.;
 
 /// "RSG · FSG · Ranked": the display names of mode ids.
+/// In the launcher's own order (Ranked first), whatever order the guide list gives.
 fn mode_names(ids: &[String]) -> String {
-    ids.iter()
-        .filter_map(|id| Mode::from_id(id))
+    Mode::ALL
+        .into_iter()
+        .filter(|m| ids.iter().any(|id| Mode::from_id(id) == Some(*m)))
         .map(|m| catalog::def(m).short)
         .collect::<Vec<_>>()
         .join(" · ")
@@ -191,7 +193,7 @@ impl Launcher {
                     .child(
                         inter(12., FontWeight::NORMAL, 1.3)
                             .text_color(muted3())
-                            .truncate()
+                            .line_clamp(2)
                             .child(t(&format!("learn.g.{}", g.id))),
                     ),
             )
@@ -297,10 +299,7 @@ impl Launcher {
                     .flex()
                     .flex_row()
                     .justify_between()
-                    .child(section_head(&format!(
-                        "{name} · {}",
-                        tn("learn.count", topic.guides.len() as u64)
-                    ))),
+                    .child(section_head(&tn("learn.count", topic.guides.len() as u64))),
             )
             // The rows scroll once they don't fit, the closing rule stays right under the last one. While
             // rows are hidden below, the bottom of the list fades out ("scroll for more"), as in

@@ -10,12 +10,12 @@ commicie, który coś zmienia. Najnowsze wpisy dziennika są na górze.
 
   | Miara | Start | Teraz |
   |---|---|---|
-  | 1. Wygląd i dopracowanie | 7,5 | 8 (krytyk zrzutów: 7, przed poprawkami) |
+  | 1. Wygląd i dopracowanie | 7,5 | 8 (krytyk, runda 2: 7) |
   | 2. Ruch i płynność (animacje) | 5 | 8 |
   | 3. Model instancji (własne instancje: tworzenie, kopia, usuwanie) | 3 | 9 |
   | 4. Zawartość instancji (światy, mody, paczki, konfiguracja, logi) | 4 | 9 |
-  | 5. Nawigacja i układ informacji | 7 | 7,5 (krytyk: 6) |
-  | 6. Teksty EN i PL | 7 | 8 (krytyk: EN 7, PL 6) |
+  | 5. Nawigacja i układ informacji | 7 | 8 (krytyk, runda 2: 7) |
+  | 6. Teksty EN i PL | 7 | 8 (krytyk, runda 2: EN 7, PL 7) |
   | 7. Odporność i bezpieczeństwo danych | 7,5 | 9 |
   | 8. Wydajność (bezczynność 0 klatek, start) | 9 | 9 |
   | 9. Jakość kodu i testy | 8 | 9 |
@@ -222,6 +222,25 @@ Potem:
 ## Dziennik
 
 ### 2026-11-01
+
+- **Druga runda krytyka zrzutów (13 ekranów EN i PL), poprawki:**
+  - „Ze światami” przy kopii i w formularzu to teraz pole wyboru („Razem ze światami (1 MB)”), nie chip, który
+    wyglądał jak wyłączony przycisk.
+  - Podpowiedź pamięci o SeedQueue tylko tam, gdzie jest SeedQueue; tryb z progiem (Draftout) mówi „Draftout
+    potrzebuje co najmniej 3 GB, więc mniejsze wartości są wyłączone”.
+  - Nagłówek instancji zawsze ma te same trzy liczby (myślnik, gdy nic nie ma), karta Mody ma licznik włączonych.
+  - Nauka: opisy też łamią się na dwie linie; tryby w kolejności launchera (Ranked pierwszy); nad listą samo
+    „8 poradników” bez powtórzonej nazwy tematu. Statystyki: „splity względem rekordu” dopiero, gdy są runy.
+  - Trening: mapa tylko z linkiem ma pod „Strona autora” dopisek „instalacja ręczna”.
+  - Opis wspólnej instancji przez `wrap_even` (bez samotnego „space.”).
+  - Teksty: „Banned in Draftout.”/„Draftout tego zakazuje.”, „Oko Endera” zamiast „Oko Kresu” (tak jest w polskim
+    Minecrafcie, a „End” zostaje), „Własna · gra jak RSG”, „Tylko Draftout”, „Your MCSR Ranked name”,
+    „Personal bests”/„Rekordy”, „Usuń 44 światy z resetów”, „zbudowana lokalnie”, puste stany Pobierz po polsku,
+    import w formularzu i „trybu nie zmienisz po utworzeniu”, lista narzędzi bez kropki.
+  - Odrzucone: „Ranked nie do pobrania offline” (w tej wersji Ranked się instaluje i uruchamia, mecze wymagają
+    konta, co pasek statusu mówi), domyślny tryb RSG (to do decyzji Piotra, nie zmieniam sam), „resourcepacks” (to prawdziwa nazwa folderu).
+  - Skrypt zrzutów klikał karty po pozycji z EN, więc w PL trafiał w Konfigurację zamiast Ustawień: ma osobne
+    pozycje dla PL.
 
 - **Poprawki po krytyku zrzutów (świeży subagent oceniał same zrzuty EN i PL, bez kodu):**
   - Teksty EN: „Keep it” → „Cancel”, „Change on Tools” → „Change in Tools”, „Mods on” → „Mods enabled”,

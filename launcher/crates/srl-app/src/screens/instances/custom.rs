@@ -509,8 +509,8 @@ impl Launcher {
             );
         }
         let worlds = form.source.is_some().then(|| {
-            chip("inst-new-worlds", &t("inst.copy.worlds"), form.worlds, true).on_click(
-                cx.listener(|this, _, _, cx| {
+            self.tick_line("inst-new-worlds", &t("inst.copy.worlds"), form.worlds)
+                .on_click(cx.listener(|this, _, _, cx| {
                     if this.instances.importing {
                         return;
                     }
@@ -518,8 +518,7 @@ impl Launcher {
                         f.worlds = !f.worlds;
                     }
                     cx.notify();
-                }),
-            )
+                }))
         });
         Some(
             div()

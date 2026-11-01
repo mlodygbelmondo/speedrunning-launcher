@@ -735,21 +735,21 @@ impl Launcher {
         if self.instances.creating.is_some() {
             return self.new_instance_pane(window, cx);
         }
+        // The same facts for every instance, a dash for what isn't there yet.
         let mut facts: Vec<(SharedString, SharedString)> = Vec::new();
-        if let Some(c) = self.instances.content.as_ref().filter(|c| c.exists) {
-            facts.push((t("inst.fact.worlds"), c.worlds.len().to_string().into()));
-            facts.push((t("inst.fact.disk"), size(c.size).into()));
+        match self.instances.content.as_ref().filter(|c| c.exists) {
+            Some(c) => {
+                facts.push((t("inst.fact.worlds"), c.worlds.len().to_string().into()));
+                facts.push((t("inst.fact.disk"), size(c.size).into()));
+            }
+            None => {
+                facts.push((t("inst.fact.worlds"), "—".into()));
+                facts.push((t("inst.fact.disk"), "—".into()));
+            }
         }
-        let info = match key {
-            InstKey::Custom(id) => self.customs.get(&id).map(|s| &s.info),
-            _ => self.inst_mode(key).map(|m| &self.modes[index(m)].info),
-        };
-        if let Some(info) = info {
-            if let Some(cat) = &info.catalogue {
-                facts.push((
-                    t("inst.fact.mods"),
-                    cat.iter().filter(|a| a.on).count().to_string().into(),
-                ));
+        if let Some(info) = self.inst_info(key) {
+            if let Some(n) = Self::mods_on(info) {
+                facts.push((t("inst.fact.mods"), n.to_string().into()));
             }
             if let Some(java) = &info.java {
                 facts.push((t("inst.fact.java"), java.clone().into()));
@@ -778,7 +778,7 @@ impl Launcher {
                     .mt(px(12.))
                     .whitespace_nowrap()
                     .text_color(muted3())
-                    .child(wrap(
+                    .child(wrap_even(
                         &match key {
                             InstKey::Custom(_) => tf(
                                 "inst.custom.body",
@@ -928,9 +928,28 @@ impl Launcher {
         )
     }
 
+    /// The mode's (or custom instance's) install info: its mod catalogue and Java.
+    fn inst_info(&self, key: InstKey) -> Option<&crate::backend::ModeInfo> {
+        match key {
+            InstKey::Custom(id) => self.customs.get(&id).map(|s| &s.info),
+            _ => self.inst_mode(key).map(|m| &self.modes[index(m)].info),
+        }
+    }
+
+    /// How many of the catalogue's mods are on.
+    fn mods_on(info: &crate::backend::ModeInfo) -> Option<usize> {
+        info.catalogue
+            .as_ref()
+            .map(|cat| cat.iter().filter(|a| a.on).count())
+    }
+
     fn inst_tabs(&self, key: InstKey, cx: &mut Context<Self>) -> Div {
         let c = self.instances.content.as_ref();
+        let mods = self.inst_info(key).and_then(Self::mods_on);
         let count = |tab: Tab| -> Option<usize> {
+            if tab == Tab::Mods {
+                return mods;
+            }
             let c = c?;
             Some(match tab {
                 Tab::Worlds => c.worlds.len(),
@@ -1116,6 +1135,26 @@ impl Launcher {
                     this.instances.confirm = None;
                     cx.notify();
                 })),
+            )
+    }
+
+    /// A tick box and its label, clicked as one ("Include worlds (1 MB)").
+    fn tick_line(&self, id: &'static str, text: &str, on: bool) -> gpui::Stateful<Div> {
+        div()
+            .id(id)
+            .flex()
+            .flex_row()
+            .items_center()
+            .gap(px(8.))
+            .cursor_pointer()
+            .group(id)
+            .child(crate::screens::import::tick(on, true))
+            .child(
+                inter(13., FontWeight::MEDIUM, 1.)
+                    .whitespace_nowrap()
+                    .text_color(if on { text3() } else { muted3() })
+                    .group_hover(id, |s| s.text_color(text3()))
+                    .child(SharedString::from(text.to_string())),
             )
     }
 

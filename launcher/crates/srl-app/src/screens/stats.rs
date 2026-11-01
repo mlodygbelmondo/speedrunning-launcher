@@ -523,11 +523,13 @@ impl Launcher {
         };
         let histories: Vec<(Mode, &RunHistory)> =
             modes.iter().map(|m| (*m, local.mode(*m))).collect();
+        let total: u32 = histories.iter().map(|(_, h)| h.run_count).sum();
+        // What the split columns mean, once there are rows to read it against.
         let right: SharedString = match scope {
             Some(m) => counts_line(local.mode(m)),
+            None if total == 0 => SharedString::default(),
             None => t("stats.recent_src"),
         };
-        let total: u32 = histories.iter().map(|(_, h)| h.run_count).sum();
         let panel = panel.child(band_head(&left, &right));
         if total == 0 {
             let (title, body) = match scope {

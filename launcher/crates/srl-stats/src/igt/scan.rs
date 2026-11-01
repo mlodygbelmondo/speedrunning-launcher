@@ -467,6 +467,16 @@ fn attribute(
     worlds: Vec<WorldRecord>,
     old_sticky: &HashMap<String, Mode>,
 ) -> (Vec<Run>, HashMap<String, Mode>) {
+    // A copied world (Make a copy or an import with worlds) has the very same record as the
+    // world it was copied from: one run, counted once, in the first folder scanned (the
+    // launcher's own come before the custom instances).
+    // Keyed like `Record::same_write`.
+    let mut worlds = worlds;
+    let mut kept: HashSet<(String, i64, u64, u64)> = HashSet::new();
+    worlds.retain(|w| {
+        let r = &w.record;
+        kept.insert((r.world_name.clone(), r.date_ms, r.rta_ms, r.igt_raw_ms))
+    });
     let mut by_name: HashMap<&str, Vec<usize>> = HashMap::new();
     for (i, w) in worlds.iter().enumerate() {
         by_name.entry(&w.record.world_name).or_default().push(i);
@@ -494,13 +504,17 @@ fn attribute(
             if exact.is_some() {
                 return None;
             }
+            // Several instances can have a world of that name (each Atum counts from #1): the
+            // one whose record qualifies, if only one does.
             let c = by_name.get(g.record.world_name.as_str())?;
-            let &[i] = c.as_slice() else { return None };
-            let w = &worlds[i];
-            (!taken.contains(&i)
-                && continues(&g.record, &w.record)
-                && same_run_evidence(&g.record, w))
-            .then_some(i)
+            let mut fits = c.iter().copied().filter(|&i| {
+                let w = &worlds[i];
+                !taken.contains(&i)
+                    && continues(&g.record, &w.record)
+                    && same_run_evidence(&g.record, w)
+            });
+            let i = fits.next()?;
+            fits.next().is_none().then_some(i)
         })
         .collect();
     // world -> the globals that qualify for it. One: it is that run. Several: the one an earlier
@@ -691,6 +705,19 @@ mod tests {
                 .any(|r| r.id == "w:custom-1/Random Speedrun #8")
         );
         assert_eq!(stats.unattributed.run_count, 0);
+
+        // A copy of those worlds in a second instance: the same runs, counted once.
+        let copy = s.0.join("srl/instances/custom-2");
+        fs::create_dir_all(copy.join("saves")).unwrap();
+        copy_tree(&custom.join("saves"), &copy.join("saves"));
+        let both = scan_with(
+            &paths,
+            &sources,
+            &[(custom.clone(), Mode::Fsg), (copy, Mode::Ssg)],
+        );
+        assert_eq!(both.mode(Mode::Fsg).run_count, 8);
+        assert_eq!(both.mode(Mode::Ssg).run_count, 0);
+        assert_eq!(both.unattributed.run_count, 0);
         assert_eq!(
             super::super::mode_of_world_in(
                 &paths,

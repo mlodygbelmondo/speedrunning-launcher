@@ -11,7 +11,7 @@ commicie, który coś zmienia. Najnowsze wpisy dziennika są na górze.
   | Miara | Start | Teraz |
   |---|---|---|
   | 1. Wygląd i dopracowanie | 7,5 | 8 |
-  | 2. Ruch i płynność (animacje) | 5 | 7 |
+  | 2. Ruch i płynność (animacje) | 5 | 8 |
   | 3. Model instancji (własne instancje: tworzenie, kopia, usuwanie) | 3 | 8,5 |
   | 4. Zawartość instancji (światy, mody, paczki, konfiguracja, logi) | 4 | 8,5 |
   | 5. Nawigacja i układ informacji | 7 | 8,5 |
@@ -222,6 +222,23 @@ Potem:
 ## Dziennik
 
 ### 2026-11-01
+
+- **Poprawki po drugim przeglądzie (świeży subagent):**
+  1. Skopiowane światy (kopia albo import ze światami) liczyły się w Statystykach dwa razy: światy o tym samym
+     zapisie rekordu (`same_write`) liczą się raz, w pierwszym folderze (najpierw własne launchera). Test.
+  2. Ta sama nazwa świata Atum w kilku instancjach blokowała dopasowanie starszego zapisu (reguła 3): teraz
+     wystarcza, że pasuje dokładnie jeden z nich.
+  3. Import z oficjalnego launchera skopiowałby cały `.minecraft` (assets, libraries, versions, pliki kont):
+     import bierze tylko listę dozwolonych (pliki opcji, `config/`, `resourcepacks/`, `saves/` na życzenie).
+     Nazwy porównywane bez wielkości liter („Mods”, „Saves” na Windowsie). Test z plikami oficjalnego launchera.
+  4. Sprawdzenie „to folder tego launchera” działa na ścieżkach kanonicznych (dowiązania, `..`), jak w imporcie.
+  5. W czasie importu formularz był aktywny (można było równolegle utworzyć drugą instancję): przyciski
+     zablokowane, Esc anuluje import, błąd przy zamkniętym formularzu idzie do komunikatu.
+  Też: panika w zadaniu kopiowania kończy się błędem zamiast wiecznego paska; zmiana listy własnych instancji
+  odświeża Statystyki.
+- **Płynne paski instalacji** (Start, przycisk Graj, kafelki, własne instancje, Narzędzia): pasek dochodzi do
+  postępu wykładniczo (90 ms) zamiast skakać co zdarzenie; przy nowym etapie wraca od razu. Klatki tylko, gdy
+  pasek jest w tyle; po instalacji 0 klatek przez 2 s (zmierzone).
 
 - **Ruch na Instancjach:** tło strony (grafika instancji) przechodzi płynnie przy zmianie instancji, jak grafika
   trybu na Starcie (420 ms, potem 0 klatek; zmierzone `SRL_TRACE_RENDERS`). Komunikat pod kartami („Instancja

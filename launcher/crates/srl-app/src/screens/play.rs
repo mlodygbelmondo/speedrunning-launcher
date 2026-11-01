@@ -263,7 +263,10 @@ impl Launcher {
                         .top(px(h + 7.))
                         .flex()
                         .flex_col()
-                        .child(thin_progress(bar_fraction(&p), 3.))
+                        .child(thin_progress(
+                            self.eased_bar(format!("mode-{mi}"), bar_fraction(&p)),
+                            3.,
+                        ))
                         .children(detail),
                 );
                 (label, t(stage_key(p.stage)), false)

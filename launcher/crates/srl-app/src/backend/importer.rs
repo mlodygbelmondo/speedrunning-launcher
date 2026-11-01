@@ -142,7 +142,7 @@ fn now() -> u64 {
 }
 
 /// Whether `dir` is inside the launcher's data folder (or is it).
-fn inside(dir: &Path, root: &Path) -> bool {
+pub fn inside(dir: &Path, root: &Path) -> bool {
     let canon = |p: &Path| std::fs::canonicalize(p).unwrap_or_else(|_| p.to_path_buf());
     canon(dir).starts_with(canon(root))
 }

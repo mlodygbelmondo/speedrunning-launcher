@@ -1841,11 +1841,18 @@ impl Launcher {
                         (tn("inst.copy.skipped", made.skipped.len() as u64), true)
                     });
                 }
-                Err(why) if why == COPY_CANCELLED => {
-                    self.instances.name_problem = Some(t("inst.copy.cancelled"));
-                }
+                // Under the form's name field, or as a note when the form was closed meanwhile.
                 Err(why) => {
-                    self.instances.name_problem = Some(tf("inst.copy.failed", &[("why", &why)]));
+                    let text = if why == COPY_CANCELLED {
+                        t("inst.copy.cancelled")
+                    } else {
+                        tf("inst.copy.failed", &[("why", &why)])
+                    };
+                    if self.instances.creating.is_some() {
+                        self.instances.name_problem = Some(text);
+                    } else {
+                        self.instances.note = Some((text, why != COPY_CANCELLED));
+                    }
                 }
             }
             cx.notify();
@@ -1906,7 +1913,7 @@ impl Launcher {
 
     pub fn submit_new_instance(&mut self, cx: &mut Context<Self>) {
         // One create at a time: a double click or Enter then a click would make two.
-        if self.instances.submitting {
+        if self.instances.submitting || self.instances.importing {
             return;
         }
         let Some(form) = self.instances.creating.clone() else {
@@ -2005,6 +2012,8 @@ impl Launcher {
     /// saved value.
     pub fn cancel_inst_field(&mut self, which: Field, cx: &mut Context<Self>) {
         match which {
+            // Esc while bringing an instance over stops that; the form stays for its answer.
+            Field::NewInstance if self.instances.importing => self.backend().cancel_copy(),
             Field::NewInstance => {
                 self.instances.creating = None;
                 self.instances.name_problem = None;
@@ -2036,14 +2045,12 @@ impl Launcher {
                 true,
             ),
             ModeState::Installing(p) => {
-                progress = Some(
-                    div()
-                        .absolute()
-                        .left_0()
-                        .right_0()
-                        .top(px(h + 7.))
-                        .child(thin_progress(super::play::bar_fraction(p), 3.)),
-                );
+                progress = Some(div().absolute().left_0().right_0().top(px(h + 7.)).child(
+                    thin_progress(
+                        self.eased_bar(format!("custom-{}", id.0), super::play::bar_fraction(p)),
+                        3.,
+                    ),
+                ));
                 let label = if matches!(p.stage, Stage::Launching | Stage::SigningIn) {
                     t("v3.starting")
                 } else {
@@ -2115,6 +2122,9 @@ impl Launcher {
                     false,
                 )
                 .on_click(cx.listener(move |this, _, _, cx| {
+                    if this.instances.importing {
+                        return;
+                    }
                     if let Some(f) = &mut this.instances.creating {
                         if f.base.minecraft_version() != m.minecraft_version() {
                             f.source = None;
@@ -2133,6 +2143,9 @@ impl Launcher {
             true,
         )
         .on_click(cx.listener(|this, _, _, cx| {
+            if this.instances.importing {
+                return;
+            }
             if let Some(f) = &mut this.instances.creating {
                 f.copy = f.source.is_some() || !f.copy;
                 f.source = None;
@@ -2254,6 +2267,9 @@ impl Launcher {
             chips = chips.child(
                 chip(("inst-new-src", i), &text, on, true).on_click(cx.listener(
                     move |this, _, _, cx| {
+                        if this.instances.importing {
+                            return;
+                        }
                         if let Some(f) = &mut this.instances.creating {
                             f.source = if on { None } else { Some(pick.clone()) };
                         }
@@ -2265,6 +2281,9 @@ impl Launcher {
         let worlds = form.source.is_some().then(|| {
             chip("inst-new-worlds", &t("inst.copy.worlds"), form.worlds, true).on_click(
                 cx.listener(|this, _, _, cx| {
+                    if this.instances.importing {
+                        return;
+                    }
                     if let Some(f) = &mut this.instances.creating {
                         f.worlds = !f.worlds;
                     }

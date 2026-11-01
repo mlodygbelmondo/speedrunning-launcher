@@ -623,7 +623,10 @@ impl Launcher {
                             .left_0()
                             .right_0()
                             .bottom_0()
-                            .child(thin_progress(super::play::bar_fraction(p), 2.)),
+                            .child(thin_progress(
+                                self.eased_bar(format!("tile-{i}"), super::play::bar_fraction(p)),
+                                2.,
+                            )),
                     ),
                     _ => None,
                 };

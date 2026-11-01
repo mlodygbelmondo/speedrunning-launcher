@@ -239,12 +239,10 @@ impl Launcher {
                                 cx.listener(move |this, _, _, _| this.backend().tools().cancel(id)),
                             )),
                     )
-                    .child(
-                        div()
-                            .mt(px(12.))
-                            .w(px(BAR_W))
-                            .child(thin_progress(bar_fraction(p), 3.)),
-                    )
+                    .child(div().mt(px(12.)).w(px(BAR_W)).child(thin_progress(
+                        self.eased_bar(format!("tool-{i}"), bar_fraction(p)),
+                        3.,
+                    )))
                     .children(detail.map(|d| {
                         plex(11., FontWeight::MEDIUM)
                             .mt(px(9.))

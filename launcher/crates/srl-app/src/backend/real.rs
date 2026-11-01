@@ -405,9 +405,7 @@ impl Backend for RealBackend {
             .store(false, std::sync::atomic::Ordering::Relaxed);
         let inner = self.inner.clone();
         self.rt.spawn_blocking(move || {
-            let answer = inner
-                .duplicate(CopyFrom::Instance(from), &name, with_worlds)
-                .map_err(|e| format!("{e:#}"));
+            let answer = inner.duplicate_caught(CopyFrom::Instance(from), &name, with_worlds);
             inner.copying.lock().unwrap().remove(&from);
             inner.created(answer, true);
         });
@@ -422,7 +420,7 @@ impl Backend for RealBackend {
     ) {
         // Never one of ours: that is Make a copy, and copying the data folder into itself
         // would not end.
-        if dir.starts_with(self.inner.core.paths().root()) {
+        if super::importer::inside(&dir, self.inner.core.paths().root()) {
             self.inner
                 .created(Err("that folder is this launcher's own".to_string()), true);
             return;
@@ -432,9 +430,7 @@ impl Backend for RealBackend {
             .store(false, std::sync::atomic::Ordering::Relaxed);
         let inner = self.inner.clone();
         self.rt.spawn_blocking(move || {
-            let answer = inner
-                .duplicate(CopyFrom::Folder(dir, base), &name, with_worlds)
-                .map_err(|e| format!("{e:#}"));
+            let answer = inner.duplicate_caught(CopyFrom::Folder(dir, base), &name, with_worlds);
             inner.created(answer, true);
         });
     }
@@ -723,6 +719,21 @@ impl Inner {
     /// `duplicate_instance` (blocking): the source's definition (a mode's memory and mods, a
     /// custom instance's whole definition), its directory copied with progress, then the new
     /// definition. A failed copy leaves nothing behind.
+    /// `duplicate`, with a panic turned into an error: the UI waits for the answer, and its
+    /// progress bar would stay up for good without one.
+    fn duplicate_caught(
+        self: &Arc<Self>,
+        from: CopyFrom,
+        name: &str,
+        worlds: bool,
+    ) -> std::result::Result<Created, String> {
+        std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+            self.duplicate(from, name, worlds)
+        }))
+        .unwrap_or_else(|_| Err(anyhow::anyhow!("the copy stopped unexpectedly")))
+        .map_err(|e| format!("{e:#}"))
+    }
+
     fn duplicate(self: &Arc<Self>, from: CopyFrom, name: &str, worlds: bool) -> Result<Created> {
         let (name, base, memory_mb, mods, jvm_args) = {
             let snap = self.snap.lock().unwrap();
@@ -783,7 +794,11 @@ impl Inner {
         };
         let dir = paths.game_dir(Instance::Custom(id));
         let started = Instant::now();
-        let plan = CopyPlan::new(&src, CopyWhat::Everything { worlds });
+        let what = match &from {
+            CopyFrom::Instance(_) => CopyWhat::Everything { worlds },
+            CopyFrom::Folder(..) => CopyWhat::Import { worlds },
+        };
+        let plan = CopyPlan::new(&src, what);
         let (files_total, bytes_total) = (plan.files(), plan.bytes());
         log(format_args!(
             "{id}: copying {} into \"{name}\" ({files_total} files, {} MB{})",
@@ -893,6 +908,8 @@ impl Inner {
                 .map(|c| (paths.game_dir(c.instance()), c.base))
                 .collect(),
         );
+        // An open Statistics page shows the new numbers (a scan already waiting covers this).
+        self.stats.scan();
     }
 
     fn created(&self, answer: Result<Created, String>, copy: bool) {
@@ -1619,9 +1636,15 @@ mod tests {
         for f in [
             "options.txt",
             "config/atum.json",
+            "resourcepacks/p.zip",
             "saves/W/level.dat",
             "mods/cheat.jar",
             "logs/latest.log",
+            // The official launcher's .minecraft: never any of this.
+            "versions/1.16.1/1.16.1.jar",
+            "assets/indexes/1.16.json",
+            "launcher_accounts.json",
+            "Mods/upper.jar",
         ] {
             write(&theirs.join(f), f);
         }
@@ -1645,6 +1668,10 @@ mod tests {
         assert!(!dir.join("saves").exists(), "no worlds unless asked");
         assert!(!dir.join("mods").exists(), "mods come from the launcher");
         assert!(!dir.join("logs").exists());
+        assert!(dir.join("resourcepacks/p.zip").exists());
+        for never in ["versions", "assets", "launcher_accounts.json", "Mods"] {
+            assert!(!dir.join(never).exists(), "{never}");
+        }
         assert_eq!(
             b.snapshot().settings.custom(made.id).unwrap().base,
             Mode::Fsg

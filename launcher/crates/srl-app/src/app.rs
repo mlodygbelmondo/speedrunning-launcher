@@ -193,6 +193,10 @@ pub struct Launcher {
     root_focus: FocusHandle,
     /// Set when a focused field goes away; the next render gives the focus back to the root.
     pub refocus_root: bool,
+    /// Install bars as drawn, easing toward their progress between the backend's events.
+    bars: std::cell::RefCell<std::collections::HashMap<String, (f32, Instant)>>,
+    /// A bar is still behind its progress: draw another frame.
+    bars_moving: std::cell::Cell<bool>,
     pub name_settings: NameField,
     /// The prompt's field was focused once (`render_name`), so a click elsewhere isn't undone.
     pub prompt_focused: bool,
@@ -378,6 +382,8 @@ impl Launcher {
             },
             root_focus,
             refocus_root: false,
+            bars: Default::default(),
+            bars_moving: Default::default(),
             name_settings: NameField {
                 text: name,
                 focus: settings_focus,
@@ -1057,6 +1063,7 @@ impl Render for Launcher {
         if std::mem::take(&mut self.refocus_root) {
             window.focus(&self.root_focus, cx);
         }
+        self.bars_moving.set(false);
         if TRACE_RENDERS.load(Ordering::Relaxed) {
             static N: AtomicU64 = AtomicU64::new(0);
             let n = N.fetch_add(1, Ordering::Relaxed) + 1;
@@ -1110,7 +1117,7 @@ impl Render for Launcher {
                 .into_any_element()
         };
 
-        if !matches!(self.anim, Anim::Idle) {
+        if !matches!(self.anim, Anim::Idle) || self.bars_moving.get() {
             window.request_animation_frame();
         }
         // A tile still zooming: in for TILE_MS, out for TILE_MS, then idle again.
@@ -1207,6 +1214,34 @@ fn cubic_bezier(x1: f32, y1: f32, x2: f32, y2: f32, t: f32) -> f32 {
 
 fn ease_in(t: f32) -> f32 {
     cubic_bezier(0.42, 0.0, 1.0, 1.0, t)
+}
+
+/// How long a bar takes to cover about two thirds of a jump in its progress.
+const BAR_EASE_MS: f32 = 90.;
+
+impl Launcher {
+    /// The fraction to draw for the install bar `key` now that its progress is `target`: it
+    /// eases forward between the backend's events (every 50 ms or so) instead of jumping, and
+    /// snaps back at once when a new stage starts from zero. Idle bars cost no frames.
+    pub fn eased_bar(&self, key: impl Into<String>, target: f32) -> f32 {
+        let now = Instant::now();
+        let mut bars = self.bars.borrow_mut();
+        let (shown, at) = bars.entry(key.into()).or_insert((target, now));
+        // A long quiet spell is one frame's worth, so the first jump after it still eases.
+        let dt = ms_since(*at, now).min(32.);
+        *shown = if target < *shown {
+            target
+        } else {
+            target + (*shown - target) * (-dt / BAR_EASE_MS).exp()
+        };
+        *at = now;
+        if target - *shown > 0.002 {
+            self.bars_moving.set(true);
+        } else {
+            *shown = target;
+        }
+        *shown
+    }
 }
 
 pub fn ease_out(t: f32) -> f32 {

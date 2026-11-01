@@ -108,21 +108,28 @@ pub enum CopyWhat {
     Settings,
     /// `duplicate_instance`: everything but `NOT_COPIED`, and `saves/` only with `worlds`.
     Everything { worlds: bool },
+    /// `import_instance`: what `Settings` takes, and `saves/` with `worlds`. Never the rest of
+    /// another launcher's folder: the official launcher's `.minecraft` also holds the game's
+    /// assets, libraries and versions (gigabytes) and its account files.
+    Import { worlds: bool },
 }
 
 impl CopyWhat {
     fn takes(self, top: &str, is_dir: bool) -> bool {
+        // Windows folders may be "Saves" or "Mods": the names match in any case.
+        let top = top.to_ascii_lowercase();
+        let top = top.as_str();
+        let settings = if is_dir {
+            SETTINGS_DIRS.contains(&top)
+        } else {
+            is_option_file(top)
+        };
         match self {
-            CopyWhat::Settings => {
-                if is_dir {
-                    SETTINGS_DIRS.contains(&top)
-                } else {
-                    is_option_file(top)
-                }
-            }
+            CopyWhat::Settings => settings,
             CopyWhat::Everything { worlds } => {
                 !NOT_COPIED.contains(&top) && (worlds || top != WORLDS)
             }
+            CopyWhat::Import { worlds } => settings || (worlds && is_dir && top == WORLDS),
         }
     }
 }

@@ -143,6 +143,16 @@ pub struct Launcher {
     backend: Rc<dyn Backend>,
     /// The last state the backend reported for each mode, in `Mode::ALL` order.
     pub modes: [ModeSnapshot; 5],
+    /// The custom instances' state and facts, by id (`Settings::custom_instances` has their
+    /// definitions).
+    pub customs: std::collections::BTreeMap<srl_core::CustomId, ModeSnapshot>,
+    /// A duplicate being copied, and how far (`Event::InstanceCopy`).
+    pub copying: Option<crate::backend::CopyProgress>,
+    /// The Instances page's text fields: a new instance's name, the selected custom instance's
+    /// name and its JVM arguments.
+    pub inst_new_name: NameField,
+    pub inst_rename: NameField,
+    pub inst_jvm: NameField,
     pub settings: Settings,
 
     /// Page currently drawn.
@@ -308,8 +318,32 @@ impl Launcher {
             this.commit_stats_name(crate::screens::field::Field::Draftout, cx)
         })
         .detach();
+        let rename_focus = cx.focus_handle();
+        cx.on_blur(&rename_focus, window, |this: &mut Self, _, cx| {
+            this.commit_rename(cx)
+        })
+        .detach();
+        let jvm_focus = cx.focus_handle();
+        cx.on_blur(&jvm_focus, window, |this: &mut Self, _, cx| {
+            this.commit_jvm(cx)
+        })
+        .detach();
         let stats_names = snap.settings.stats.clone();
         let mut this = Self {
+            customs: snap.customs.clone(),
+            copying: None,
+            inst_new_name: NameField {
+                text: String::new(),
+                focus: cx.focus_handle(),
+            },
+            inst_rename: NameField {
+                text: String::new(),
+                focus: rename_focus,
+            },
+            inst_jvm: NameField {
+                text: String::new(),
+                focus: jvm_focus,
+            },
             backend,
             modes: snap.modes,
             settings: snap.settings,
@@ -534,16 +568,42 @@ impl Launcher {
             }
             Event::Practice(ev) => self.apply_practice(ev),
             Event::Import(ev) => self.apply_import(ev, cx),
-            Event::JarAdded(mode, answer) => self.jar_added(mode, answer, cx),
+            Event::JarAdded(mode, answer) => {
+                self.jar_added(srl_core::Instance::Mode(mode), answer, cx)
+            }
+            Event::InstanceJarAdded(id, answer) => {
+                self.jar_added(srl_core::Instance::Custom(id), answer, cx)
+            }
             Event::Update(state) => self.update = state,
-            // Custom instances: the Instances page wires these.
-            Event::CustomState(..)
-            | Event::CustomInfo(..)
-            | Event::CustomInstances(_)
-            | Event::InstanceCreated(_)
-            | Event::InstanceCopy(_)
-            | Event::InstanceDeleted(_)
-            | Event::InstanceJarAdded(..) => {}
+            Event::CustomState(id, state) => {
+                let snap = self.customs.entry(id).or_insert_with(|| ModeSnapshot {
+                    state: ModeState::NotInstalled,
+                    info: Default::default(),
+                });
+                let was_running = snap.state == ModeState::Running;
+                let running = state == ModeState::Running;
+                snap.state = state;
+                if was_running && !running && self.target == Page::Instances {
+                    self.rescan(cx);
+                }
+            }
+            Event::CustomInfo(id, info) => {
+                if let Some(snap) = self.customs.get_mut(&id) {
+                    snap.info = info;
+                } else {
+                    self.customs.insert(
+                        id,
+                        ModeSnapshot {
+                            state: ModeState::NotInstalled,
+                            info,
+                        },
+                    );
+                }
+            }
+            Event::CustomInstances(list) => self.customs_changed(list, cx),
+            Event::InstanceCreated(answer) => self.instance_created(answer, cx),
+            Event::InstanceCopy(p) => self.copying = Some(p),
+            Event::InstanceDeleted(answer) => self.instance_deleted(answer, cx),
         }
     }
 
@@ -938,7 +998,7 @@ impl Launcher {
     fn page(&mut self, window: &mut Window, cx: &mut Context<Self>) -> AnyElement {
         match self.shown {
             Page::Home => self.render_home(cx),
-            Page::Instances => self.render_instances(cx),
+            Page::Instances => self.render_instances(window, cx),
             Page::Practice => self.render_practice(cx),
             Page::Learn => self.render_learn(cx),
             Page::Stats => self.render_stats(cx),

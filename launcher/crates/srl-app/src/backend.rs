@@ -581,8 +581,6 @@ impl Settings {
 
     /// [`Settings::set_mod`] for a custom instance's Mods tab. `in_base`: the mod is in the base
     /// mode's own set (`Available::in_mode` of its catalogue). Nothing for an unknown id.
-    // Until the Instances page calls it (then drop this allow).
-    #[allow(dead_code)]
     pub fn set_custom_mod(&mut self, id: CustomId, modid: &str, on: bool, in_base: bool) {
         if let Some(c) = self.custom_mut(id) {
             toggle(&mut c.mods, modid, on, in_base);
@@ -590,8 +588,6 @@ impl Settings {
     }
 
     /// Adds the player's jar to the library (once) and turns it on in a custom instance.
-    // Until the Instances page calls it (then drop this allow).
-    #[allow(dead_code)]
     pub fn add_custom_jar_to(&mut self, id: CustomId, jar: srl_mods::CustomJar) {
         let modid = jar.modid();
         if !self.custom_jars.iter().any(|j| j.modid() == modid) {
@@ -611,8 +607,6 @@ impl Settings {
     }
 
     /// Renames a custom instance, if the name is valid (trimmed first).
-    // Until the Instances page calls it (then drop this allow).
-    #[allow(dead_code)]
     pub fn rename_custom(&mut self, id: CustomId, name: &str) -> Result<(), NameProblem> {
         let name = self.validate_instance_name(name, Some(id))?;
         if let Some(c) = self.custom_mut(id) {
@@ -1030,41 +1024,27 @@ pub trait Backend {
     fn add_jar(&self, mode: Mode, path: PathBuf);
     /// `play` for a custom instance: installs its base mode's game and its own mod set into its
     /// directory, then starts it. Progress comes as `Event::CustomState`.
-    // Until the Instances page calls it (then drop this allow).
-    #[allow(dead_code)]
     fn play_custom(&self, id: CustomId);
     /// `cancel` for a custom instance.
-    // Until the Instances page calls it (then drop this allow).
-    #[allow(dead_code)]
     fn cancel_custom(&self, id: CustomId);
     /// Creates a custom instance: its definition in the settings and its empty directory,
     /// optionally with another instance's settings (options, `config/`, resource packs; never
     /// worlds or mods). Answers with `Event::CustomInstances`, `CustomState` (NotInstalled) and
     /// `InstanceCreated`. A name `Settings::validate_instance_name` refuses fails at once.
-    // Until the Instances page calls it (then drop this allow).
-    #[allow(dead_code)]
     fn create_instance(&self, spec: NewInstance);
     /// Copies an instance's whole game directory (but `mods/`, logs and the launcher's own
     /// files; `saves/` only `with_worlds`) into a new custom instance with the same base mode,
     /// memory, mods and JVM arguments, in the background with `Event::InstanceCopy` progress.
     /// A file that can't be read is left out and named in the result. Ends with
     /// `InstanceCreated`, as `create_instance` does.
-    // Until the Instances page calls it (then drop this allow).
-    #[allow(dead_code)]
     fn duplicate_instance(&self, from: Instance, name: String, with_worlds: bool);
     /// Removes a custom instance: refused while it installs, runs or is being copied; else its
     /// definition goes and its directory moves to `<data>/trash/custom-<n>-<unix time>` (a
     /// rename, nothing deleted). Answers with `Event::CustomInstances` and `InstanceDeleted`.
-    // Until the Instances page calls it (then drop this allow).
-    #[allow(dead_code)]
     fn delete_instance(&self, id: CustomId);
     /// `add_jar` for a custom instance's Mods tab: `Event::InstanceJarAdded`.
-    // Until the Instances page calls it (then drop this allow).
-    #[allow(dead_code)]
     fn add_instance_jar(&self, id: CustomId, path: PathBuf);
     /// Opens an instance's game directory (`Paths::game_dir`) in the file manager.
-    // Until the Instances page calls it (then drop this allow).
-    #[allow(dead_code)]
     fn open_game_folder(&self, instance: Instance);
 }
 

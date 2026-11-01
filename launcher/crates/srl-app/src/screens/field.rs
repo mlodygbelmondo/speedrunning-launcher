@@ -36,6 +36,12 @@ pub enum Field {
     Ranked,
     /// The Draftout name (Settings, Statistics).
     Draftout,
+    /// The Instances page: a new instance's name.
+    NewInstance,
+    /// The selected custom instance's name.
+    Rename,
+    /// The selected custom instance's JVM arguments, separated by spaces.
+    Jvm,
 }
 
 impl Field {
@@ -44,6 +50,16 @@ impl Field {
         match self {
             Field::Prompt | Field::Settings => OfflineAccount::is_valid_name(text),
             Field::Ranked | Field::Draftout => srl_stats::is_lookup_name(text),
+            Field::NewInstance | Field::Rename | Field::Jvm => true,
+        }
+    }
+
+    /// How many characters can be typed.
+    fn max(self) -> usize {
+        match self {
+            Field::NewInstance | Field::Rename => crate::backend::MAX_INSTANCE_NAME,
+            Field::Jvm => 400,
+            _ => MAX_TYPED,
         }
     }
 }
@@ -55,6 +71,9 @@ impl Launcher {
             Field::Settings => &mut self.name_settings,
             Field::Ranked => &mut self.ranked_field,
             Field::Draftout => &mut self.draftout_field,
+            Field::NewInstance => &mut self.inst_new_name,
+            Field::Rename => &mut self.inst_rename,
+            Field::Jvm => &mut self.inst_jvm,
         }
     }
 
@@ -64,6 +83,9 @@ impl Launcher {
             Field::Settings => &self.name_settings,
             Field::Ranked => &self.ranked_field,
             Field::Draftout => &self.draftout_field,
+            Field::NewInstance => &self.inst_new_name,
+            Field::Rename => &self.inst_rename,
+            Field::Jvm => &self.inst_jvm,
         }
     }
 
@@ -71,6 +93,7 @@ impl Launcher {
         let ks = &ev.keystroke;
         let m = &ks.modifiers;
         let paste = (m.control || m.platform) && ks.key == "v";
+        let max = which.max();
         let field = self.field(which);
         let before = field.text.clone();
         match ks.key.as_str() {
@@ -80,6 +103,26 @@ impl Launcher {
             "enter" if which == Field::Prompt => {
                 cx.stop_propagation();
                 self.submit_name(cx);
+                return;
+            }
+            "enter" if which == Field::NewInstance => {
+                cx.stop_propagation();
+                self.submit_new_instance(cx);
+                return;
+            }
+            "enter" if which == Field::Rename => {
+                cx.stop_propagation();
+                self.commit_rename(cx);
+                return;
+            }
+            "enter" if which == Field::Jvm => {
+                cx.stop_propagation();
+                self.commit_jvm(cx);
+                return;
+            }
+            "escape" if matches!(which, Field::NewInstance | Field::Rename | Field::Jvm) => {
+                cx.stop_propagation();
+                self.cancel_inst_field(which, cx);
                 return;
             }
             "enter" if which == Field::Settings => {
@@ -95,7 +138,7 @@ impl Launcher {
             _ if paste => {
                 if let Some(text) = cx.read_from_clipboard().and_then(|c| c.text()) {
                     for ch in text.trim().chars() {
-                        if field.text.chars().count() < MAX_TYPED && !ch.is_control() {
+                        if field.text.chars().count() < max && !ch.is_control() {
                             field.text.push(ch);
                         }
                     }
@@ -104,7 +147,7 @@ impl Launcher {
             _ if !m.control && !m.platform => {
                 if let Some(typed) = &ks.key_char {
                     for ch in typed.chars() {
-                        if field.text.chars().count() < MAX_TYPED && !ch.is_control() {
+                        if field.text.chars().count() < max && !ch.is_control() {
                             field.text.push(ch);
                         }
                     }
@@ -143,7 +186,7 @@ impl Launcher {
         let slot = match which {
             Field::Ranked => &mut stats.ranked_nickname,
             Field::Draftout => &mut stats.draftout_username,
-            Field::Prompt | Field::Settings => return,
+            _ => return,
         };
         if text.is_empty() || which.valid(&text) {
             *slot = (!text.is_empty()).then_some(text);
@@ -181,6 +224,12 @@ impl Launcher {
             stats::active_microsoft_name(&self.account)
                 .map(SharedString::from)
                 .unwrap_or_else(|| t("settings.stats_name_unset"))
+        } else if which == Field::Jvm {
+            t("inst.jvm_placeholder")
+        } else if which == Field::NewInstance {
+            self.default_instance_name().into()
+        } else if which == Field::Rename {
+            t("inst.new.name_placeholder")
         } else {
             t("name.placeholder")
         };
@@ -191,6 +240,9 @@ impl Launcher {
                 Field::Settings => "name-settings",
                 Field::Ranked => "name-ranked",
                 Field::Draftout => "name-draftout",
+                Field::NewInstance => "inst-new-name",
+                Field::Rename => "inst-rename",
+                Field::Jvm => "inst-jvm",
             })
             .track_focus(&field.focus)
             .on_key_down(
@@ -252,6 +304,7 @@ impl Launcher {
         let rule = match which {
             Field::Prompt | Field::Settings => t("name.rule"),
             Field::Ranked | Field::Draftout => t("settings.stats_name_rule"),
+            Field::NewInstance | Field::Rename | Field::Jvm => SharedString::default(),
         };
         let (msg, color) = match (bad, hint) {
             (true, _) => (rule, behind3()),

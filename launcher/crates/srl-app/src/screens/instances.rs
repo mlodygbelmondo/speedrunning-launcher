@@ -13,23 +13,25 @@ use std::path::{Path, PathBuf};
 
 use gpui::{
     AnyElement, Context, Div, FontWeight, IntoElement, ObjectFit, ParentElement, PathPromptOptions,
-    SharedString, Styled, div, img, prelude::*, px,
+    SharedString, Styled, Window, div, img, prelude::*, px,
 };
-use srl_core::Mode;
+use srl_core::{CustomId, Instance, Mode, Stage};
 
 use crate::{
     app::{Launcher, Page},
     assets::card_path,
     backend::{
-        MEMORY_CHOICES_MB, ModeState,
+        Created, CustomInstance, JvmArgProblem, MEMORY_CHOICES_MB, ModeState, NameProblem,
+        NewInstance,
         content::{self, Content},
-        index, open_folder, open_path,
+        index, open_folder, open_path, validate_jvm_args,
     },
     catalog,
     copy::{size, t, tf, tn},
     v3::*,
 };
 
+use super::field::Field;
 use super::stats::{fmt_date, today_and_month_ms};
 
 /// "18:40" for today, else the short date ("Oct 24").
@@ -58,46 +60,40 @@ pub enum InstKey {
     Shared,
     Draftout,
     Practice,
+    /// One the player made (`Settings::custom_instances`), `instances/custom-<n>`.
+    Custom(CustomId),
 }
 
 impl InstKey {
-    pub const ALL: [InstKey; 3] = [InstKey::Shared, InstKey::Draftout, InstKey::Practice];
+    /// The launcher's own instances, listed first.
+    pub const BUILT_IN: [InstKey; 3] = [InstKey::Shared, InstKey::Draftout, InstKey::Practice];
 
     /// The folder under `instances/`.
-    pub fn dir(self) -> &'static str {
+    pub fn dir(self) -> String {
         match self {
-            InstKey::Shared => srl_core::shared::DIR,
-            InstKey::Draftout => "draftout",
-            InstKey::Practice => "practice",
+            InstKey::Shared => srl_core::shared::DIR.to_string(),
+            InstKey::Draftout => "draftout".to_string(),
+            InstKey::Practice => "practice".to_string(),
+            InstKey::Custom(id) => Instance::Custom(id).dir_id().into_owned(),
         }
     }
 
-    fn id(self) -> &'static str {
+    /// The copy key part and the element ids: `shared`, `draftout`, `practice`, `c<n>`.
+    fn id(self) -> String {
         match self {
-            InstKey::Shared => "shared",
-            InstKey::Draftout => "draftout",
-            InstKey::Practice => "practice",
+            InstKey::Shared => "shared".into(),
+            InstKey::Draftout => "draftout".into(),
+            InstKey::Practice => "practice".into(),
+            InstKey::Custom(id) => format!("c{}", id.0),
         }
     }
 
+    /// `shared`, `draftout`, `practice` or `c<n>` (the deep links).
     pub fn from_id(id: &str) -> Option<InstKey> {
-        InstKey::ALL.into_iter().find(|k| k.id() == id)
-    }
-
-    fn minecraft(self) -> &'static str {
-        match self {
-            InstKey::Draftout => Mode::Draftout.minecraft_version(),
-            _ => "1.16.1",
+        if let Some(n) = id.strip_prefix('c').and_then(|n| n.parse().ok()) {
+            return Some(InstKey::Custom(CustomId(n)));
         }
-    }
-
-    /// The key art its row and backdrop use.
-    fn art(self) -> &'static str {
-        match self {
-            InstKey::Shared => catalog::MODES[index(Mode::Rsg)].art,
-            InstKey::Draftout => catalog::MODES[index(Mode::Draftout)].art,
-            InstKey::Practice => catalog::MODES[index(Mode::Fsg)].art,
-        }
+        InstKey::BUILT_IN.into_iter().find(|k| k.id() == id)
     }
 }
 
@@ -149,6 +145,25 @@ pub enum Confirm {
     World(String),
     /// Move one resource pack to the trash.
     Pack(String),
+    /// Remove the selected custom instance (its folder goes to the trash).
+    Instance,
+}
+
+/// The New instance form while it's open.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct NewForm {
+    pub base: Mode,
+    /// Start with the options, keys and packs of the instance of the same Minecraft version.
+    pub copy: bool,
+}
+
+impl Default for NewForm {
+    fn default() -> Self {
+        Self {
+            base: Mode::Rsg,
+            copy: true,
+        }
+    }
 }
 
 /// The page's own state.
@@ -161,6 +176,7 @@ pub struct InstancesView {
     pub scanning: bool,
     pub generation: u64,
     pub scroll: gpui::ScrollHandle,
+    pub list_scroll: gpui::ScrollHandle,
     pub confirm: Option<Confirm>,
     /// What the last change did, or why it failed (`true`: a failure).
     pub note: Option<(SharedString, bool)>,
@@ -168,6 +184,14 @@ pub struct InstancesView {
     pub tail: Vec<String>,
     /// The seed last copied with "Copy seed" (its button says Copied).
     pub copied: Option<i64>,
+    /// The New instance form, in place of the pane.
+    pub creating: Option<NewForm>,
+    /// Why the name in the New instance or rename field can't be saved.
+    pub name_problem: Option<SharedString>,
+    /// Why the JVM arguments in the field can't be saved.
+    pub jvm_problem: Option<SharedString>,
+    /// "Make a copy" takes the worlds too.
+    pub copy_worlds: bool,
 }
 
 impl Default for InstancesView {
@@ -179,10 +203,15 @@ impl Default for InstancesView {
             scanning: false,
             generation: 0,
             scroll: gpui::ScrollHandle::new(),
+            list_scroll: gpui::ScrollHandle::new(),
             confirm: None,
             note: None,
             tail: Vec::new(),
             copied: None,
+            creating: None,
+            name_problem: None,
+            jvm_problem: None,
+            copy_worlds: false,
         }
     }
 }
@@ -193,8 +222,9 @@ impl Launcher {
         self.data_dir.join("instances").join(key.dir())
     }
 
-    /// The mode Play and the Mods tab use for `key`: the selected mode in the shared instance
-    /// (Ranked when Draftout is selected), Draftout in its own.
+    /// The mode Play and the Mods tab use for a built-in `key`: the selected mode in the shared
+    /// instance (Ranked when Draftout is selected), Draftout in its own. `None` for practice and
+    /// custom instances (`inst_base` gives a custom one's base).
     fn inst_mode(&self, key: InstKey) -> Option<Mode> {
         match key {
             InstKey::Shared => {
@@ -202,7 +232,64 @@ impl Launcher {
                 Some(if m.is_shared() { m } else { Mode::Ranked })
             }
             InstKey::Draftout => Some(Mode::Draftout),
-            InstKey::Practice => None,
+            InstKey::Practice | InstKey::Custom(_) => None,
+        }
+    }
+
+    /// The instance the pipeline knows `key` as (the shared one as its selected mode).
+    pub fn inst_instance(&self, key: InstKey) -> Instance {
+        match key {
+            InstKey::Custom(id) => Instance::Custom(id),
+            InstKey::Practice => Instance::Practice,
+            _ => Instance::Mode(self.inst_mode(key).unwrap_or(Mode::Ranked)),
+        }
+    }
+
+    /// The mode whose rules `key` plays by: its own, a custom instance's base, RSG for practice.
+    fn inst_base(&self, key: InstKey) -> Mode {
+        match key {
+            InstKey::Custom(id) => self.settings.custom(id).map_or(Mode::Rsg, |c| c.base),
+            InstKey::Practice => Mode::Rsg,
+            _ => self.inst_mode(key).unwrap_or(Mode::Ranked),
+        }
+    }
+
+    fn inst_minecraft(&self, key: InstKey) -> &'static str {
+        self.inst_base(key).minecraft_version()
+    }
+
+    /// The key art its row and backdrop use: a custom instance has its base mode's.
+    fn inst_art(&self, key: InstKey) -> &'static str {
+        let mode = match key {
+            InstKey::Shared => Mode::Rsg,
+            InstKey::Practice => Mode::Fsg,
+            _ => self.inst_base(key),
+        };
+        catalog::MODES[index(mode)].art
+    }
+
+    /// What the page calls the instance.
+    pub fn inst_name(&self, key: InstKey) -> SharedString {
+        match key {
+            InstKey::Custom(id) => self
+                .settings
+                .custom(id)
+                .map(|c| SharedString::from(c.name.clone()))
+                .unwrap_or_default(),
+            _ => t(&format!("inst.{}.name", key.id())),
+        }
+    }
+
+    /// A custom instance's state (Play), `None` for the others.
+    fn custom_state(&self, key: InstKey) -> Option<&ModeState> {
+        match key {
+            InstKey::Custom(id) => Some(
+                self.customs
+                    .get(&id)
+                    .map(|s| &s.state)
+                    .unwrap_or(&ModeState::NotInstalled),
+            ),
+            _ => None,
         }
     }
 
@@ -240,6 +327,8 @@ impl Launcher {
         }
         self.instances.confirm = None;
         self.instances.note = None;
+        self.instances.creating = None;
+        self.load_custom_fields(key);
         if key == InstKey::Practice && self.instances.tab == Tab::Mods {
             self.instances.tab = Tab::Worlds;
         }
@@ -303,6 +392,10 @@ impl Launcher {
                 ModeState::Running | ModeState::Installing(_)
             ),
             InstKey::Practice => self.practice.game_busy(),
+            InstKey::Custom(_) => matches!(
+                self.custom_state(key),
+                Some(ModeState::Running | ModeState::Installing(_))
+            ),
         }
     }
 
@@ -440,16 +533,16 @@ impl Launcher {
         .detach();
     }
 
-    pub fn render_instances(&mut self, cx: &mut Context<Self>) -> AnyElement {
+    pub fn render_instances(&mut self, window: &Window, cx: &mut Context<Self>) -> AnyElement {
         let key = self.instances.sel;
         div()
             .size_full()
             .relative()
-            .child(art_fill(card_path(key.art())))
+            .child(art_fill(card_path(self.inst_art(key))))
             .child(overlay(bg3a(0.9)))
             .child(shade_up(1.0, 0.0, 0.6))
             .child(self.inst_list(cx))
-            .child(self.inst_pane(key, cx))
+            .child(self.inst_pane(key, window, cx))
             .into_any_element()
     }
 
@@ -462,14 +555,37 @@ impl Launcher {
             .flex()
             .flex_col()
             .gap(px(8.))
+            .bottom(px(28.))
             .child(section_head(&t("inst.list")).pb(px(4.)))
-            .children({
-                let mut rows = Vec::new();
-                for k in InstKey::ALL {
-                    rows.push(self.inst_row(k, cx));
-                }
-                rows
-            })
+            .child(
+                div()
+                    .id("inst-keys")
+                    .flex_1()
+                    .min_h_0()
+                    .overflow_y_scroll()
+                    .track_scroll(&self.instances.list_scroll)
+                    .flex()
+                    .flex_col()
+                    .gap(px(8.))
+                    .children({
+                        let mut rows = Vec::new();
+                        for k in InstKey::BUILT_IN {
+                            rows.push(self.inst_row(k, cx));
+                        }
+                        for c in &self.settings.custom_instances {
+                            rows.push(self.inst_row(InstKey::Custom(c.id), cx));
+                        }
+                        rows
+                    }),
+            )
+            .child(div().flex_none().pt(px(8.)).child(
+                secondary("inst-new", &t("inst.new.open")).on_click(cx.listener(
+                    |this, _, window, cx| {
+                        this.open_new_instance(cx);
+                        window.focus(&this.inst_new_name.focus, cx);
+                    },
+                )),
+            ))
     }
 
     /// One row of the list: the art, the name, the version and who plays in it.
@@ -485,7 +601,7 @@ impl Launcher {
             .cursor_pointer()
             .on_click(cx.listener(move |this, _, _, cx| this.select_instance(key, cx)))
             .child(overlay(tile_bg()))
-            .child(art_fill(card_path(key.art())))
+            .child(art_fill(card_path(self.inst_art(key))))
             .map(|e| {
                 if on {
                     e.child(shade_right(0., 0.6, 0.92, 0.6))
@@ -504,7 +620,7 @@ impl Launcher {
                     .flex()
                     .flex_col()
                     .child(tight(
-                        &t(&format!("inst.{}.name", key.id())),
+                        &self.inst_name(key),
                         20.,
                         FontWeight::EXTRA_BOLD,
                         -0.01,
@@ -532,7 +648,7 @@ impl Launcher {
                     .child(
                         plex(11., FontWeight::MEDIUM)
                             .text_color(faint3())
-                            .child(key.minecraft()),
+                            .child(self.inst_minecraft(key)),
                     ),
             )
             .child(if on { ring() } else { hover_ring("inst-row") })
@@ -554,18 +670,28 @@ impl Launcher {
                     tn("inst.practice.who", n as u64)
                 }
             }
+            InstKey::Custom(_) => tf(
+                "inst.custom.who",
+                &[("mode", catalog::MODES[index(self.inst_base(key))].short)],
+            ),
             _ => t(&format!("inst.{}.who", key.id())),
         }
     }
 
-    fn inst_pane(&mut self, key: InstKey, cx: &mut Context<Self>) -> Div {
+    fn inst_pane(&mut self, key: InstKey, window: &Window, cx: &mut Context<Self>) -> Div {
+        if self.instances.creating.is_some() {
+            return self.new_instance_pane(window, cx);
+        }
         let mut facts: Vec<(SharedString, SharedString)> = Vec::new();
         if let Some(c) = self.instances.content.as_ref().filter(|c| c.exists) {
             facts.push((t("inst.fact.worlds"), c.worlds.len().to_string().into()));
             facts.push((t("inst.fact.disk"), size(c.size).into()));
         }
-        if let Some(mode) = self.inst_mode(key) {
-            let info = &self.modes[index(mode)].info;
+        let info = match key {
+            InstKey::Custom(id) => self.customs.get(&id).map(|s| &s.info),
+            _ => self.inst_mode(key).map(|m| &self.modes[index(m)].info),
+        };
+        if let Some(info) = info {
             if let Some(cat) = &info.catalogue {
                 facts.push((
                     t("inst.fact.mods"),
@@ -580,12 +706,12 @@ impl Launcher {
             .flex()
             .flex_col()
             .child(kicker(
-                &tf("inst.eyebrow", &[("mc", key.minecraft())]),
+                &tf("inst.eyebrow", &[("mc", self.inst_minecraft(key))]),
                 accent2(),
             ))
             .child(
                 tight(
-                    &t(&format!("inst.{}.name", key.id())),
+                    &self.inst_name(key),
                     48.,
                     FontWeight::EXTRA_BOLD,
                     -0.03,
@@ -600,7 +726,13 @@ impl Launcher {
                     .whitespace_nowrap()
                     .text_color(muted3())
                     .child(wrap(
-                        &t(&format!("inst.{}.body", key.id())),
+                        &match key {
+                            InstKey::Custom(_) => tf(
+                                "inst.custom.body",
+                                &[("mode", catalog::MODES[index(self.inst_base(key))].short)],
+                            ),
+                            _ => t(&format!("inst.{}.body", key.id())),
+                        },
                         INTER,
                         FontWeight::NORMAL,
                         14.,
@@ -635,6 +767,13 @@ impl Launcher {
             .child(div().relative().child(head).child(facts_col))
             .child(self.inst_actions(key, cx))
             .child(self.inst_tabs(key, cx))
+            .children(self.instances.note.clone().map(|(s, bad)| {
+                inter(12., FontWeight::MEDIUM, 1.3)
+                    .flex_none()
+                    .pt(px(12.))
+                    .text_color(if bad { behind3() } else { ok3() })
+                    .child(s)
+            }))
             .child({
                 let fade = self.mode_fade();
                 div()
@@ -645,7 +784,7 @@ impl Launcher {
                     .relative()
                     .top(px(fade.rise))
                     .when(fade.text < 1.0, |d| d.opacity(fade.text))
-                    .child(self.inst_tab_body(key, cx))
+                    .child(self.inst_tab_body(key, window, cx))
             })
     }
 
@@ -683,11 +822,30 @@ impl Launcher {
                         .on_click(cx.listener(|this, _, _, cx| this.navigate(Page::Practice, cx))),
                 );
             }
+            InstKey::Custom(id) => {
+                row = row.child(self.custom_play(id, cx));
+                if matches!(
+                    self.custom_state(key),
+                    Some(ModeState::Installing(_) | ModeState::Running)
+                ) {
+                    let running = self.custom_state(key) == Some(&ModeState::Running);
+                    row = row.child(
+                        tertiary(
+                            "inst-custom-cancel",
+                            &t(if running { "game.stop" } else { "v3.cancel" }),
+                        )
+                        .on_click(
+                            cx.listener(move |this, _, _, _| this.backend().cancel_custom(id)),
+                        ),
+                    );
+                }
+            }
         }
-        let dir = self.inst_dir(key);
+        let instance = self.inst_instance(key);
         row.child(div().flex_1()).child(
-            tertiary("inst-folder", &t("inst.open_folder"))
-                .on_click(cx.listener(move |_, _, _, _| open_folder(&dir))),
+            tertiary("inst-folder", &t("inst.open_folder")).on_click(
+                cx.listener(move |this, _, _, _| this.backend().open_game_folder(instance)),
+            ),
         )
     }
 
@@ -746,14 +904,17 @@ impl Launcher {
             )
     }
 
-    fn inst_tab_body(&mut self, key: InstKey, cx: &mut Context<Self>) -> AnyElement {
-        if self.instances.tab == Tab::Mods
-            && let Some(mode) = self.inst_mode(key)
-        {
-            return self.inst_mods(mode, cx);
+    fn inst_tab_body(
+        &mut self,
+        key: InstKey,
+        window: &Window,
+        cx: &mut Context<Self>,
+    ) -> AnyElement {
+        if self.instances.tab == Tab::Mods && key != InstKey::Practice {
+            return self.inst_mods(self.inst_instance(key), cx);
         }
         if self.instances.tab == Tab::Settings {
-            return self.inst_settings(key, cx);
+            return self.inst_settings(key, window, cx);
         }
         let Some(c) = self.instances.content.clone() else {
             return div()
@@ -770,7 +931,10 @@ impl Launcher {
                         .whitespace_nowrap()
                         .text_color(muted3())
                         .child(wrap(
-                            &t(&format!("inst.{}.empty", key.id())),
+                            &match key {
+                                InstKey::Custom(_) => t("inst.custom.empty"),
+                                _ => t(&format!("inst.{}.empty", key.id())),
+                            },
                             INTER,
                             FontWeight::NORMAL,
                             14.,
@@ -793,12 +957,6 @@ impl Launcher {
             .flex()
             .flex_col()
             .child(bar)
-            .children(self.instances.note.clone().map(|(s, bad)| {
-                inter(12., FontWeight::MEDIUM, 1.3)
-                    .pb(px(8.))
-                    .text_color(if bad { behind3() } else { ok3() })
-                    .child(s)
-            }))
             .child(
                 div()
                     .flex_1()
@@ -1254,28 +1412,78 @@ impl Launcher {
         (bar, vec![grid])
     }
 
-    fn inst_settings(&mut self, key: InstKey, cx: &mut Context<Self>) -> AnyElement {
+    fn inst_settings(
+        &mut self,
+        key: InstKey,
+        window: &Window,
+        cx: &mut Context<Self>,
+    ) -> AnyElement {
         let mut col = div().pt(px(20.)).flex().flex_col().gap(px(26.));
-        if let Some(mode) = self.inst_mode(key) {
-            let now = self.settings.memory_mb(mode);
-            let floor = crate::backend::mode_needs(mode).min_memory_mb;
-            let short = catalog::MODES[index(mode)].short;
+        let custom = match key {
+            InstKey::Custom(id) => self.settings.custom(id).cloned(),
+            _ => None,
+        };
+        if custom.is_some() {
+            let field = self.name_input(Field::Rename, 420., 36., 14., window, cx);
             col = col.child(
                 div()
                     .flex()
                     .flex_col()
                     .gap(px(10.))
-                    .child(section_head(&tf("inst.memory", &[("mode", short)])))
-                    .child(div().flex().flex_row().gap(px(6.)).children(
+                    .child(section_head(&t("inst.custom.name")))
+                    .child(field)
+                    .children(self.instances.name_problem.clone().map(|p| {
+                        inter(12., FontWeight::MEDIUM, 1.3)
+                            .text_color(behind3())
+                            .child(p)
+                    })),
+            );
+        }
+        if let Some(mode) = self.inst_mode(key).or(custom.as_ref().map(|c| c.base)) {
+            let now = self.settings.memory_mb_of(self.inst_instance(key));
+            let own = custom.as_ref().and_then(|c| c.memory_mb);
+            let custom_id = custom.as_ref().map(|c| c.id);
+            let floor = crate::backend::mode_needs(mode).min_memory_mb;
+            let short = catalog::MODES[index(mode)].short;
+            let same = custom_id.map(|id| {
+                chip(
+                    "inst-mem-same",
+                    &tf("inst.custom.memory_same", &[("mode", short)]),
+                    own.is_none(),
+                    false,
+                )
+                .on_click(cx.listener(move |this, _, _, cx| {
+                    let mut s = this.settings.clone();
+                    if let Some(c) = s.custom_mut(id) {
+                        c.memory_mb = None;
+                    }
+                    this.save_settings(s, cx);
+                }))
+            });
+            col = col.child(
+                div()
+                    .flex()
+                    .flex_col()
+                    .gap(px(10.))
+                    .child(section_head(&if custom_id.is_some() {
+                        t("inst.custom.memory")
+                    } else {
+                        tf("inst.memory", &[("mode", short)])
+                    }))
+                    .child(div().flex().flex_row().gap(px(6.)).children(same).children(
                         MEMORY_CHOICES_MB.into_iter().map(|mb| {
                             let text = format!("{} GB", mb / 1024);
+                            let on = mb == now && (custom_id.is_none() || own.is_some());
                             if mb < floor {
                                 chip_off(&text).into_any_element()
                             } else {
-                                chip(("inst-mem", mb as usize), &text, mb == now, false)
+                                chip(("inst-mem", mb as usize), &text, on, false)
                                     .on_click(cx.listener(move |this, _, _, cx| {
                                         let mut s = this.settings.clone();
-                                        s.set_memory_mb(mode, mb);
+                                        match custom_id.and_then(|id| s.custom_mut(id)) {
+                                            Some(c) => c.memory_mb = Some(mb),
+                                            None => s.set_memory_mb(mode, mb),
+                                        }
                                         this.save_settings(s, cx);
                                     }))
                                     .into_any_element()
@@ -1305,8 +1513,31 @@ impl Launcher {
                     ),
             );
         }
-        let dir = self.inst_dir(key);
-        let shown = dir.display().to_string();
+        if custom.is_some() {
+            let field = self.name_input(Field::Jvm, 640., 36., 13., window, cx);
+            let below = match self.instances.jvm_problem.clone() {
+                Some(p) => inter(12., FontWeight::MEDIUM, 1.3)
+                    .text_color(behind3())
+                    .child(p),
+                None => inter(12., FontWeight::NORMAL, 1.4)
+                    .text_color(faint3())
+                    .child(t("inst.custom.jvm_hint")),
+            };
+            col = col.child(
+                div()
+                    .flex()
+                    .flex_col()
+                    .gap(px(10.))
+                    .child(section_head(&t("inst.custom.jvm")))
+                    .child(field)
+                    .child(below),
+            );
+        }
+        if key != InstKey::Practice {
+            col = col.child(self.copy_section(key, cx));
+        }
+        let instance = self.inst_instance(key);
+        let shown = self.inst_dir(key).display().to_string();
         col = col.child(
             div()
                 .flex()
@@ -1326,12 +1557,518 @@ impl Launcher {
                             Cut::Middle,
                         )),
                 )
-                .child(
-                    tertiary("inst-folder-2", &t("inst.open_folder"))
-                        .on_click(cx.listener(move |_, _, _, _| open_folder(&dir))),
-                ),
+                .child(tertiary("inst-folder-2", &t("inst.open_folder")).on_click(
+                    cx.listener(move |this, _, _, _| this.backend().open_game_folder(instance)),
+                )),
         );
-        col.into_any_element()
+        if let Some(c) = custom {
+            let id = c.id;
+            let body = if self.instances.confirm == Some(Confirm::Instance) {
+                self.ask(
+                    tf("inst.custom.delete_ask", &[("name", &c.name)]),
+                    &t("inst.custom.delete_yes"),
+                    move |this, cx| {
+                        this.instances.confirm = None;
+                        this.backend().delete_instance(id);
+                        cx.notify();
+                    },
+                    cx,
+                )
+            } else if self.inst_busy(key) {
+                div().child(tertiary_off(&t("inst.custom.delete")))
+            } else {
+                div().child(tertiary("inst-delete", &t("inst.custom.delete")).on_click(
+                    cx.listener(|this, _, _, cx| {
+                        this.instances.confirm = Some(Confirm::Instance);
+                        cx.notify();
+                    }),
+                ))
+            };
+            col = col.child(
+                div()
+                    .flex()
+                    .flex_col()
+                    .gap(px(10.))
+                    .child(section_head(&t("inst.custom.remove")))
+                    .child(
+                        inter(12., FontWeight::NORMAL, 1.4)
+                            .text_color(faint3())
+                            .child(t("inst.custom.remove_hint")),
+                    )
+                    .child(body),
+            );
+        }
+        div()
+            .id("inst-settings")
+            .flex_1()
+            .min_h(px(0.))
+            .overflow_y_scroll()
+            .track_scroll(&self.instances.scroll)
+            .child(col.pb(px(24.)))
+            .into_any_element()
+    }
+
+    /// "Make a copy": a new custom instance with this one's files (worlds only if asked).
+    fn copy_section(&self, key: InstKey, cx: &mut Context<Self>) -> Div {
+        let mut body = div().flex().flex_row().items_center().gap(px(16.));
+        if let Some(p) = &self.copying {
+            let frac = if p.bytes_total > 0 {
+                p.bytes as f32 / p.bytes_total as f32
+            } else {
+                0.
+            };
+            body = body.child(
+                div()
+                    .w(px(420.))
+                    .flex()
+                    .flex_col()
+                    .gap(px(8.))
+                    .child(thin_progress(frac, 3.))
+                    .child(plex(11., FontWeight::MEDIUM).text_color(muted3()).child(tf(
+                        "inst.copy.progress",
+                        &[
+                            ("name", &p.name),
+                            ("done", &size(p.bytes)),
+                            ("total", &size(p.bytes_total)),
+                        ],
+                    ))),
+            );
+        } else {
+            let worlds = self.instances.copy_worlds;
+            let saves = self.instances.content.as_ref().map_or(0, |c| c.saves_size);
+            body = body
+                .child(
+                    secondary("inst-copy", &t("inst.copy.make")).on_click(cx.listener(
+                        move |this, _, _, cx| {
+                            let from = this.inst_instance(key);
+                            let name = this.settings.unique_instance_name(&tf(
+                                "inst.copy.name",
+                                &[("name", &this.inst_name(key))],
+                            ));
+                            this.backend().duplicate_instance(
+                                from,
+                                name,
+                                this.instances.copy_worlds,
+                            );
+                            this.instances.note = None;
+                            cx.notify();
+                        },
+                    )),
+                )
+                .child(
+                    chip(
+                        "inst-copy-worlds",
+                        &if saves > 0 {
+                            tf("inst.copy.worlds_size", &[("size", &size(saves))])
+                        } else {
+                            t("inst.copy.worlds")
+                        },
+                        worlds,
+                        true,
+                    )
+                    .on_click(cx.listener(|this, _, _, cx| {
+                        this.instances.copy_worlds = !this.instances.copy_worlds;
+                        cx.notify();
+                    })),
+                );
+        }
+        div()
+            .flex()
+            .flex_col()
+            .gap(px(10.))
+            .child(section_head(&t("inst.copy.head")))
+            .child(
+                inter(12., FontWeight::NORMAL, 1.4)
+                    .text_color(faint3())
+                    .child(t("inst.copy.hint")),
+            )
+            .child(body)
+    }
+
+    /// Fills the rename and JVM fields from the selected custom instance.
+    fn load_custom_fields(&mut self, key: InstKey) {
+        self.instances.name_problem = None;
+        self.instances.jvm_problem = None;
+        if let InstKey::Custom(id) = key
+            && let Some(c) = self.settings.custom(id)
+        {
+            self.inst_rename.text = c.name.clone();
+            self.inst_jvm.text = c.jvm_args.join(" ");
+        }
+    }
+
+    /// The custom instances changed (created, removed, renamed): the list follows; a removed
+    /// instance that was selected gives way to the shared one.
+    pub fn customs_changed(&mut self, list: Vec<CustomInstance>, cx: &mut Context<Self>) {
+        let ids: Vec<CustomId> = list.iter().map(|c| c.id).collect();
+        self.settings.custom_instances = list;
+        self.customs.retain(|id, _| ids.contains(id));
+        if let InstKey::Custom(id) = self.instances.sel
+            && !ids.contains(&id)
+        {
+            self.select_instance(InstKey::Shared, cx);
+        }
+        cx.notify();
+    }
+
+    pub fn instance_created(&mut self, answer: Result<Created, String>, cx: &mut Context<Self>) {
+        self.copying = None;
+        match answer {
+            Ok(made) => {
+                self.instances.creating = None;
+                self.inst_new_name.text.clear();
+                self.select_instance(InstKey::Custom(made.id), cx);
+                let note = if made.skipped.is_empty() {
+                    tf("inst.new.made", &[("name", &made.name)])
+                } else {
+                    tn("inst.copy.skipped", made.skipped.len() as u64)
+                };
+                self.instances.note = Some((note, !made.skipped.is_empty()));
+                if made.skipped.is_empty() {
+                    self.instances.tab = Tab::Mods;
+                }
+            }
+            Err(why) => {
+                self.instances.note = Some((tf("inst.new.failed", &[("why", &why)]), true));
+            }
+        }
+        cx.notify();
+    }
+
+    pub fn instance_deleted(&mut self, answer: Result<CustomId, String>, cx: &mut Context<Self>) {
+        self.instances.note = Some(match answer {
+            Ok(_) => (t("inst.custom.deleted"), false),
+            Err(why) => (tf("inst.custom.delete_failed", &[("why", &why)]), true),
+        });
+        cx.notify();
+    }
+
+    pub fn open_new_instance(&mut self, cx: &mut Context<Self>) {
+        self.instances.creating = Some(NewForm::default());
+        self.instances.name_problem = None;
+        self.instances.confirm = None;
+        self.inst_new_name.text.clear();
+        self.kick_fade();
+        cx.notify();
+    }
+
+    /// The name a new instance gets when the field is left empty: "My instance", numbered if
+    /// taken.
+    pub fn default_instance_name(&self) -> String {
+        self.settings
+            .unique_instance_name(&t("inst.new.default_name"))
+    }
+
+    pub fn submit_new_instance(&mut self, cx: &mut Context<Self>) {
+        let Some(form) = self.instances.creating.clone() else {
+            return;
+        };
+        let mut name = self.inst_new_name.text.clone();
+        if name.trim().is_empty() {
+            name = self.default_instance_name();
+        }
+        if let Err(p) = self.settings.validate_instance_name(&name, None) {
+            self.instances.name_problem = Some(name_problem(p));
+            cx.notify();
+            return;
+        }
+        self.instances.name_problem = None;
+        let from = Self::settings_source(form.base);
+        self.backend().create_instance(NewInstance {
+            name,
+            base: form.base,
+            copy_settings_from: form.copy.then(|| self.inst_instance(from)),
+        });
+    }
+
+    /// Saves the rename field (on Enter or when it loses focus).
+    pub fn commit_rename(&mut self, cx: &mut Context<Self>) {
+        let InstKey::Custom(id) = self.instances.sel else {
+            return;
+        };
+        let text = self.inst_rename.text.clone();
+        if self
+            .settings
+            .custom(id)
+            .is_some_and(|c| c.name == text.trim())
+        {
+            self.instances.name_problem = None;
+            return;
+        }
+        let mut s = self.settings.clone();
+        match s.rename_custom(id, &text) {
+            Ok(()) => {
+                self.instances.name_problem = None;
+                self.save_settings(s, cx);
+            }
+            Err(p) => self.instances.name_problem = Some(name_problem(p)),
+        }
+        cx.notify();
+    }
+
+    /// Saves the JVM arguments field (split on spaces), if every argument is allowed.
+    pub fn commit_jvm(&mut self, cx: &mut Context<Self>) {
+        let InstKey::Custom(id) = self.instances.sel else {
+            return;
+        };
+        let args: Vec<String> = self
+            .inst_jvm
+            .text
+            .split_whitespace()
+            .map(str::to_owned)
+            .collect();
+        if let Err(p) = validate_jvm_args(&args) {
+            self.instances.jvm_problem = Some(jvm_problem(&p));
+            cx.notify();
+            return;
+        }
+        self.instances.jvm_problem = None;
+        let mut s = self.settings.clone();
+        if let Some(c) = s.custom_mut(id) {
+            c.jvm_args = args;
+        }
+        self.save_settings(s, cx);
+        cx.notify();
+    }
+
+    /// Escape in a field of this page: the new instance form closes, the others go back to the
+    /// saved value.
+    pub fn cancel_inst_field(&mut self, which: Field, cx: &mut Context<Self>) {
+        match which {
+            Field::NewInstance => {
+                self.instances.creating = None;
+                self.instances.name_problem = None;
+            }
+            _ => self.load_custom_fields(self.instances.sel),
+        }
+        cx.notify();
+    }
+
+    /// Play for a custom instance: the same states as a mode's button, with the install progress
+    /// under it.
+    fn custom_play(&self, id: CustomId, cx: &mut Context<Self>) -> Div {
+        let state = self
+            .customs
+            .get(&id)
+            .map(|s| s.state.clone())
+            .unwrap_or(ModeState::NotInstalled);
+        let base = self.settings.custom(id).map_or(Mode::Rsg, |c| c.base);
+        let (w, h) = (200., 44.);
+        let mut progress = None;
+        let (label, hint, live) = match &state {
+            ModeState::NotInstalled => (
+                t("v3.download"),
+                tf(
+                    "v3.download_about",
+                    &[("size", &size(catalog::approx_download(base)))],
+                ),
+                true,
+            ),
+            ModeState::Installing(p) => {
+                progress = Some(
+                    div()
+                        .absolute()
+                        .left_0()
+                        .right_0()
+                        .top(px(h + 7.))
+                        .child(thin_progress(super::play::bar_fraction(p), 3.)),
+                );
+                let label = if matches!(p.stage, Stage::Launching | Stage::SigningIn) {
+                    t("v3.starting")
+                } else {
+                    t("v3.installing")
+                };
+                (label, t(super::play::stage_key(p.stage)), false)
+            }
+            ModeState::Ready | ModeState::UpdateAvailable => (
+                t("v3.play"),
+                tf("v3.play_hint.plain", &[("mc", base.minecraft_version())]),
+                true,
+            ),
+            ModeState::Running => (t("v3.running"), SharedString::default(), false),
+            ModeState::Failed(_) => (t("v3.retry"), t("v3.retry_hint"), true),
+        };
+        let press = if live { Press::Live } else { Press::Busy };
+        let btn = play_button("inst-custom-play", &label, hint, w, h, 15., press).when(live, |b| {
+            b.on_click(cx.listener(move |this, _, _, cx| {
+                if this.settings.player_name.is_none() {
+                    this.return_to = Page::Instances;
+                    this.navigate(Page::Name, cx);
+                } else {
+                    this.backend().play_custom(id);
+                }
+            }))
+        });
+        let failed = match &state {
+            ModeState::Failed(f) => Some(
+                inter(12., FontWeight::NORMAL, 1.3)
+                    .absolute()
+                    .left_0()
+                    .top(px(h + 8.))
+                    .w(px(560.))
+                    .whitespace_nowrap()
+                    .text_color(behind3())
+                    .child(ellipsize(
+                        &super::play::fail_detail(&f.detail),
+                        INTER,
+                        FontWeight::NORMAL,
+                        12.,
+                        560.,
+                        Cut::End,
+                    )),
+            ),
+            _ => None,
+        };
+        div()
+            .relative()
+            .flex_none()
+            .child(btn)
+            .children(progress)
+            .children(failed)
+    }
+
+    /// The New instance form, in place of the instance's pane.
+    fn new_instance_pane(&mut self, window: &Window, cx: &mut Context<Self>) -> Div {
+        let form = self.instances.creating.clone().unwrap_or_default();
+        let problem = self.instances.name_problem.clone();
+        let base_chips = div()
+            .flex()
+            .flex_row()
+            .gap(px(6.))
+            .children(Mode::ALL.map(|m| {
+                let i = index(m);
+                chip(
+                    ("inst-new-base", i),
+                    catalog::MODES[i].short,
+                    form.base == m,
+                    false,
+                )
+                .on_click(cx.listener(move |this, _, _, cx| {
+                    if let Some(f) = &mut this.instances.creating {
+                        f.base = m;
+                    }
+                    cx.notify();
+                }))
+            }));
+        let from = Self::settings_source(form.base);
+        let from_name = self.inst_name(from);
+        let copy = chip(
+            "inst-new-copy",
+            &tf("inst.new.copy", &[("from", &from_name)]),
+            form.copy,
+            true,
+        )
+        .on_click(cx.listener(|this, _, _, cx| {
+            if let Some(f) = &mut this.instances.creating {
+                f.copy = !f.copy;
+            }
+            cx.notify();
+        }));
+        let section = |title: SharedString, body: Div| {
+            div()
+                .flex()
+                .flex_col()
+                .gap(px(10.))
+                .child(section_head(&title))
+                .child(body)
+        };
+        let name_field = self.name_input(Field::NewInstance, 420., 40., 14., window, cx);
+        div()
+            .absolute()
+            .left(px(PANE_X))
+            .right(px(PANE_R))
+            .top(px(100.))
+            .flex()
+            .flex_col()
+            .gap(px(26.))
+            .child(
+                div()
+                    .flex()
+                    .flex_col()
+                    .child(kicker(&t("inst.new.eyebrow"), accent2()))
+                    .child(
+                        tight(
+                            &t("inst.new.title"),
+                            48.,
+                            FontWeight::EXTRA_BOLD,
+                            -0.03,
+                            0.95,
+                            text3(),
+                        )
+                        .mt(px(10.)),
+                    )
+                    .child(
+                        inter(14., FontWeight::NORMAL, 1.5)
+                            .mt(px(12.))
+                            .whitespace_nowrap()
+                            .text_color(muted3())
+                            .child(wrap(
+                                &t("inst.new.body"),
+                                INTER,
+                                FontWeight::NORMAL,
+                                14.,
+                                600.,
+                            )),
+                    ),
+            )
+            .child(section(
+                t("inst.new.name"),
+                div()
+                    .flex()
+                    .flex_col()
+                    .gap(px(8.))
+                    .child(name_field)
+                    .children(problem.map(|p| {
+                        inter(12., FontWeight::MEDIUM, 1.3)
+                            .text_color(behind3())
+                            .child(p)
+                    })),
+            ))
+            .child(section(
+                t("inst.new.base"),
+                div().flex().flex_col().gap(px(8.)).child(base_chips).child(
+                    inter(12., FontWeight::NORMAL, 1.4)
+                        .text_color(faint3())
+                        .child(tf(
+                            "inst.new.base_hint",
+                            &[("mc", form.base.minecraft_version())],
+                        )),
+                ),
+            ))
+            .child(section(
+                t("inst.new.start"),
+                div().flex().flex_row().child(copy),
+            ))
+            .child(
+                div()
+                    .flex()
+                    .flex_row()
+                    .items_center()
+                    .gap(px(24.))
+                    .child(
+                        primary("inst-new-create", &t("inst.new.create"))
+                            .on_click(cx.listener(|this, _, _, cx| this.submit_new_instance(cx))),
+                    )
+                    .child(
+                        tertiary("inst-new-cancel", &t("v3.cancel")).on_click(cx.listener(
+                            |this, _, _, cx| {
+                                this.instances.creating = None;
+                                this.instances.name_problem = None;
+                                cx.notify();
+                            },
+                        )),
+                    ),
+            )
+    }
+
+    /// Where a new instance on `base` takes its options, keys and packs from: the instance of the
+    /// same Minecraft version.
+    fn settings_source(base: Mode) -> InstKey {
+        if base.is_shared() {
+            InstKey::Shared
+        } else {
+            InstKey::Draftout
+        }
     }
 
     /// "Ninjabrain Bot and Toolscreen start with the game", from the tool settings.
@@ -1483,4 +2220,23 @@ fn file_row(
     )
     .cursor_pointer()
     .on_click(cx.listener(move |_, _, _, _| open_path(&path)))
+}
+
+fn name_problem(p: NameProblem) -> SharedString {
+    t(match p {
+        NameProblem::Empty => "inst.name_problem.empty",
+        NameProblem::TooLong => "inst.name_problem.too_long",
+        NameProblem::Control => "inst.name_problem.control",
+        NameProblem::Taken => "inst.name_problem.taken",
+    })
+}
+
+fn jvm_problem(p: &JvmArgProblem) -> SharedString {
+    match p {
+        JvmArgProblem::Empty => t("inst.jvm_problem.empty"),
+        JvmArgProblem::NotAnOption(a) => tf("inst.jvm_problem.not_option", &[("arg", a)]),
+        JvmArgProblem::Memory(a) => tf("inst.jvm_problem.memory", &[("arg", a)]),
+        JvmArgProblem::Command(a) => tf("inst.jvm_problem.command", &[("arg", a)]),
+        JvmArgProblem::Agent(a) => tf("inst.jvm_problem.agent", &[("arg", a)]),
+    }
 }

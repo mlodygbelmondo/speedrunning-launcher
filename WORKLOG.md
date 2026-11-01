@@ -12,7 +12,7 @@ commicie, który coś zmienia. Najnowsze wpisy dziennika są na górze.
   |---|---|---|
   | 1. Wygląd i dopracowanie | 7,5 | 7,5 |
   | 2. Ruch i płynność (animacje) | 5 | 7 |
-  | 3. Model instancji (własne instancje: tworzenie, kopia, usuwanie) | 3 | 3 (w toku, subagent) |
+  | 3. Model instancji (własne instancje: tworzenie, kopia, usuwanie) | 3 | 7,5 |
   | 4. Zawartość instancji (światy, mody, paczki, konfiguracja, logi) | 4 | 8 |
   | 5. Nawigacja i układ informacji | 7 | 8 |
   | 6. Teksty EN i PL | 7 | 7,5 |
@@ -222,6 +222,22 @@ Potem:
 ## Dziennik
 
 ### 2026-11-01
+
+- **Własne instancje na stronie Instancje** (druga połowa prośby Piotra, backend z worktree scalony wcześniej).
+  - Lista po lewej: wbudowane instancje, pod nimi własne („Twoja · gra jak RSG”), przewijana, a na dole „Nowa
+    instancja”.
+  - Formularz „Stwórz własną”: nazwa (puste pole daje „Moja instancja”, z numerem, gdy zajęta), tryb, na którego
+    zasadach gra (Ranked, RSG, FSG, SSG, Draftout; potem stały), i „Klawisze, opcje i paczki z …” z instancji tej
+    samej wersji. Zła nazwa daje komunikat pod polem. Po utworzeniu instancja jest wybrana na karcie Mody.
+  - Własna instancja ma swój przycisk Pobierz/Graj z postępem (`play_custom`, Anuluj/Zatrzymaj grę), te same karty
+    co wbudowane i kartę Mody na swoich zmianach (`set_custom_mod`, własny jar).
+  - Karta Ustawienia: nazwa (zapis po Enter albo po wyjściu z pola), pamięć z opcją „Jak w RSG”, argumenty Javy
+    sprawdzane przed zapisem („-Xmx8G ustawia pamięć: użyj ustawienia Pamięć wyżej”), „Zrób kopię” (też ze
+    wbudowanych, opcjonalnie ze światami, z paskiem postępu) i „Usuń instancję” z pytaniem (folder do kosza).
+  - Komunikaty („Instancja usunięta…”) są teraz pod kartami, więc widać je na każdej karcie. Karta Ustawienia
+    przewija się. Przyciski Otwórz folder idą przez `open_game_folder`, który nie tworzy folderu usuniętej instancji.
+  - Zdjęte wszystkie `#[allow(dead_code)]` z API własnych instancji. Sprawdzone w Xvfb (xdotool): tworzenie, zajęta
+    nazwa, kopia z postępem, odrzucony `-Xmx8G`, usunięcie, polski formularz; bezczynność 0 klatek.
 
 - **Skróty klawiszowe** (gdy żadne pole tekstowe nie ma fokusu): Ctrl+1…6 strony z nawigacji, Ctrl+, Ustawienia,
   na Starcie ← i → zmieniają tryb, Enter to Graj; Esc zamyka pytanie na Instancjach i wraca z ekranu gry.

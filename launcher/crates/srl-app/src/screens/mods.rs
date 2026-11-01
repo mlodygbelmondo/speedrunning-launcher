@@ -1,14 +1,16 @@
-//! Mods: turn the selected mode's mods on and off, the way MultiMC does, and add jars of your
-//! own. The Mods tab of the Instances page. Ranked, RSG, FSG and SSG play in one instance (`srl_core::shared`), so
-//! a mode here is a set of mods; the changes go into `Settings::mod_choices` and apply on the next
-//! Play. A set that makes the run not legal for the mode says so, and the game still starts.
+//! Mods: turn an instance's mods on and off, the way MultiMC does, and add jars of your own. The
+//! Mods tab of the Instances page. Ranked, RSG, FSG and SSG play in one instance
+//! (`srl_core::shared`), so a mode there is a set of mods, changed in `Settings::mod_choices`; a
+//! custom instance changes its base mode's set in its own `CustomInstance::mods`. Changes apply on
+//! the next Play. A set that makes the run not legal for the mode says so, and the game still
+//! starts.
 use std::path::PathBuf;
 
 use gpui::{
     AnyElement, Context, Div, FontWeight, IntoElement, ParentElement, PathPromptOptions,
     SharedString, Styled, div, prelude::*, px,
 };
-use srl_core::Mode;
+use srl_core::{Instance, Mode};
 use srl_mods::{Available, Concern, CustomJar};
 
 use crate::{
@@ -35,23 +37,51 @@ impl Launcher {
         self.open_instances(Some(super::instances::Tab::Mods), cx);
     }
 
-    fn toggle_mod(&mut self, mode: Mode, row: &Available, cx: &mut Context<Self>) {
+    fn toggle_mod(&mut self, target: Instance, row: &Available, cx: &mut Context<Self>) {
         let mut settings = self.settings.clone();
-        settings.set_mod(mode, &row.modid, !row.on, row.in_mode);
+        match target {
+            Instance::Mode(mode) => settings.set_mod(mode, &row.modid, !row.on, row.in_mode),
+            Instance::Custom(id) => settings.set_custom_mod(id, &row.modid, !row.on, row.in_mode),
+            Instance::Practice => return,
+        }
         self.save_settings(settings, cx);
     }
 
-    fn reset_mods(&mut self, mode: Mode, cx: &mut Context<Self>) {
+    fn reset_mods(&mut self, target: Instance, cx: &mut Context<Self>) {
         let mut settings = self.settings.clone();
-        settings.reset_mods(mode);
+        match target {
+            Instance::Mode(mode) => settings.reset_mods(mode),
+            Instance::Custom(id) => {
+                if let Some(c) = settings.custom_mut(id) {
+                    c.mods = Default::default();
+                }
+            }
+            Instance::Practice => return,
+        }
         self.save_settings(settings, cx);
+    }
+
+    fn mods_changed(&self, target: Instance) -> bool {
+        match target {
+            Instance::Mode(mode) => self.settings.mods_changed(mode),
+            Instance::Custom(id) => self.settings.custom(id).is_some_and(|c| !c.mods.is_empty()),
+            Instance::Practice => false,
+        }
+    }
+
+    fn add_jar_to(&self, target: Instance, file: PathBuf) {
+        match target {
+            Instance::Mode(mode) => self.backend().add_jar(mode, file),
+            Instance::Custom(id) => self.backend().add_instance_jar(id, file),
+            Instance::Practice => {}
+        }
     }
 
     /// The system's file picker for a `.jar` (or `SRL_MODS_PICK`, so tests open no window).
-    fn pick_jar(&mut self, mode: Mode, cx: &mut Context<Self>) {
+    fn pick_jar(&mut self, target: Instance, cx: &mut Context<Self>) {
         self.mods.note = None;
         if let Some(file) = std::env::var_os("SRL_MODS_PICK").filter(|v| !v.is_empty()) {
-            self.backend().add_jar(mode, PathBuf::from(file));
+            self.add_jar_to(target, PathBuf::from(file));
             return;
         }
         let picked = cx.prompt_for_paths(PathPromptOptions {
@@ -65,7 +95,7 @@ impl Launcher {
             let _ = this.update(cx, |app, cx| {
                 match answer {
                     Ok(Ok(Some(mut files))) if !files.is_empty() => {
-                        app.backend().add_jar(mode, files.swap_remove(0))
+                        app.add_jar_to(target, files.swap_remove(0))
                     }
                     Ok(Err(e)) => app.mods.note = Some(e.to_string()),
                     _ => {}
@@ -80,7 +110,7 @@ impl Launcher {
     /// mode.
     pub fn jar_added(
         &mut self,
-        mode: Mode,
+        target: Instance,
         answer: Result<CustomJar, String>,
         cx: &mut Context<Self>,
     ) {
@@ -88,7 +118,11 @@ impl Launcher {
             Ok(jar) => {
                 self.mods.note = None;
                 let mut settings = self.settings.clone();
-                settings.add_custom_jar(mode, jar);
+                match target {
+                    Instance::Mode(mode) => settings.add_custom_jar(mode, jar),
+                    Instance::Custom(id) => settings.add_custom_jar_to(id, jar),
+                    Instance::Practice => return,
+                }
                 self.save_settings(settings, cx);
             }
             Err(e) => self.mods.note = Some(e),
@@ -98,26 +132,31 @@ impl Launcher {
 
     /// The Instances page's Mods tab for `mode`: whether the set is legal, adding a jar and going
     /// back to the mode's set, then every mod the player can turn on or off.
-    pub fn inst_mods(&mut self, mode: Mode, cx: &mut Context<Self>) -> AnyElement {
+    pub fn inst_mods(&mut self, target: Instance, cx: &mut Context<Self>) -> AnyElement {
+        let mode = self.settings.rules_mode(target);
         let mi = crate::backend::index(mode);
         let short = catalog::MODES[mi].short;
-        let info = &self.modes[mi].info;
+        let empty = crate::backend::ModeInfo::default();
+        let info = match target {
+            Instance::Custom(id) => self.customs.get(&id).map(|s| &s.info).unwrap_or(&empty),
+            _ => &self.modes[mi].info,
+        };
         let rows: Vec<Available> = info.catalogue.clone().unwrap_or_default();
         let concerns = info.concerns.clone();
         let known = info.catalogue.is_some();
-        let changed = self.settings.mods_changed(mode);
+        let changed = self.mods_changed(target);
         let on = rows.iter().filter(|r| r.on).count();
 
         let mut actions = div().flex().flex_row().items_center().gap(px(20.));
         if changed {
             actions = actions.child(
                 tertiary("mods-reset", &tf("mods.reset", &[("mode", short)]))
-                    .on_click(cx.listener(move |this, _, _, cx| this.reset_mods(mode, cx))),
+                    .on_click(cx.listener(move |this, _, _, cx| this.reset_mods(target, cx))),
             );
         }
         actions = actions.child(
             secondary("mods-add", &t("mods.add"))
-                .on_click(cx.listener(move |this, _, _, cx| this.pick_jar(mode, cx))),
+                .on_click(cx.listener(move |this, _, _, cx| this.pick_jar(target, cx))),
         );
         let bar = div()
             .flex_none()
@@ -144,7 +183,10 @@ impl Launcher {
         let items: Vec<AnyElement> = rows
             .iter()
             .enumerate()
-            .map(|(i, r)| self.mod_row(i, mode, r, list_w, cx).into_any_element())
+            .map(|(i, r)| {
+                self.mod_row(i, target, mode, r, list_w, cx)
+                    .into_any_element()
+            })
             .collect();
         let note = self.mods.note.clone().map(|note| {
             inter(12., FontWeight::NORMAL, 1.4)
@@ -185,6 +227,7 @@ impl Launcher {
     fn mod_row(
         &self,
         i: usize,
+        target: Instance,
         mode: Mode,
         r: &Available,
         w: f32,
@@ -243,7 +286,7 @@ impl Launcher {
             .border_color(line3())
             .cursor_pointer()
             .hover(|s| s.bg(text3a(0.04)))
-            .on_click(cx.listener(move |this, _, _, cx| this.toggle_mod(mode, &row, cx)))
+            .on_click(cx.listener(move |this, _, _, cx| this.toggle_mod(target, &row, cx)))
             .child(super::import::tick(r.on, true))
             .child(
                 div()

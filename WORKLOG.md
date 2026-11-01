@@ -223,6 +223,9 @@ Potem:
 
 ### 2026-11-01
 
+- **Ruch na Instancjach:** tło strony (grafika instancji) przechodzi płynnie przy zmianie instancji, jak grafika
+  trybu na Starcie (420 ms, potem 0 klatek; zmierzone `SRL_TRACE_RENDERS`).
+
 - **Przeniesienie instancji z innego launchera jako własnej:** w formularzu „Nowa instancja”, pod „Na start”,
   instancje znalezione przez import (MultiMC, Prism, MCSR Launcher…) w tej samej wersji gry; wybrana daje nazwę
   domyślną i opcję „Ze światami”. Utwórz kopiuje jej folder jak „Zrób kopię” (bez `mods/`, logów, `.fabric`),

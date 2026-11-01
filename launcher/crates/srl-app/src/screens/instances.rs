@@ -183,6 +183,8 @@ pub struct InstancesView {
     pub generation: u64,
     pub scroll: gpui::ScrollHandle,
     pub list_scroll: gpui::ScrollHandle,
+    /// The backdrop art before the last switch, faded out under the new one.
+    pub prev_art: Option<&'static str>,
     pub confirm: Option<Confirm>,
     /// What the last change did, or why it failed (`true`: a failure).
     pub note: Option<(SharedString, bool)>,
@@ -215,6 +217,7 @@ impl Default for InstancesView {
             generation: 0,
             scroll: gpui::ScrollHandle::new(),
             list_scroll: gpui::ScrollHandle::new(),
+            prev_art: None,
             confirm: None,
             note: None,
             tail: Vec::new(),
@@ -328,6 +331,7 @@ impl Launcher {
             self.commit_jvm(cx);
         }
         if self.instances.sel != key || self.instances.creating.is_some() {
+            self.instances.prev_art = Some(self.inst_art(self.instances.sel));
             self.kick_fade();
         }
         let v = &mut self.instances;
@@ -554,10 +558,19 @@ impl Launcher {
 
     pub fn render_instances(&mut self, window: &Window, cx: &mut Context<Self>) -> AnyElement {
         let key = self.instances.sel;
+        let art = self.inst_art(key);
+        let fade = self.mode_fade().art;
+        // The new instance's art fades in over the old one's, as Home's key art does.
+        let prev = self
+            .instances
+            .prev_art
+            .filter(|p| *p != art && fade < 1.0)
+            .map(|p| art_fill(card_path(p)));
         div()
             .size_full()
             .relative()
-            .child(art_fill(card_path(self.inst_art(key))))
+            .children(prev)
+            .child(art_fill(card_path(art)).when(fade < 1.0, |i| i.opacity(fade)))
             .child(overlay(bg3a(0.9)))
             .child(shade_up(1.0, 0.0, 0.6))
             .child(self.inst_list(cx))

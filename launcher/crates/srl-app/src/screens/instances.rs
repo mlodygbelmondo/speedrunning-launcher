@@ -328,7 +328,21 @@ impl Launcher {
         cx.notify();
     }
 
+    /// A game started while a question was open: nothing may change under it.
+    fn refuse_if_busy(&mut self, cx: &mut Context<Self>) -> bool {
+        if !self.inst_busy(self.instances.sel) {
+            return false;
+        }
+        self.instances.confirm = None;
+        self.instances.note = Some((t("inst.busy"), true));
+        cx.notify();
+        true
+    }
+
     fn cleanup_worlds(&mut self, cx: &mut Context<Self>) {
+        if self.refuse_if_busy(cx) {
+            return;
+        }
         let Some(c) = &self.instances.content else {
             return;
         };
@@ -350,6 +364,9 @@ impl Launcher {
     }
 
     fn trash_item(&mut self, folder: &'static str, rel: String, cx: &mut Context<Self>) {
+        if self.refuse_if_busy(cx) {
+            return;
+        }
         let data = self.data_dir.clone();
         let dir = self.inst_dir(self.instances.sel);
         self.change(
@@ -363,6 +380,9 @@ impl Launcher {
     }
 
     fn toggle_pack(&mut self, rel: String, on: bool, cx: &mut Context<Self>) {
+        if self.refuse_if_busy(cx) {
+            return;
+        }
         let dir = self.inst_dir(self.instances.sel);
         self.change(
             move || {

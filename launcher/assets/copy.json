@@ -910,5 +910,6 @@
   "home.instance": "Manage instance",
   "inst.worlds.seed": "seed {seed}",
   "inst.worlds.copy_seed": "Copy seed",
-  "inst.worlds.copied": "Copied"
+  "inst.worlds.copied": "Copied",
+  "inst.busy": "The game is running in this instance, so nothing was changed. Try again once it's closed."
 }

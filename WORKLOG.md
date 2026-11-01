@@ -223,6 +223,15 @@ Potem:
 
 ### 2026-11-01
 
+- **Ósma runda (skalibrowana, znów 8,5 we wszystkich, ale z coraz drobniejszymi uwagami), poprawki:**
+  - Niższy nagłówek instancji: opis na prawie całą szerokość panelu (fakty są obok tytułu, nie obok opisu), więc
+    mieści się w dwóch liniach, a miejsce zarezerwowane na dwie zamiast trzech; na liście światów mieści się
+    jeden wiersz więcej.
+  - Niezainstalowana instancja nie pokazuje samotnego „—” w rogu (wyglądało jak błąd rysowania).
+  - Teksty: „Set memory for your own instances on the Instances page.”, PL „Pamięć własnych instancji ustawisz…”,
+    „Zasady speedrun.com i MCSR Ranked dopuszczają…”, „Na jego podstawie Statystyki pokażą…”.
+  - Odrzucone: węższa kolumna autora w Nauce (przy 150 px ucinała „speedrun.com moderators”, runda 6).
+
 - **Siódma runda krytyka, skalibrowana (9 = jak Modrinth App, 10 = Linear/Raycast): 8,5 we wszystkich czterech.**
   Poprawki:
   - Jeden styl niedostępnej opcji: `chip_off` jest przyciemniony jak segment w Ustawieniach, bez przekreślenia

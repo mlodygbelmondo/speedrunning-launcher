@@ -841,16 +841,15 @@ impl Launcher {
         if self.instances.creating.is_some() {
             return self.new_instance_pane(window, cx);
         }
-        // What the tabs don't count: the size on disk (a dash when it isn't installed, "…" while
+        // What the tabs don't count: the size on disk (nothing when it isn't installed, "…" while
         // its folder is still being read) and the Java it runs on. Worlds and mods are counted
         // on their tabs.
         let mut facts: Vec<(SharedString, SharedString)> = Vec::new();
-        let disk: SharedString = match &self.instances.content {
-            Some(c) if c.exists => size(c.size).into(),
-            Some(_) => "—".into(),
-            None => "…".into(),
-        };
-        facts.push((t("inst.fact.disk"), disk));
+        match &self.instances.content {
+            Some(c) if c.exists => facts.push((t("inst.fact.disk"), size(c.size).into())),
+            Some(_) => {}
+            None => facts.push((t("inst.fact.disk"), "…".into())),
+        }
         if let Some(java) = self.inst_info(key).and_then(|info| info.java.as_ref()) {
             facts.push((t("inst.fact.java"), java.clone().into()));
         }
@@ -875,9 +874,9 @@ impl Launcher {
             .child(
                 inter(14., FontWeight::NORMAL, 1.5)
                     .mt(px(12.))
-                    // Three lines' room whatever the text, so Play and the tabs stay put when
+                    // Two lines' room whatever the text, so Play and the tabs stay put when
                     // another instance is picked.
-                    .min_h(px(3. * 14. * 1.5))
+                    .min_h(px(2. * 14. * 1.5))
                     .whitespace_nowrap()
                     .text_color(muted3())
                     .child(wrap_even(
@@ -891,7 +890,8 @@ impl Launcher {
                         INTER,
                         FontWeight::NORMAL,
                         14.,
-                        PANE_W - 260.,
+                        // The facts sit beside the title, not this: nearly the pane's width.
+                        PANE_W - 80.,
                     )),
             );
         let facts_col = div()

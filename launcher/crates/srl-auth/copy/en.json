@@ -38,7 +38,7 @@
   "auth.error.rate_limited": "Too many sign-in requests. Wait a moment and try again.",
   "auth.error.network": "Couldn't reach the sign-in servers. Check your internet connection.",
   "auth.error.service": "The sign-in service answered with an error. Try again later.",
-  "auth.error.keystore": "The system keyring is locked or not answering. Unlock it and try again. If it's gone for good, sign out of every account in Settings and sign in again.",
+  "auth.error.keystore": "The system keyring is locked or not answering. Unlock it and try again, or sign out of every account in Settings and sign in again.",
   "auth.error.storage": "Couldn't save or read the account list. Check that the data folder can be written, then try again.",
   "auth.error.unknown_account": "This account isn't on the list any more."
 }

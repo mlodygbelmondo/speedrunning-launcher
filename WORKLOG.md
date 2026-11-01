@@ -226,6 +226,15 @@ Potem:
 
 ### 2026-11-01
 
+- **Pętla tekstów, runda 10** (r9: **8,5 i 8,5**). Nauka: opis tematu jest opcjonalny (test już go nie wymaga)
+  i zostaje tylko przy „Pierwszych krokach” i „Mierzeniu oczu”; reszta streszczała listę poniżej. Bez opisów
+  poradników powtarzających tytuł (twierdza, podróż w Netherze, one-cycle, start w Draftout, zasady i seedy
+  Ranked). Wymagania map mówią, gdzie wrzucić .jar (folder mods instancji Mapy treningowe), ile ustawić zasięgu
+  bytów i gdzie jest folder region. Jedna podpowiedź nicku w Ustawieniach. „Zaloguj się raz…” przy pierwszym
+  logowaniu. Krótsze skróty klawiszowe, opisy Dostępności i dodatków Draftout, błąd magazynu haseł, opis
+  wspólnej instancji („Wspólne: … Osobne dla trybów: …”). Błąd sygnału mówi o pamięci, brak GLFW odsyła do
+  instrukcji waywall.
+
 - **Pętla tekstów, runda 9** (r8: **8,5 i 8,5**). Play mówi „PB · data” i „SoB” jak Statystyki, pasek splitów to
   „Splity PB”. Wspólna instancja nazywa się „Speedrun” (wersja jest na plakietce obok) i mówi poprawnie, co jest
   osobne dla trybów (mody, ustawienia Atum i narzędzia). Własna instancja „Jak w RSG (3 GB)”. Okno usuwania mapy

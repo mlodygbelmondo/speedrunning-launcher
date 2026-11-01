@@ -208,15 +208,10 @@ impl Launcher {
         // its place in `behind`, as under the name prompt.
         let hint_w = LEFT_W - FIELD_W - GAP;
         // The offline name plays whenever no Microsoft account does (`account::play_as`).
-        let available = self.account.available;
         let name_hint = if self.name_breaks_rule(Field::Settings) {
             self.name_rule(Field::Settings, None, hint_w)
-        } else if available {
-            Self::hint(&t("settings.player_hint_msa"), hint_w)
         } else {
-            // A build without Microsoft login says so here, next to the name that plays, and
-            // nowhere else about accounts.
-            Self::hint(&t("settings.player_hint_no_login"), hint_w)
+            Self::hint(&t("settings.player_hint"), hint_w)
         };
         // "Import my current settings": the same page the first start offers.
         let import = secondary("settings-import", &t("settings.import_open"))

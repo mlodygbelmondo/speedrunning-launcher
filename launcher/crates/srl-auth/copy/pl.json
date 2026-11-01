@@ -38,7 +38,7 @@
   "auth.error.rate_limited": "Za dużo prób logowania. Odczekaj chwilę i spróbuj ponownie.",
   "auth.error.network": "Nie udało się połączyć z serwerami logowania. Sprawdź internet.",
   "auth.error.service": "Usługa logowania zwróciła błąd. Spróbuj później.",
-  "auth.error.keystore": "Systemowy magazyn haseł jest zablokowany albo nie odpowiada. Odblokuj go i spróbuj ponownie. Jeśli zniknął na dobre, wyloguj wszystkie konta w Ustawieniach i zaloguj się ponownie.",
+  "auth.error.keystore": "Systemowy magazyn haseł jest zablokowany albo nie odpowiada. Odblokuj go i spróbuj ponownie albo wyloguj wszystkie konta w Ustawieniach i zaloguj się od nowa.",
   "auth.error.storage": "Nie udało się zapisać ani odczytać listy kont. Sprawdź, czy do folderu danych da się zapisywać, i spróbuj ponownie.",
   "auth.error.unknown_account": "Tego konta nie ma już na liście."
 }

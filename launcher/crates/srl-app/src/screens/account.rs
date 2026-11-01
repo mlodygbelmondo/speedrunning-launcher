@@ -1,8 +1,8 @@
 //! The Microsoft account on screen (srl-auth's "For the UI"): the Account section of Settings
 //! and the login dialog over any page.
 //!
-//! - Without a client ID in the build, Settings says so in the player name's hint
-//!   (`settings.player_hint_no_login`), with no button that can't work.
+//! - Without a client ID in the build, Settings has only the player name (Play says matches
+//!   won't connect), with no button that can't work.
 //! - With one, `account_section`: each account with its face, the active one, "Log in again" for
 //!   a sign-in that can't be renewed, Use and Log out, then Log in with Microsoft (or Add another
 //!   account), who plays (`auth.policy`), the file-keystore note and the last error.

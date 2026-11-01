@@ -13,7 +13,7 @@ use crate::{
     app::{Launcher, trace},
     assets::{card_path, icon_path},
     catalog::{self, Guide, LEARN_GROUPS, Topic},
-    copy::{t, tf, tn},
+    copy::{t, t_opt, tf, tn},
     v3::*,
 };
 
@@ -282,11 +282,14 @@ impl Launcher {
                 }),
             ))
             .child(tight(&name, 40., FontWeight::EXTRA_BOLD, -0.025, 0.95, text3()).mt(px(14.)))
-            .child(
-                inter(14., FontWeight::NORMAL, 1.45)
-                    .mt(px(12.))
-                    .text_color(muted3())
-                    .child(t(&format!("learn.topic.{}.desc", topic.id))),
+            // Only where the title doesn't say what's inside: most topics' guide list does.
+            .children(
+                t_opt(&format!("learn.topic.{}.desc", topic.id)).map(|desc| {
+                    inter(14., FontWeight::NORMAL, 1.45)
+                        .mt(px(12.))
+                        .text_color(muted3())
+                        .child(desc)
+                }),
             );
 
         let rows: Vec<_> = topic

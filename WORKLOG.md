@@ -49,7 +49,7 @@ commicie, który coś zmienia. Najnowsze wpisy dziennika są na górze.
 - **Samoaktualizacja launchera** jest zrobiona i wypchnięta (2026-10-31, szczegóły w dzienniku), CI zielone,
   wydanie `v0.1.0` opublikowane, suma SHA-256 sprawdzona po pobraniu. Nikt jej jeszcze nie uruchomił na Windowsie.
   Kolejne wydanie: podbij wersję w `launcher/Cargo.toml`, commit, tag `vX.Y.Z`, push tagu (`launcher/README.md`,
-  „Releasing a version”). Najnowsze jest `v0.2.3` (poprawki po pętli tekstów). Test na
+  „Releasing a version”). Najnowsze jest `v0.3.0` (instalator, dane w LocalAppData, odporność). Test na
   Windowsie: starsza wersja ma sama pobrać najnowszą, a potem Ranked i FSG z Toolscreen mają dojść do ekranu
   tytułowego.
 - **Logowanie Microsoft** jest wyłączone, dopóki Mojang nie zatwierdzi naszego client ID. Poradnik dla Piotra:
@@ -260,6 +260,8 @@ Potem:
 
 ### 2026-11-02
 
+- **Wydanie `v0.3.0`:** instalator Windows, dane w LocalAppData, gry z poprzedniej sesji, zapasowa Java
+  i trzymanie legalnego moda, codzienne sprawdzenie Draftout (niżej).
 - **Instalator Windows i dane w LocalAppData** (decyzje Piotra, wyżej):
   - Dane: `Paths::from_env` bierze `data_local_dir` (`%LOCALAPPDATA%\SpeedrunningLauncher\data`; na Linuksie
     i macOS to ten sam folder co dotąd). `adopt_old_data` przy pierwszym starcie przenosi folder z Roaming (a bez

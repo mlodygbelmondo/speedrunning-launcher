@@ -5365,7 +5365,7 @@ dependencies = [
 
 [[package]]
 name = "srl-app"
-version = "0.2.3"
+version = "0.3.0"
 dependencies = [
  "anyhow",
  "base64 0.22.1",
@@ -5399,7 +5399,7 @@ dependencies = [
 
 [[package]]
 name = "srl-auth"
-version = "0.2.3"
+version = "0.3.0"
 dependencies = [
  "base64 0.22.1",
  "chacha20poly1305",
@@ -5426,7 +5426,7 @@ dependencies = [
 
 [[package]]
 name = "srl-core"
-version = "0.2.3"
+version = "0.3.0"
 dependencies = [
  "anyhow",
  "bytes",
@@ -5445,7 +5445,7 @@ dependencies = [
 
 [[package]]
 name = "srl-game"
-version = "0.2.3"
+version = "0.3.0"
 dependencies = [
  "anyhow",
  "futures",
@@ -5463,7 +5463,7 @@ dependencies = [
 
 [[package]]
 name = "srl-import"
-version = "0.2.3"
+version = "0.3.0"
 dependencies = [
  "directories",
  "serde_json",
@@ -5472,7 +5472,7 @@ dependencies = [
 
 [[package]]
 name = "srl-mods"
-version = "0.2.3"
+version = "0.3.0"
 dependencies = [
  "anyhow",
  "futures",
@@ -5487,7 +5487,7 @@ dependencies = [
 
 [[package]]
 name = "srl-practice"
-version = "0.2.3"
+version = "0.3.0"
 dependencies = [
  "anyhow",
  "flate2",
@@ -5507,7 +5507,7 @@ dependencies = [
 
 [[package]]
 name = "srl-stats"
-version = "0.2.3"
+version = "0.3.0"
 dependencies = [
  "anyhow",
  "bytes",
@@ -5523,7 +5523,7 @@ dependencies = [
 
 [[package]]
 name = "srl-tools"
-version = "0.2.3"
+version = "0.3.0"
 dependencies = [
  "anyhow",
  "hex",
@@ -5540,7 +5540,7 @@ dependencies = [
 
 [[package]]
 name = "srl-update"
-version = "0.2.3"
+version = "0.3.0"
 dependencies = [
  "anyhow",
  "hex",

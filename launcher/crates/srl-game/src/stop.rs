@@ -31,9 +31,24 @@ pub fn request_quit(pids: &[u32]) -> QuitRequest {
     imp::request_quit(pids)
 }
 
+/// Retries only the window-close request without falling back to `SIGTERM` if no window is left
+/// (e.g. GLFW already closed its X11 window while Minecraft is still saving the world).
+pub fn close_windows(pids: &[u32]) -> usize {
+    imp::close_windows(pids)
+}
+
 /// Sends `SIGTERM` to `pids` (Unix). On Windows it does what [`request_quit`] does.
 pub fn terminate(pids: &[u32]) {
     imp::terminate(pids)
+}
+
+#[cfg(unix)]
+fn valid_pid(pid: u32) -> Option<libc::pid_t> {
+    if pid == 0 || pid > i32::MAX as u32 {
+        None
+    } else {
+        Some(pid as libc::pid_t)
+    }
 }
 
 /// The processes that are the game in the tree started as `root`: `root` itself, or, when `root`
@@ -65,11 +80,18 @@ mod imp {
         }
     }
 
+    pub fn close_windows(pids: &[u32]) -> usize {
+        x11::close_windows(pids).unwrap_or(0)
+    }
+
     pub fn terminate(pids: &[u32]) {
         for &pid in pids {
-            // SAFETY: plain syscall. Callers pass processes they watch and haven't reaped.
+            let Some(pid) = super::valid_pid(pid) else {
+                continue;
+            };
+            // SAFETY: plain syscall on a validated positive pid the caller watches.
             unsafe {
-                libc::kill(pid as libc::pid_t, libc::SIGTERM);
+                libc::kill(pid, libc::SIGTERM);
             }
         }
     }
@@ -217,6 +239,11 @@ mod imp {
         QuitRequest::Window(pids.len())
     }
 
+    pub fn close_windows(pids: &[u32]) -> usize {
+        terminate(pids);
+        pids.len()
+    }
+
     /// `taskkill` without `/F` posts `WM_CLOSE` to the process's windows. Fire and forget: the
     /// caller waits for the process, not for taskkill.
     pub fn terminate(pids: &[u32]) {
@@ -244,11 +271,18 @@ mod imp {
         QuitRequest::Signal
     }
 
+    pub fn close_windows(_pids: &[u32]) -> usize {
+        0
+    }
+
     pub fn terminate(pids: &[u32]) {
         for &pid in pids {
-            // SAFETY: plain syscall on a process the caller watches.
+            let Some(pid) = super::valid_pid(pid) else {
+                continue;
+            };
+            // SAFETY: plain syscall on a validated positive pid the caller watches.
             unsafe {
-                libc::kill(pid as libc::pid_t, libc::SIGTERM);
+                libc::kill(pid, libc::SIGTERM);
             }
         }
     }

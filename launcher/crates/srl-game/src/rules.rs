@@ -172,16 +172,29 @@ fn in_range(version: &str, range: &VersionRange) -> bool {
         return range.max.is_none();
     }
     if let Some(min) = &range.min
-        && v < parse_version(min)
+        && cmp_version_tuple(&v, &parse_version(min)).is_lt()
     {
         return false;
     }
     if let Some(max) = &range.max
-        && v >= parse_version(max)
+        && cmp_version_tuple(&v, &parse_version(max)).is_ge()
     {
         return false;
     }
     true
+}
+
+/// Compares version tuples with trailing zeros padded so `[10, 0]` == `[10, 0, 0]`.
+fn cmp_version_tuple(a: &[u64], b: &[u64]) -> std::cmp::Ordering {
+    let n = a.len().max(b.len());
+    for i in 0..n {
+        let x = a.get(i).copied().unwrap_or(0);
+        let y = b.get(i).copied().unwrap_or(0);
+        if x != y {
+            return x.cmp(&y);
+        }
+    }
+    std::cmp::Ordering::Equal
 }
 
 /// Leading numeric components: `6.8.0-45-generic` -> [6, 8, 0].
@@ -321,6 +334,16 @@ mod tests {
         let unknown = platform(Os::Windows, Arch::X86_64, "");
         assert!(rules_allow(&zgc, &unknown, &f));
         assert!(!rules_allow(&g1, &unknown, &f));
+        // Trailing zeros are equivalent: "10.0" == "10.0.0".
+        let min_three = rules(
+            r#"[{"action":"allow","os":{"name":"windows","versionRange":{"min":"10.0.0"}}}]"#,
+        );
+        let max_three = rules(
+            r#"[{"action":"allow","os":{"name":"windows","versionRange":{"max":"10.0.0"}}}]"#,
+        );
+        let short = platform(Os::Windows, Arch::X86_64, "10.0");
+        assert!(rules_allow(&min_three, &short, &f));
+        assert!(!rules_allow(&max_three, &short, &f));
     }
 
     #[test]

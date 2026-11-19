@@ -3,6 +3,7 @@
 use std::{
     path::{Path, PathBuf},
     process::Stdio,
+    sync::atomic::{AtomicU64, Ordering},
     time::Duration,
 };
 
@@ -167,6 +168,8 @@ pub struct PidFile {
     pub arg: String,
 }
 
+static PID_TMP_SEQ: AtomicU64 = AtomicU64::new(0);
+
 impl PidFile {
     pub fn path(paths: &srl_core::Paths, tool: ToolId) -> PathBuf {
         paths
@@ -184,9 +187,18 @@ impl PidFile {
         if let Some(dir) = path.parent() {
             std::fs::create_dir_all(dir)?;
         }
-        let tmp = path.with_extension("pid.part");
-        std::fs::write(&tmp, serde_json::to_vec(self)?)?;
-        std::fs::rename(&tmp, &path).with_context(|| format!("writing {}", path.display()))
+        let seq = PID_TMP_SEQ.fetch_add(1, Ordering::Relaxed);
+        let tmp = path.with_extension(format!("pid.{}.{seq}.part", std::process::id()));
+        let bytes = serde_json::to_vec(self)?;
+        if let Err(e) = std::fs::write(&tmp, bytes) {
+            let _ = std::fs::remove_file(&tmp);
+            return Err(e.into());
+        }
+        if let Err(e) = std::fs::rename(&tmp, &path) {
+            let _ = std::fs::remove_file(&tmp);
+            return Err(e).with_context(|| format!("writing {}", path.display()));
+        }
+        Ok(())
     }
 
     pub fn remove(paths: &srl_core::Paths, tool: ToolId) {
@@ -208,27 +220,67 @@ pub(crate) fn unix_now() -> u64 {
 
 #[cfg(unix)]
 mod sys {
+    fn valid_pid(pid: u32) -> Option<libc::pid_t> {
+        if pid == 0 || pid > i32::MAX as u32 {
+            None
+        } else {
+            Some(pid as libc::pid_t)
+        }
+    }
+
+    #[cfg(target_os = "linux")]
     pub fn alive(pid: u32) -> bool {
-        // SAFETY: signal 0 only checks that the process exists.
-        unsafe { libc::kill(pid as libc::pid_t, 0) == 0 }
+        if valid_pid(pid).is_none() {
+            return false;
+        }
+        // A zombie has exited; its parent (not us) hasn't reaped it yet.
+        std::fs::read_to_string(format!("/proc/{pid}/stat")).is_ok_and(|stat| {
+            stat.rsplit_once(')')
+                .and_then(|(_, rest)| rest.trim_start().chars().next())
+                .is_some_and(|state| state != 'Z')
+        })
+    }
+
+    #[cfg(not(target_os = "linux"))]
+    pub fn alive(pid: u32) -> bool {
+        let Some(pid) = valid_pid(pid) else {
+            return false;
+        };
+        // SAFETY: signal 0 only checks that the validated positive pid exists.
+        unsafe { libc::kill(pid, 0) == 0 }
     }
 
     pub fn kill(pid: u32) {
-        // SAFETY: a plain signal to one pid.
+        let Some(pid) = valid_pid(pid) else {
+            return;
+        };
+        // SAFETY: a plain signal to one validated positive pid.
         unsafe {
-            libc::kill(pid as libc::pid_t, libc::SIGKILL);
+            libc::kill(pid, libc::SIGKILL);
         }
     }
 
     #[cfg(target_os = "linux")]
     pub fn is_same(stamp: &super::PidFile) -> bool {
+        if !alive(stamp.pid) {
+            return false;
+        }
         std::fs::read(format!("/proc/{}/cmdline", stamp.pid))
             .is_ok_and(|raw| raw.split(|b| *b == 0).any(|a| a == stamp.arg.as_bytes()))
     }
 
     #[cfg(not(target_os = "linux"))]
     pub fn is_same(stamp: &super::PidFile) -> bool {
-        alive(stamp.pid)
+        if !alive(stamp.pid) || stamp.arg.is_empty() {
+            return false;
+        }
+        let Ok(out) = std::process::Command::new("ps")
+            .args(["-p", &stamp.pid.to_string(), "-o", "args="])
+            .output()
+        else {
+            return false;
+        };
+        out.status.success() && String::from_utf8_lossy(&out.stdout).contains(&stamp.arg)
     }
 }
 
@@ -293,7 +345,7 @@ mod sys {
         // FILETIME counts 100 ns steps since 1601.
         let ticks = (u64::from(created.dwHighDateTime) << 32) | u64::from(created.dwLowDateTime);
         let created_unix = (ticks / 10_000_000).saturating_sub(11_644_473_600);
-        ok && created_unix.abs_diff(stamp.started) <= 30
+        ok && created_unix.abs_diff(stamp.started) <= 30 && crate::win::is_java(stamp.pid)
     }
 }
 

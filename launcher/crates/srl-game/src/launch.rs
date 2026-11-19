@@ -516,12 +516,12 @@ impl GameProcess {
         let targets = tokio::task::spawn_blocking(move || crate::stop::game_pids(pid))
             .await
             .unwrap_or_else(|_| vec![pid]);
-        let ask = |targets: Vec<u32>| async move {
-            tokio::task::spawn_blocking(move || crate::stop::request_quit(&targets))
-                .await
-                .unwrap_or(QuitRequest::Signal)
-        };
-        let request = ask(targets.clone()).await;
+        let request = tokio::task::spawn_blocking({
+            let targets = targets.clone();
+            move || crate::stop::request_quit(&targets)
+        })
+        .await
+        .unwrap_or(QuitRequest::Signal);
         let deadline = tokio::time::Instant::now() + grace;
         loop {
             let step = match request {
@@ -539,7 +539,11 @@ impl GameProcess {
             if tokio::time::Instant::now() >= deadline {
                 break;
             }
-            ask(targets.clone()).await;
+            if matches!(request, QuitRequest::Window(_)) {
+                let targets = targets.clone();
+                let _ =
+                    tokio::task::spawn_blocking(move || crate::stop::close_windows(&targets)).await;
+            }
         }
         if cfg!(unix) && matches!(request, QuitRequest::Window(_)) && self.is_running() {
             crate::stop::terminate(&targets);
@@ -715,8 +719,20 @@ impl GameProcess {
 
 /// Liveness and kill for a game that isn't this process's child.
 mod adopted {
+    #[cfg(unix)]
+    fn valid_pid(pid: u32) -> Option<libc::pid_t> {
+        if pid == 0 || pid > i32::MAX as u32 {
+            None
+        } else {
+            Some(pid as libc::pid_t)
+        }
+    }
+
     #[cfg(target_os = "linux")]
     pub fn alive(pid: u32) -> bool {
+        if valid_pid(pid).is_none() {
+            return false;
+        }
         // A zombie has exited; its parent (not us) hasn't reaped it yet.
         std::fs::read_to_string(format!("/proc/{pid}/stat")).is_ok_and(|stat| {
             stat.rsplit_once(')')
@@ -727,18 +743,24 @@ mod adopted {
 
     #[cfg(all(unix, not(target_os = "linux")))]
     pub fn alive(pid: u32) -> bool {
-        // SAFETY: signal 0 only checks that the process exists.
-        unsafe { libc::kill(pid as libc::pid_t, 0) == 0 }
+        let Some(pid) = valid_pid(pid) else {
+            return false;
+        };
+        // SAFETY: signal 0 only checks that the validated positive pid exists.
+        unsafe { libc::kill(pid, 0) == 0 }
     }
 
     /// SIGKILL to its process group (the launcher that started it made it lead one), so a
     /// wrapper's children go too.
     #[cfg(unix)]
     pub fn kill(pid: u32) {
-        // SAFETY: plain syscalls on a game the caller checked is ours.
+        let Some(pid) = valid_pid(pid) else {
+            return;
+        };
+        // SAFETY: plain syscalls on a validated positive pid the caller checked is ours.
         unsafe {
-            if libc::killpg(pid as libc::pid_t, libc::SIGKILL) != 0 {
-                libc::kill(pid as libc::pid_t, libc::SIGKILL);
+            if libc::killpg(pid, libc::SIGKILL) != 0 {
+                libc::kill(pid, libc::SIGKILL);
             }
         }
     }
@@ -785,10 +807,12 @@ mod adopted {
 /// too; elsewhere `start_kill`.
 fn kill_tree(child: &mut tokio::process::Child, pid: u32) {
     #[cfg(unix)]
-    // SAFETY: plain syscall. The group is the one `spawn` created for this child, and the child
-    // isn't reaped yet (this runs in its watcher before `wait` returns).
-    unsafe {
-        libc::killpg(pid as libc::pid_t, libc::SIGKILL);
+    if pid != 0 && pid <= i32::MAX as u32 {
+        // SAFETY: plain syscall. The group is the one `spawn` created for this child, and the child
+        // isn't reaped yet (this runs in its watcher before `wait` returns).
+        unsafe {
+            libc::killpg(pid as libc::pid_t, libc::SIGKILL);
+        }
     }
     #[cfg(not(unix))]
     let _ = pid;

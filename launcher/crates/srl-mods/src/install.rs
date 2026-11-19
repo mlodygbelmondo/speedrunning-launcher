@@ -343,17 +343,17 @@ fn noted_jars(paths: &Paths, instance: Instance) -> Option<Vec<Found>> {
     )
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Clone, Serialize, Deserialize)]
 struct NotedJar {
     file_name: String,
     sha512: String,
     size: u64,
 }
 
-async fn note_install(paths: &Paths, set: &ModSet) -> Result<()> {
+async fn note_install(paths: &Paths, set: &ModSet, kept_extra: &[NotedJar]) -> Result<()> {
     let dir = note_dir(paths, set.instance);
     tokio::fs::create_dir_all(&dir).await?;
-    let jars: Vec<NotedJar> = set
+    let mut jars: Vec<NotedJar> = set
         .mods
         .iter()
         .map(|m| NotedJar {
@@ -362,12 +362,13 @@ async fn note_install(paths: &Paths, set: &ModSet) -> Result<()> {
             size: m.size,
         })
         .collect();
-    tokio::fs::write(
-        dir.join(format!("{}.json", set.instance.id())),
-        serde_json::to_vec_pretty(&jars)?,
+    jars.extend(kept_extra.iter().cloned());
+    crate::meta::write_atomic(
+        &dir.join(format!("{}.json", set.instance.id())),
+        &serde_json::to_vec_pretty(&jars)?,
     )
     .await?;
-    tokio::fs::write(dir.join("owner"), set.instance.id().as_bytes()).await?;
+    crate::meta::write_atomic(&dir.join("owner"), set.instance.id().as_bytes()).await?;
     Ok(())
 }
 
@@ -399,24 +400,80 @@ pub async fn install(
     tokio::fs::create_dir_all(&dir)
         .await
         .with_context(|| format!("creating {}", dir.display()))?;
-    let plan = real_plan(paths, set).await?;
+    let installed = scan(&dir).await?;
+    let (plan, mut kept_installed) = plan_with_kept(set, installed);
+
+    // If a shared-directory switch removed a `keep_installed` jar earlier, restore its legal
+    // build from the content store using this instance's last note.
+    let mut restore_kept: Vec<NotedJar> = Vec::new();
+    if !set.keep_installed.is_empty()
+        && let Some(noted) = noted_jars(paths, set.instance)
+    {
+        let already_kept: HashSet<&str> = kept_installed
+            .iter()
+            .filter_map(|j| set.known.get(&j.sha512).map(|k| k.modid.as_str()))
+            .collect();
+        for id in &set.keep_installed {
+            if already_kept.contains(id.as_str()) {
+                continue;
+            }
+            let candidate = noted.iter().find(|j| {
+                !set.mods
+                    .iter()
+                    .any(|m| same_name(&m.file_name, &j.file_name))
+                    && !kept_installed
+                        .iter()
+                        .any(|k| same_name(&k.file_name, &j.file_name))
+                    && !restore_kept
+                        .iter()
+                        .any(|r| same_name(&r.file_name, &j.file_name))
+                    && set
+                        .known
+                        .get(&j.sha512)
+                        .is_some_and(|k| k.allowed && k.modid == *id)
+            });
+            if let Some(j) = candidate
+                && srl_core::download::matches_hash(
+                    &paths.store_sha512(&j.sha512),
+                    &Hash::Sha512(j.sha512.clone()),
+                )
+                .await
+                .unwrap_or(false)
+            {
+                restore_kept.push(NotedJar {
+                    file_name: j.file_name.clone(),
+                    sha512: j.sha512.clone(),
+                    size: j.size,
+                });
+            }
+        }
+    }
 
     let wanted: Vec<&ModEntry> = plan
         .add
         .iter()
         .chain(plan.update.iter().map(|u| &u.to))
         .collect();
-    // The player's own jars have no URL: the store copy is the only one.
-    if let Some(gone) = wanted.iter().find(|m| {
-        matches!(m.source, crate::ModSource::Custom) && !paths.store_sha512(&m.sha512).is_file()
-    }) {
-        bail!(
-            "{} is no longer in the launcher's store; add the jar again on the Mods page",
-            gone.file_name
-        );
+    // The player's own jars have no URL: the verified store copy is the only one.
+    for m in &wanted {
+        if matches!(m.source, crate::ModSource::Custom) {
+            let ok = srl_core::download::matches_hash(
+                &paths.store_sha512(&m.sha512),
+                &Hash::Sha512(m.sha512.clone()),
+            )
+            .await
+            .unwrap_or(false);
+            if !ok {
+                bail!(
+                    "{} is no longer in the launcher's store (or was corrupted); add the jar again on the Mods page",
+                    m.file_name
+                );
+            }
+        }
     }
     let downloads = wanted
         .iter()
+        .filter(|m| !matches!(m.source, crate::ModSource::Custom))
         .map(|m| Download {
             url: m.url.clone(),
             dest: paths.store_sha512(&m.sha512),
@@ -443,6 +500,9 @@ pub async fn install(
         wanted
             .iter()
             .any(|m| same_name(&m.file_name, &jar.file_name))
+            || restore_kept
+                .iter()
+                .any(|j| same_name(&j.file_name, &jar.file_name))
     };
     let aside_dir = removed_dir(paths, set.instance);
     for jar in leaving.iter().filter(|j| taken(j)) {
@@ -461,13 +521,26 @@ pub async fn install(
             report.copied += 1;
         }
     }
-
+    for j in &restore_kept {
+        let store = paths.store_sha512(&j.sha512);
+        let dir2 = dir.clone();
+        let name = j.file_name.clone();
+        let linked = tokio::task::spawn_blocking(move || materialise(&store, &dir2, &name))
+            .await?
+            .with_context(|| format!("restoring {} into {}", j.file_name, dir.display()))?;
+        if linked {
+            report.hard_linked += 1;
+        } else {
+            report.copied += 1;
+        }
+    }
     // The rest last, so a failed download leaves the old (working) set in place.
     for jar in leaving.iter().filter(|j| !taken(j)) {
         take_out(paths, &dir, &aside_dir, jar, &mut report.set_aside).await?;
     }
+    kept_installed.extend(restore_kept);
     remove_leftovers(&dir).await;
-    note_install(paths, set)
+    note_install(paths, set, &kept_installed)
         .await
         .with_context(|| format!("noting the mods of {}", set.instance.id()))?;
 
@@ -491,22 +564,50 @@ async fn take_out(
     let result = if in_store {
         tokio::fs::remove_file(&path).await
     } else {
-        let dest = aside_dir.join(&jar.file_name);
         let moved = async {
             tokio::fs::create_dir_all(aside_dir).await?;
-            tokio::fs::rename(&path, &dest).await
+            let dest = free_aside_path(aside_dir, &jar.file_name);
+            tokio::fs::rename(&path, &dest).await?;
+            Ok::<PathBuf, std::io::Error>(dest)
         }
         .await;
-        if moved.is_ok() {
-            set_aside.push(dest);
+        match moved {
+            Ok(dest) => {
+                set_aside.push(dest);
+                Ok(())
+            }
+            Err(e) => Err(e),
         }
-        moved
     };
     match result {
         Ok(()) => Ok(()),
         Err(e) if e.kind() == std::io::ErrorKind::NotFound => Ok(()),
         Err(e) => Err(e).with_context(|| format!("removing {}", path.display())),
     }
+}
+
+/// `aside_dir/<file_name>`, or `<stem>-2.<ext>`, `<stem>-3.<ext>`… if taken, so two installs in
+/// the same second never overwrite an earlier removed jar.
+fn free_aside_path(aside_dir: &Path, file_name: &str) -> PathBuf {
+    let plain = aside_dir.join(file_name);
+    if std::fs::symlink_metadata(&plain).is_err() {
+        return plain;
+    }
+    let (stem, ext) = match file_name.rsplit_once('.') {
+        Some((s, e)) if !s.is_empty() => (s, Some(e)),
+        _ => (file_name, None),
+    };
+    for n in 2u64.. {
+        let name = match ext {
+            Some(e) => format!("{stem}-{n}.{e}"),
+            None => format!("{stem}-{n}"),
+        };
+        let candidate = aside_dir.join(name);
+        if std::fs::symlink_metadata(&candidate).is_err() {
+            return candidate;
+        }
+    }
+    plain
 }
 
 /// Whether two names in `mods/` are one file: without case on Windows.
@@ -644,6 +745,10 @@ async fn scan(dir: &Path) -> Result<Vec<Found>> {
 }
 
 fn plan_from(set: &ModSet, found: Vec<Found>) -> Plan {
+    plan_with_kept(set, found).0
+}
+
+fn plan_with_kept(set: &ModSet, found: Vec<Found>) -> (Plan, Vec<NotedJar>) {
     let mut plan = Plan::default();
     let mut satisfied: HashSet<&str> = HashSet::new();
     let mut leftovers = Vec::new();
@@ -653,9 +758,13 @@ fn plan_from(set: &ModSet, found: Vec<Found>) -> Plan {
         .map(|f| f.file_name.clone())
         .collect();
     for f in found {
-        let entry = set.mods.iter().find(|m| m.sha512 == f.sha512);
+        let entry = set.mods.iter().find(|m| {
+            !satisfied.contains(m.modid.as_str())
+                && m.sha512 == f.sha512
+                && same_name(&f.file_name, &m.file_name)
+        });
         match entry {
-            // The right build. A second copy of it (another name) is removed.
+            // The right build under its expected name. A second copy or renamed jar is removed.
             Some(m) if !f.symlink && satisfied.insert(m.modid.as_str()) => {
                 plan.keep.push(f.file_name)
             }
@@ -667,16 +776,28 @@ fn plan_from(set: &ModSet, found: Vec<Found>) -> Plan {
             }),
         }
     }
-    // A mod whose newest build isn't legal yet keeps the legal build it has.
+    // A mod whose newest build isn't legal yet keeps the legal build it has (unless its file name
+    // collides with an entry in `set.mods`).
+    let mut kept_installed = Vec::new();
     for id in &set.keep_installed {
         let kept = leftovers.iter().position(|j| {
             !links.contains(&j.file_name)
+                && !set
+                    .mods
+                    .iter()
+                    .any(|m| same_name(&m.file_name, &j.file_name))
                 && j.known
                     .as_ref()
                     .is_some_and(|k| k.allowed && k.modid == *id)
         });
         if let Some(i) = kept {
-            plan.keep.push(leftovers.remove(i).file_name);
+            let jar = leftovers.remove(i);
+            plan.keep.push(jar.file_name.clone());
+            kept_installed.push(NotedJar {
+                file_name: jar.file_name,
+                sha512: jar.sha512,
+                size: jar.size,
+            });
         }
     }
     for m in &set.mods {
@@ -697,7 +818,7 @@ fn plan_from(set: &ModSet, found: Vec<Found>) -> Plan {
         }
     }
     plan.remove = leftovers;
-    plan
+    (plan, kept_installed)
 }
 
 #[cfg(test)]

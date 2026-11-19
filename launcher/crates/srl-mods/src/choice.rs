@@ -16,10 +16,11 @@ use srl_core::Mode;
 
 use crate::{
     ModMeta,
+    meta::{is_valid_sha512, sanitize_file_name},
     resolve::{
         Category, Ctx, KnownJar, ModEntry, ModSet, ModSource, Note, Os, Reason, TraitFit,
         add_dependencies, allowed_only, break_incompatibilities, drop_broken_dependents, entry,
-        extra_entry, forbidden_in, make_file_names_unique, trait_fit,
+        extra_entry, forbidden_in, make_file_names_unique, provided, trait_fit,
     },
 };
 
@@ -58,7 +59,13 @@ pub struct CustomJar {
 impl CustomJar {
     /// The id of its entry in a `ModSet`. No mod list uses a `:`, so it can't clash.
     pub fn modid(&self) -> String {
-        format!("custom:{}", &self.sha512[..self.sha512.len().min(16)])
+        let prefix: String = self
+            .sha512
+            .chars()
+            .take(16)
+            .map(|c| c.to_ascii_lowercase())
+            .collect();
+        format!("custom:{prefix}")
     }
 }
 
@@ -101,6 +108,23 @@ pub fn apply(meta: &ModMeta, set: ModSet, choice: &ModChoice) -> ModSet {
         }
     }
     for c in &choice.custom {
+        let sha512 = c.sha512.to_ascii_lowercase();
+        if !is_valid_sha512(&sha512) {
+            continue;
+        }
+        let Some(file_name) = sanitize_file_name(&c.file_name) else {
+            notes.push(Note::BadFileName {
+                modid: c.modid(),
+                url: c.file_name.clone(),
+            });
+            continue;
+        };
+        if map
+            .values()
+            .any(|m| m.sha512 == sha512 && !choice.off.contains(&m.modid))
+        {
+            continue;
+        }
         let modid = c.modid();
         pinned.insert(modid.clone());
         map.insert(
@@ -109,9 +133,9 @@ pub fn apply(meta: &ModMeta, set: ModSet, choice: &ModChoice) -> ModSet {
                 modid,
                 name: c.name.clone(),
                 version: String::new(),
-                file_name: c.file_name.clone(),
+                file_name,
                 url: String::new(),
-                sha512: c.sha512.to_ascii_lowercase(),
+                sha512,
                 size: c.size,
                 source: ModSource::Custom,
                 reason: Reason::Chosen,
@@ -125,6 +149,7 @@ pub fn apply(meta: &ModMeta, set: ModSet, choice: &ModChoice) -> ModSet {
         category,
         os,
         instance,
+        relaxed: true,
     };
     add_dependencies(&ctx, &mut map, &mut notes);
     // Off wins over a dependency: a mod that needs a mod turned off goes off with it.
@@ -133,6 +158,13 @@ pub fn apply(meta: &ModMeta, set: ModSet, choice: &ModChoice) -> ModSet {
     }
     break_incompatibilities(meta, &pinned, &mut map, &mut notes);
     drop_broken_dependents(&mut map, &mut notes);
+    // Deduplicate any custom jar whose sha512 matches a managed mod (e.g. pulled in as a dep).
+    let managed_shas: BTreeSet<String> = map
+        .values()
+        .filter(|m| !matches!(m.source, ModSource::Custom))
+        .map(|m| m.sha512.clone())
+        .collect();
+    map.retain(|_, m| !matches!(m.source, ModSource::Custom) || !managed_shas.contains(&m.sha512));
     let mut mods: Vec<ModEntry> = map.into_values().collect();
     make_file_names_unique(&mut mods);
     // What the player chose is allowed in this instance: `status` doesn't call it illegal (the
@@ -147,8 +179,34 @@ pub fn apply(meta: &ModMeta, set: ModSet, choice: &ModChoice) -> ModSet {
                 allowed: true,
             });
     }
-    // A mod turned off (or now in the set after all) keeps no older build.
-    keep_installed.retain(|id| !choice.off.contains(id) && !mods.iter().any(|m| m.modid == *id));
+    // A mod turned off, already in the set, missing a dependency after `choice.off`, or
+    // incompatible with a chosen mod keeps no older build.
+    keep_installed.retain(|id| {
+        if choice.off.contains(id) || mods.iter().any(|m| m.modid == *id) {
+            return false;
+        }
+        if let Some(lm) = meta.legal_mod(id) {
+            if let Some(v) = lm.version_for(&mc)
+                && !v
+                    .dependencies
+                    .iter()
+                    .all(|d| mods.iter().any(|m| m.modid == *d) || provided(id, d))
+            {
+                return false;
+            }
+            if lm
+                .incompatibilities
+                .iter()
+                .any(|other| mods.iter().any(|m| m.modid == *other))
+            {
+                return false;
+            }
+        }
+        !meta.mods.mods.iter().chain(&meta.extra.mods).any(|other| {
+            mods.iter().any(|m| m.modid == other.modid)
+                && other.incompatibilities.iter().any(|inc| inc == id)
+        })
+    });
     ModSet {
         instance,
         os,

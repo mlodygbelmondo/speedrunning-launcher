@@ -417,15 +417,36 @@ impl Tools {
 
         if usable.has(ToolId::Toolscreen) {
             match LegalDlls::cached(&self.paths) {
-                None => notes.push(ToolNote::NotInstalled(ToolId::Toolscreen)),
+                None => match toolscreen::status(&self.paths, self.platform.arch, None) {
+                    ToolStatus::NotInstalled | ToolStatus::NotAvailable => {
+                        notes.push(ToolNote::NotInstalled(ToolId::Toolscreen))
+                    }
+                    ToolStatus::Installed(_) | ToolStatus::UpdateAvailable { .. } => {
+                        notes.push(ToolNote::Unverified(
+                            ToolId::Toolscreen,
+                            "legal-dlls.csv is not cached".into(),
+                        ))
+                    }
+                },
                 Some(legal) => {
-                    match toolscreen::for_launch(&self.paths, self.platform.arch, &legal).await {
-                        Ok(inj) => {
-                            prepared.toolscreen = Some(inj);
-                            prepared.tools.push(ToolId::Toolscreen);
-                        }
-                        Err(e) => {
-                            notes.push(ToolNote::Unverified(ToolId::Toolscreen, format!("{e:#}")))
+                    let missing =
+                        toolscreen::choose(toolscreen::RELEASES, self.platform.arch, &legal)
+                            .is_some_and(|(release, build)| {
+                                !toolscreen::files(&self.paths, release, build)
+                                    .iter()
+                                    .all(|(p, _)| p.is_file())
+                            });
+                    if missing {
+                        notes.push(ToolNote::NotInstalled(ToolId::Toolscreen));
+                    } else {
+                        match toolscreen::for_launch(&self.paths, self.platform.arch, &legal).await
+                        {
+                            Ok(inj) => {
+                                prepared.toolscreen = Some(inj);
+                                prepared.tools.push(ToolId::Toolscreen);
+                            }
+                            Err(e) => notes
+                                .push(ToolNote::Unverified(ToolId::Toolscreen, format!("{e:#}"))),
                         }
                     }
                 }
@@ -618,7 +639,9 @@ impl Tools {
         .unwrap_or(false)
         {
             let how = process.stop(TOOL_STOP_GRACE).await;
-            PidFile::remove(&self.paths, tool);
+            if PidFile::read(&self.paths, tool).is_some_and(|f| f.pid == stamp.pid) {
+                PidFile::remove(&self.paths, tool);
+            }
             out.push((tool, Adopted::Stopped(how)));
             return out;
         }
@@ -647,6 +670,7 @@ impl Tools {
 
     /// One game fewer uses `tool`; the last one stops it.
     async fn release(&self, tool: ToolId) {
+        let _starting = self.starting.lock().await;
         let stop = {
             let mut owned = self.owned.lock().unwrap();
             match owned.get_mut(&tool) {
@@ -660,7 +684,9 @@ impl Tools {
         };
         if let Some(p) = stop {
             let how = p.stop(TOOL_STOP_GRACE).await;
-            PidFile::remove(&self.paths, tool);
+            if PidFile::read(&self.paths, tool).is_some_and(|f| f.pid == p.pid()) {
+                PidFile::remove(&self.paths, tool);
+            }
             eprintln!("{} stopped: {how:?}", tool.info().name);
         }
     }
@@ -678,6 +704,7 @@ impl Tools {
 
     /// Stops every tool process the launcher started, whoever uses it (launcher exit).
     pub async fn stop_all(&self) {
+        let _starting = self.starting.lock().await;
         let all: Vec<SideProcess> = self
             .owned
             .lock()
@@ -687,7 +714,9 @@ impl Tools {
             .collect();
         for p in all {
             p.stop(TOOL_STOP_GRACE).await;
-            PidFile::remove(&self.paths, p.tool());
+            if PidFile::read(&self.paths, p.tool()).is_some_and(|f| f.pid == p.pid()) {
+                PidFile::remove(&self.paths, p.tool());
+            }
         }
     }
 }

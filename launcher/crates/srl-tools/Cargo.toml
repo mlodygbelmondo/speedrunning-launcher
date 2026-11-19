@@ -4,6 +4,7 @@ description = "Speedrun tools: Ninjabrain Bot, Toolscreen (Windows) and waywall 
 version.workspace = true
 edition.workspace = true
 publish.workspace = true
+license.workspace = true
 
 [dependencies]
 srl-core.workspace = true

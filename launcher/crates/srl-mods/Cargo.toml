@@ -4,6 +4,7 @@ description = "Legal speedrun mods: mcsr-meta, legal-builds.csv, the per-mode se
 version.workspace = true
 edition.workspace = true
 publish.workspace = true
+license.workspace = true
 
 [dependencies]
 srl-core.workspace = true

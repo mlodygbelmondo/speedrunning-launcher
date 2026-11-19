@@ -223,3 +223,76 @@ fn draftout_offers_commandqmod_on_macos_only() {
         );
     }
 }
+
+#[test]
+fn custom_jar_safety_dedup_and_keep_installed_recheck() {
+    let mut meta = meta();
+    // Char-safe lowercase modid (no panic on multi-byte UTF-8 spanning byte 16).
+    let utf8_jar = CustomJar {
+        name: "UTF8".into(),
+        file_name: "utf8.jar".into(),
+        sha512: "ą".repeat(20),
+        size: 1,
+    };
+    assert_eq!(utf8_jar.modid().chars().count(), "custom:".len() + 16);
+
+    let rsg = set(&meta, Mode::Rsg);
+    let atum = rsg.get("atum").unwrap().clone();
+    // Unsafe file_name and duplicate sha512 matching an existing mod are both dropped.
+    let bad_name = CustomJar {
+        name: "Bad".into(),
+        file_name: "../evil.jar".into(),
+        sha512: "cd".repeat(64),
+        size: 5,
+    };
+    let dup = CustomJar {
+        name: "Atum Copy".into(),
+        file_name: "atum-copy.jar".into(),
+        sha512: atum.sha512.to_ascii_uppercase(),
+        size: atum.size,
+    };
+    let applied = apply(
+        &meta,
+        rsg.clone(),
+        &ModChoice {
+            custom: vec![bad_name.clone(), dup.clone()],
+            ..Default::default()
+        },
+    );
+    assert!(applied.get(&bad_name.modid()).is_none());
+    assert!(applied.get(&dup.modid()).is_none());
+    assert_eq!(
+        applied
+            .mods
+            .iter()
+            .filter(|m| m.sha512 == atum.sha512)
+            .count(),
+        1
+    );
+
+    // Turning off a dependency drops dependent mods from `keep_installed`, and turning on an
+    // incompatible mod drops conflicting mods from `keep_installed`.
+    let sq_sha = rsg.get("seedqueue").unwrap().sha512.clone();
+    meta.legal.by_sha512.remove(&sq_sha);
+    let rsg_lag = set(&meta, Mode::Rsg);
+    assert!(rsg_lag.keep_installed.contains(&"seedqueue".to_string()));
+    let no_api = apply(&meta, rsg_lag, &choice(&[], &["speedrunapi"]));
+    assert!(!no_api.keep_installed.contains(&"seedqueue".to_string()));
+
+    // Relaxed dependency resolution: enabling a cross-category mod whose dependency is also
+    // cross-category succeeds in `choice::apply`.
+    for m in &mut meta.mods.mods {
+        if m.modid == "worldpreview" {
+            for v in &mut m.versions {
+                v.dependencies.push("lazystronghold".into());
+            }
+        }
+    }
+    let ssg = apply(
+        &meta,
+        set(&meta, Mode::Ssg),
+        &choice(&["worldpreview"], &[]),
+    );
+    assert!(ssg.get("worldpreview").is_some());
+    assert!(ssg.get("lazystronghold").is_some());
+}

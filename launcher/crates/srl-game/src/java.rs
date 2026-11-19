@@ -6,7 +6,10 @@
 //! THIRD_PARTY_NOTICES.md. Changes: downloads go through srl-core's verified `Downloader` (raw
 //! files, no LZMA), links are created with their relative target after checking it stays inside
 //! the runtime, and on Windows we launch `javaw.exe` so no console window opens.
-use std::path::{Path, PathBuf};
+use std::{
+    collections::HashSet,
+    path::{Path, PathBuf},
+};
 
 use anyhow::{Result, bail};
 use srl_core::{Download, Hash};
@@ -14,7 +17,7 @@ use srl_core::{Download, Hash};
 use crate::{
     rules::{Arch, Os, Platform},
     schema::{JavaRuntimeFile, JavaRuntimeManifest},
-    util::{join_safe, safe_relative_path},
+    util::safe_relative_path,
 };
 
 /// An installed Java runtime.
@@ -63,27 +66,31 @@ pub fn plan(manifest: &JavaRuntimeManifest, home: &Path) -> Result<RuntimePlan> 
         directories: Vec::new(),
         links: Vec::new(),
     };
+    // Normalize every entry up front so unnormalized paths (`./lib/up/x`, `lib//up/x`,
+    // `./escape`) cannot bypass ancestor checks or distort `parent.components().count()`.
+    let mut normalized: Vec<(&str, PathBuf, &JavaRuntimeFile)> =
+        Vec::with_capacity(manifest.files.len());
+    let mut link_names: HashSet<PathBuf> = HashSet::new();
+    for (name, file) in &manifest.files {
+        let Some(rel) = safe_relative_path(name) else {
+            bail!("refusing unsafe path {name:?}");
+        };
+        if matches!(file, JavaRuntimeFile::Link { .. }) {
+            link_names.insert(rel.clone());
+        }
+        normalized.push((name.as_str(), rel, file));
+    }
     // Each link target is checked on its own name, lexically. A path that goes through another
     // link (`lib/up/x` with `lib/up -> ..`) would be resolved on disk through that link, so it
     // could end up outside the runtime although every check passed. No runtime needs that.
-    let link_names: Vec<&Path> = manifest
-        .files
-        .iter()
-        .filter(|(_, f)| matches!(f, JavaRuntimeFile::Link { .. }))
-        .map(|(name, _)| Path::new(name.as_str()))
-        .collect();
-    for (name, file) in &manifest.files {
-        if let Some(via) = Path::new(name)
-            .ancestors()
-            .skip(1)
-            .find(|a| link_names.contains(a))
-        {
+    for (name, rel, file) in normalized {
+        if let Some(via) = rel.ancestors().skip(1).find(|a| link_names.contains(*a)) {
             bail!(
                 "Java runtime entry {name} goes through the link {}",
                 via.display()
             );
         }
-        let path = join_safe(home, name)?;
+        let path = home.join(&rel);
         match file {
             JavaRuntimeFile::Directory => plan.directories.push(path),
             JavaRuntimeFile::File {
@@ -101,7 +108,7 @@ pub fn plan(manifest: &JavaRuntimeManifest, home: &Path) -> Result<RuntimePlan> 
                 });
             }
             JavaRuntimeFile::Link { target } => {
-                let parent = Path::new(name).parent().unwrap_or(Path::new(""));
+                let parent = rel.parent().unwrap_or(Path::new(""));
                 if !link_stays_inside(parent, target) {
                     bail!("Java runtime link {name} -> {target} points outside the runtime");
                 }
@@ -157,6 +164,9 @@ fn make_link(link: &Path, target: &str) -> Result<()> {
 fn make_link(link: &Path, target: &str) -> Result<()> {
     let source = link.parent().unwrap_or(Path::new("")).join(target);
     if !link.exists() && source.is_file() {
+        if let Some(dir) = link.parent() {
+            std::fs::create_dir_all(dir)?;
+        }
         std::fs::copy(&source, link)?;
     }
     Ok(())
@@ -306,6 +316,28 @@ mod tests {
         .unwrap();
         let err = plan(&chained, Path::new("/srl/java/x")).unwrap_err();
         assert!(err.to_string().contains("goes through the link"), "{err}");
+
+        // Unnormalized paths (`./` or `//`) must not bypass the ancestor check or inflate depth.
+        for bad_entry in ["./lib/up/evil", "lib//up/evil"] {
+            let m: JavaRuntimeManifest = serde_json::from_str(&format!(
+                r#"{{"files": {{
+                  "lib/up": {{"type": "link", "target": ".."}},
+                  "{bad_entry}": {{"type": "file", "executable": false, "downloads": {{"raw": {{"sha1": "aa", "size": 1, "url": "u"}}}}}}
+                }}}}"#
+            ))
+            .unwrap();
+            let err = plan(&m, Path::new("/srl/java/x")).unwrap_err();
+            assert!(
+                err.to_string().contains("goes through the link"),
+                "{bad_entry}: {err}"
+            );
+        }
+        let dot_escape: JavaRuntimeManifest = serde_json::from_str(
+            r#"{"files": {"./escape": {"type": "link", "target": "../outside"}}}"#,
+        )
+        .unwrap();
+        let err = plan(&dot_escape, Path::new("/srl/java/x")).unwrap_err();
+        assert!(err.to_string().contains("points outside"), "{err}");
     }
 
     #[test]

@@ -11,7 +11,9 @@ use std::{ffi::c_void, os::windows::ffi::OsStrExt as _, path::Path};
 
 use anyhow::{Result, bail};
 use windows_sys::Win32::{
-    Foundation::{CloseHandle, GetLastError, HANDLE, HWND, LPARAM, MAX_PATH, WAIT_OBJECT_0},
+    Foundation::{
+        CloseHandle, ERROR_INSUFFICIENT_BUFFER, GetLastError, HANDLE, HWND, LPARAM, WAIT_OBJECT_0,
+    },
     System::{
         Diagnostics::Debug::WriteProcessMemory,
         LibraryLoader::{GetModuleHandleW, GetProcAddress},
@@ -133,7 +135,9 @@ pub fn inject(pid: u32, dll: &Path) -> Result<()> {
                 );
             }
             let mut code = 0u32;
-            GetExitCodeThread(thread.0, &mut code);
+            if GetExitCodeThread(thread.0, &mut code) == 0 {
+                bail!("GetExitCodeThread failed: error {}", GetLastError());
+            }
             // The low 32 bits of the module handle; zero means LoadLibraryW failed.
             if code == 0 {
                 bail!("the game could not load {}", dll.display());
@@ -147,8 +151,8 @@ pub fn inject(pid: u32, dll: &Path) -> Result<()> {
     }
 }
 
-/// Pids of `java.exe`/`javaw.exe` processes with a visible window whose title starts with
-/// `prefix`.
+/// Pids of `java.exe`/`javaw.exe` processes with a top-level window (visible or hidden, e.g.
+/// Ninjabrain Bot with "Hide window when not in use") whose title starts with `prefix`.
 pub fn java_windows_titled(prefix: &str) -> Vec<u32> {
     struct Search {
         prefix: Vec<u16>,
@@ -160,9 +164,6 @@ pub fn java_windows_titled(prefix: &str) -> Vec<u32> {
         let mut title = [0u16; 256];
         // SAFETY: plain Win32 calls on a window handle EnumWindows gave us.
         unsafe {
-            if IsWindowVisible(hwnd) == 0 {
-                return 1;
-            }
             let n = GetWindowTextW(hwnd, title.as_mut_ptr(), title.len() as i32);
             if n <= 0 || !title[..n as usize].starts_with(&search.prefix) {
                 return 1;
@@ -219,7 +220,7 @@ pub fn has_titled_window(pid: u32) -> bool {
     search.found
 }
 
-fn is_java(pid: u32) -> bool {
+pub(crate) fn is_java(pid: u32) -> bool {
     // SAFETY: Win32 calls with checked results; the handle is closed by `Handle`.
     unsafe {
         let p = OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, 0, pid);
@@ -227,12 +228,22 @@ fn is_java(pid: u32) -> bool {
             return false;
         }
         let p = Handle(p);
-        let mut buf = [0u16; MAX_PATH as usize];
-        let mut len = buf.len() as u32;
-        if QueryFullProcessImageNameW(p.0, PROCESS_NAME_WIN32, buf.as_mut_ptr(), &mut len) == 0 {
+        let mut cap: usize = 1024;
+        let mut buf = vec![0u16; cap];
+        let len = loop {
+            let mut len = buf.len() as u32;
+            if QueryFullProcessImageNameW(p.0, PROCESS_NAME_WIN32, buf.as_mut_ptr(), &mut len) != 0
+            {
+                break len as usize;
+            }
+            if GetLastError() == ERROR_INSUFFICIENT_BUFFER && cap < 32_768 {
+                cap *= 2;
+                buf.resize(cap, 0);
+                continue;
+            }
             return false;
-        }
-        let path = String::from_utf16_lossy(&buf[..len as usize]).to_ascii_lowercase();
+        };
+        let path = String::from_utf16_lossy(&buf[..len]).to_ascii_lowercase();
         path.ends_with("\\java.exe") || path.ends_with("\\javaw.exe")
     }
 }

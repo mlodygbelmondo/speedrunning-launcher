@@ -43,13 +43,21 @@ pub struct Paths {
 
 impl Paths {
     pub fn new(root: impl Into<PathBuf>) -> Self {
-        Self { root: root.into() }
+        let root = root.into();
+        let root = if !root.has_root() {
+            std::path::absolute(&root).unwrap_or(root)
+        } else {
+            root
+        };
+        Self { root }
     }
 
     /// `$SRL_HOME`, else the OS's local data directory.
     pub fn from_env() -> Result<Self> {
         if let Some(dir) = std::env::var_os("SRL_HOME").filter(|v| !v.is_empty()) {
-            return Ok(Self::new(dir));
+            let abs = std::path::absolute(&dir)
+                .with_context(|| format!("resolving SRL_HOME {}", Path::new(&dir).display()))?;
+            return Ok(Self::new(abs));
         }
         let dirs = directories::ProjectDirs::from("", "", "SpeedrunningLauncher")
             .context("no home directory to put the launcher data in")?;
@@ -87,14 +95,26 @@ impl Paths {
     pub fn java(&self) -> PathBuf {
         self.root.join("java")
     }
-    /// Content-addressed file for a sha512 (lower-case hex).
+    /// Content-addressed file for a sha512 (lower-case hex). Malformed hashes (anything non-hex
+    /// or empty) are mapped to a safe sentinel inside `store/sha512/` so they can never traverse
+    /// directories.
     pub fn store_sha512(&self, sha512: &str) -> PathBuf {
-        let prefix = sha512.get(..2).unwrap_or("00");
+        let clean: std::borrow::Cow<'_, str> =
+            if !sha512.is_empty() && sha512.bytes().all(|b| b.is_ascii_hexdigit()) {
+                if sha512.bytes().any(|b| b.is_ascii_uppercase()) {
+                    std::borrow::Cow::Owned(sha512.to_ascii_lowercase())
+                } else {
+                    std::borrow::Cow::Borrowed(sha512)
+                }
+            } else {
+                std::borrow::Cow::Borrowed("invalid")
+            };
+        let prefix = clean.get(..2).unwrap_or("00");
         self.root
             .join("store")
             .join("sha512")
             .join(prefix)
-            .join(sha512)
+            .join(clean.as_ref())
     }
     /// The game directory of a mode, passed to the game as `--gameDir`: `instances/mcsr` for the
     /// four 1.16.1 modes, `instances/draftout` for Draftout.
@@ -195,6 +215,26 @@ mod tests {
         assert_eq!(
             p.game_dir(crate::Instance::Custom(crate::CustomId(2))),
             Path::new("/srl/instances/custom-2")
+        );
+    }
+
+    #[test]
+    fn relative_root_is_normalized_and_store_hash_cannot_traverse() {
+        let rel = Paths::new("relative-srl-dir");
+        assert!(rel.root().is_absolute(), "{}", rel.root().display());
+        let p = Paths::new("/srl");
+        for bad in ["", "../../etc/passwd", "ab/../../x", "a\\b", "zz:stream"] {
+            let path = p.store_sha512(bad);
+            assert!(
+                path.starts_with(Path::new("/srl/store/sha512")),
+                "{bad:?} -> {}",
+                path.display()
+            );
+            assert_eq!(path, Path::new("/srl/store/sha512/in/invalid"));
+        }
+        assert_eq!(
+            p.store_sha512("ABCDEF"),
+            Path::new("/srl/store/sha512/ab/abcdef")
         );
     }
 

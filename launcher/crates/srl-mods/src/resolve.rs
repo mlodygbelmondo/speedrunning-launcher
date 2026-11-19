@@ -11,7 +11,7 @@ use anyhow::{Result, bail};
 use serde::{Deserialize, Serialize};
 use srl_core::{Instance, Mode};
 
-use crate::meta::{MetaMod, MetaVersion, ModMeta, sanitize_file_name};
+use crate::meta::{MetaMod, MetaVersion, ModMeta, is_valid_sha512, sanitize_file_name};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, Serialize, Deserialize)]
 pub enum Os {
@@ -363,6 +363,9 @@ pub(crate) struct Ctx<'a> {
     pub(crate) category: Category,
     pub(crate) os: Os,
     pub(crate) instance: Instance,
+    /// When true (`choice::apply`), relax category and `allowed_only` checks while still
+    /// enforcing `forbidden_in` and OS compatibility.
+    pub(crate) relaxed: bool,
 }
 
 pub(crate) enum TraitFit {
@@ -398,6 +401,9 @@ pub(crate) fn entry(
     reason: Reason,
     notes: &mut Vec<Note>,
 ) -> Option<ModEntry> {
+    if !is_valid_sha512(&v.sha512) {
+        return None;
+    }
     let Some(file_name) = v.file_name() else {
         notes.push(Note::BadFileName {
             modid: m.modid.clone(),
@@ -506,6 +512,7 @@ pub fn resolve(meta: &ModMeta, mode: Mode, os: Os, opts: &ResolveOptions) -> Res
         category,
         os,
         instance,
+        relaxed: false,
     };
     add_dependencies(&ctx, &mut set, &mut notes);
     break_incompatibilities(meta, &pinned, &mut set, &mut notes);
@@ -604,6 +611,7 @@ pub fn resolve_ids(
         category,
         os,
         instance,
+        relaxed: false,
     };
     add_dependencies(&ctx, &mut set, &mut notes);
     break_incompatibilities(meta, &BTreeSet::new(), &mut set, &mut notes);
@@ -642,6 +650,9 @@ pub(crate) fn extra_entry(
     let listed = meta.extra_mod(modid);
     if let Some(v) = meta.modrinth_latest(modid, mc) {
         let jar = v.jar()?;
+        if !is_valid_sha512(&jar.hashes.sha512) {
+            return None;
+        }
         let file_name = sanitize_file_name(&jar.filename)?;
         // Modrinth lists dependencies by project id; extra.json has them by modid.
         let dependencies = listed
@@ -688,17 +699,24 @@ fn dependency_entry(ctx: &Ctx, modid: &str, of: &str, notes: &mut Vec<Note>) -> 
         category,
         os,
         instance,
+        relaxed,
     } = *ctx;
-    if excluded(instance, modid) {
+    if relaxed {
+        if forbidden_in(instance).contains(&modid) {
+            return None;
+        }
+    } else if excluded(instance, modid) {
         return None;
     }
     let reason = Reason::Dependency { of: of.into() };
     if let Some(m) = meta.legal_mod(modid) {
         let v = m.version_for(mc)?;
-        let fits = matches!(
-            trait_fit(&meta.traits_of(m), category, os),
-            TraitFit::Fits { .. }
-        );
+        let traits = meta.traits_of(m);
+        let fits = if relaxed {
+            !(traits.iter().any(|t| t == "mac-only") && os != Os::MacOs)
+        } else {
+            matches!(trait_fit(&traits, category, os), TraitFit::Fits { .. })
+        };
         if !fits || m.obsolete || v.obsolete || !meta.legal.contains(&v.sha512) {
             return None;
         }
@@ -840,10 +858,16 @@ pub(crate) fn known_jars(
     let mut known = HashMap::new();
     // Older legal builds first, so the richer manifest entries below overwrite them.
     for (sha512, b) in &meta.legal.by_sha512 {
-        let allowed = meta
-            .legal_mod(&b.modid)
-            .is_none_or(|m| fits(m) && !m.obsolete)
-            && !excluded(instance, &b.modid);
+        if !is_valid_sha512(sha512) {
+            continue;
+        }
+        let allowed = !excluded(instance, &b.modid)
+            && meta.legal_mod(&b.modid).is_some_and(|m| {
+                !m.obsolete
+                    && fits(m)
+                    && m.version_for(mc).is_some_and(|v| !v.obsolete)
+                    && csv_filename_fits_mc(&b.filename, mc, m)
+            });
         known.insert(
             sha512.clone(),
             KnownJar {
@@ -855,7 +879,12 @@ pub(crate) fn known_jars(
     }
     for m in &meta.mods.mods {
         for v in &m.versions {
+            if !is_valid_sha512(&v.sha512) {
+                continue;
+            }
             let allowed = meta.legal.contains(&v.sha512)
+                && !m.obsolete
+                && !v.obsolete
                 && v.target_version.iter().any(|t| t == mc)
                 && fits(m);
             known.insert(
@@ -881,6 +910,9 @@ pub(crate) fn known_jars(
     .collect();
     for m in &meta.extra.mods {
         for v in &m.versions {
+            if !is_valid_sha512(&v.sha512) {
+                continue;
+            }
             let allowed =
                 own.contains(&m.modid.as_str()) && v.target_version.iter().any(|t| t == mc);
             known
@@ -896,6 +928,9 @@ pub(crate) fn known_jars(
         for v in versions {
             let allowed = own.contains(&modid.as_str()) && v.game_versions.iter().any(|g| g == mc);
             for f in &v.files {
+                if !is_valid_sha512(&f.hashes.sha512) {
+                    continue;
+                }
                 known.insert(
                     f.hashes.sha512.to_ascii_lowercase(),
                     KnownJar {
@@ -908,4 +943,105 @@ pub(crate) fn known_jars(
         }
     }
     known
+}
+
+fn parse_dotted(s: &str) -> Option<Vec<u64>> {
+    let parts: Option<Vec<u64>> = s.split('.').map(|p| p.parse::<u64>().ok()).collect();
+    parts.filter(|p| p.len() >= 2)
+}
+
+fn cmp_ver(a: &[u64], b: &[u64]) -> std::cmp::Ordering {
+    let n = a.len().max(b.len());
+    for i in 0..n {
+        let x = a.get(i).copied().unwrap_or(0);
+        let y = b.get(i).copied().unwrap_or(0);
+        if x != y {
+            return x.cmp(&y);
+        }
+    }
+    std::cmp::Ordering::Equal
+}
+
+enum McSpec {
+    Exact(Vec<u64>),
+    Wildcard(Vec<u64>),
+}
+
+fn parse_mc_token(raw: &str) -> Option<McSpec> {
+    let (prefixed, rest) = match raw.strip_prefix("mc") {
+        Some(r) if r.as_bytes().first().is_some_and(u8::is_ascii_digit) => (true, r),
+        _ => (false, raw),
+    };
+    let (wildcard, core) = match rest.strip_suffix(".x") {
+        Some(c) => (true, c),
+        None => (false, rest),
+    };
+    let parts = parse_dotted(core)?;
+    let looks_like_mc = prefixed
+        || (parts[0] == 1 && (12..=25).contains(&parts[1]))
+        || (26..=99).contains(&parts[0]);
+    if !looks_like_mc {
+        return None;
+    }
+    if wildcard {
+        Some(McSpec::Wildcard(parts))
+    } else {
+        Some(McSpec::Exact(parts))
+    }
+}
+
+/// Whether an older `legal-builds.csv` row (not in `mods.json`) matches `mc`, based on any
+/// Minecraft version specifier in its filename (or, when none is present, whether the mod only
+/// targets `mc`).
+fn csv_filename_fits_mc(filename: &str, mc: &str, m: &MetaMod) -> bool {
+    let Some(mc_parts) = parse_dotted(mc) else {
+        return false;
+    };
+    let decoded = filename
+        .replace("%2B", "+")
+        .replace("%2b", "+")
+        .to_ascii_lowercase();
+    let stem = decoded.strip_suffix(".jar").unwrap_or(&decoded);
+    let mut saw_any = false;
+    let mut matched = false;
+    for group in stem.split(['+', '_', ' ']) {
+        let parts: Vec<&str> = group.split('-').collect();
+        let mut i = 0;
+        while i < parts.len() {
+            if let Some(spec) = parse_mc_token(parts[i]) {
+                saw_any = true;
+                if let McSpec::Exact(low) = &spec
+                    && let Some(next) = parts.get(i + 1)
+                    && let Some(McSpec::Exact(high)) = parse_mc_token(next)
+                {
+                    if cmp_ver(low, &mc_parts).is_le() && cmp_ver(&mc_parts, &high).is_le() {
+                        matched = true;
+                    }
+                    i += 2;
+                    continue;
+                }
+                match spec {
+                    McSpec::Exact(v) => {
+                        if cmp_ver(&v, &mc_parts).is_eq() {
+                            matched = true;
+                        }
+                    }
+                    McSpec::Wildcard(prefix) => {
+                        if mc_parts.starts_with(&prefix) {
+                            matched = true;
+                        }
+                    }
+                }
+            }
+            i += 1;
+        }
+    }
+    if saw_any {
+        matched
+    } else {
+        !m.versions.is_empty()
+            && m.versions
+                .iter()
+                .all(|v| v.target_version.iter().any(|t| t == mc))
+    }
 }

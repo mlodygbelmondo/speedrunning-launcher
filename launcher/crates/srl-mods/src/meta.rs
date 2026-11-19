@@ -8,6 +8,7 @@
 use std::{
     collections::{BTreeMap, HashMap},
     path::{Path, PathBuf},
+    sync::atomic::{AtomicU64, Ordering},
 };
 
 use anyhow::{Context, Result, bail};
@@ -147,7 +148,7 @@ impl LegalBuilds {
             // No field contains a comma or quotes (checked on the live file), so a plain split
             // is enough; a malformed row is skipped rather than failing the whole file.
             let fields: Vec<&str> = line.split(',').map(str::trim).collect();
-            if fields.len() != header.len() {
+            if fields.len() != header.len() || !is_valid_sha512(fields[hash]) {
                 continue;
             }
             by_sha512.insert(
@@ -315,8 +316,14 @@ impl ModMeta {
             match result {
                 None => {}
                 Some(Ok(bytes)) => match validate(&s.file, &bytes) {
-                    // Write only what parses, so the cache keeps the last good copy.
-                    Ok(()) => write_atomic(&path, &bytes).await?,
+                    // Write only what parses, so the cache keeps the last good copy. A cache-write
+                    // failure for an optional file (or when a previous cached copy exists) records
+                    // a note rather than aborting load.
+                    Ok(()) => {
+                        if let Err(e) = write_atomic(&path, &bytes).await {
+                            notes.push(format!("{}: couldn't save cache ({e:#})", s.file));
+                        }
+                    }
                     Err(e) => notes.push(format!("{}: bad download ({e:#}), using cache", s.file)),
                 },
                 Some(Err(e)) => notes.push(format!("{}: offline ({e:#}), using cache", s.file)),
@@ -448,14 +455,31 @@ fn validate(file: &str, bytes: &[u8]) -> Result<()> {
     }
 }
 
-async fn write_atomic(path: &Path, bytes: &[u8]) -> Result<()> {
-    let tmp = path.with_extension("tmp");
-    tokio::fs::write(&tmp, bytes)
-        .await
-        .with_context(|| format!("writing {}", tmp.display()))?;
-    tokio::fs::rename(&tmp, path)
-        .await
-        .with_context(|| format!("replacing {}", path.display()))?;
+static TMP_SEQ: AtomicU64 = AtomicU64::new(0);
+
+/// True if `s` is a well-formed 128-character hexadecimal SHA-512 digest.
+pub(crate) fn is_valid_sha512(s: &str) -> bool {
+    s.len() == 128 && s.bytes().all(|b| b.is_ascii_hexdigit())
+}
+
+pub(crate) async fn write_atomic(path: &Path, bytes: &[u8]) -> Result<()> {
+    if let Some(dir) = path.parent() {
+        tokio::fs::create_dir_all(dir)
+            .await
+            .with_context(|| format!("creating {}", dir.display()))?;
+    }
+    let seq = TMP_SEQ.fetch_add(1, Ordering::Relaxed);
+    let mut tmp_name = path.as_os_str().to_owned();
+    tmp_name.push(format!(".{}.{seq}.tmp", std::process::id()));
+    let tmp = PathBuf::from(tmp_name);
+    if let Err(e) = tokio::fs::write(&tmp, bytes).await {
+        let _ = tokio::fs::remove_file(&tmp).await;
+        return Err(e).with_context(|| format!("writing {}", tmp.display()));
+    }
+    if let Err(e) = tokio::fs::rename(&tmp, path).await {
+        let _ = tokio::fs::remove_file(&tmp).await;
+        return Err(e).with_context(|| format!("replacing {}", path.display()));
+    }
     Ok(())
 }
 
@@ -518,14 +542,24 @@ mod tests {
 
     #[test]
     fn legal_builds_by_header() {
-        let csv = "modid,filename,timestamp,date,hash\n\
-                   atum,atum-2.7.2.jar,1,2026-01-01,ABCDEF\n\
-                   broken,row\n";
-        let legal = LegalBuilds::parse(csv).unwrap();
-        assert!(legal.contains("abcdef"));
+        let hash = "AB".repeat(64);
+        let lower = hash.to_ascii_lowercase();
+        let csv = format!(
+            "modid,filename,timestamp,date,hash\n\
+             atum,atum-2.7.2.jar,1,2026-01-01,{hash}\n\
+             bad,short.jar,1,2026-01-01,ABCDEF\n\
+             evil,evil.jar,1,2026-01-01,../../etc/passwd\n\
+             broken,row\n"
+        );
+        let legal = LegalBuilds::parse(&csv).unwrap();
+        assert!(legal.contains(&lower));
         assert_eq!(legal.by_sha512.len(), 1);
-        assert_eq!(legal.by_sha512["abcdef"].modid, "atum");
+        assert_eq!(legal.by_sha512[&lower].modid, "atum");
         assert!(LegalBuilds::parse("modid,filename\n").is_err());
+        assert!(
+            LegalBuilds::parse("modid,filename,timestamp,date,hash\na,a.jar,1,2026-01-01,short\n")
+                .is_err()
+        );
     }
 
     #[test]

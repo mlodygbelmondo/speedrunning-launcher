@@ -120,8 +120,9 @@ impl Downloader {
         serde_json::from_slice(&bytes).with_context(|| format!("parsing JSON from {url}"))
     }
 
-    /// Downloads one file unless `dest` already has the expected hash. Writes to `<dest>.part`,
-    /// verifies, then renames, so a cancelled download never leaves a broken file behind.
+    /// Downloads one file unless `dest` already has the expected hash. Writes to a unique
+    /// temporary file in the destination directory, verifies size and hash, then renames, so
+    /// concurrent or cancelled downloads never collide or leave a broken file behind.
     pub async fn download(&self, d: &Download) -> Result<()> {
         if matches_hash(&d.dest, &d.hash).await? {
             return Ok(());
@@ -129,45 +130,65 @@ impl Downloader {
         if let Some(dir) = d.dest.parent() {
             tokio::fs::create_dir_all(dir).await?;
         }
-        let part = part_path(&d.dest);
         retry(|| async {
-            let resp = self.client.get(&d.url).send().await?.error_for_status()?;
-            let mut file = tokio::fs::File::create(&part).await?;
-            let mut body = resp.bytes_stream();
-            let mut sha1 = Sha1::new();
-            let mut sha256 = Sha256::new();
-            let mut sha512 = Sha512::new();
-            while let Some(chunk) = body.next().await {
-                let chunk = chunk?;
-                match d.hash {
-                    Hash::Sha1(_) => sha1.update(&chunk),
-                    Hash::Sha256(_) => sha256.update(&chunk),
-                    Hash::Sha512(_) => sha512.update(&chunk),
-                    Hash::None => {}
+            let part = part_path(&d.dest);
+            let mut guard = PartGuard(Some(part.clone()));
+            let result: Result<()> = async {
+                let resp = self.client.get(&d.url).send().await?.error_for_status()?;
+                let mut file = tokio::fs::File::create(&part).await?;
+                let mut body = resp.bytes_stream();
+                let mut sha1 = Sha1::new();
+                let mut sha256 = Sha256::new();
+                let mut sha512 = Sha512::new();
+                let mut written: u64 = 0;
+                while let Some(chunk) = body.next().await {
+                    let chunk = chunk?;
+                    written = written.saturating_add(chunk.len() as u64);
+                    if let Some(expected) = d.size
+                        && written > expected
+                    {
+                        anyhow::bail!("download exceeded expected size ({expected} bytes)");
+                    }
+                    match d.hash {
+                        Hash::Sha1(_) => sha1.update(&chunk),
+                        Hash::Sha256(_) => sha256.update(&chunk),
+                        Hash::Sha512(_) => sha512.update(&chunk),
+                        Hash::None => {}
+                    }
+                    file.write_all(&chunk).await?;
                 }
-                file.write_all(&chunk).await?;
+                if let Some(expected) = d.size
+                    && written != expected
+                {
+                    anyhow::bail!("size mismatch: expected {expected} bytes, got {written}");
+                }
+                file.flush().await?;
+                drop(file);
+                let got = match d.hash {
+                    Hash::Sha1(_) => Some(hex::encode(sha1.finalize())),
+                    Hash::Sha256(_) => Some(hex::encode(sha256.finalize())),
+                    Hash::Sha512(_) => Some(hex::encode(sha512.finalize())),
+                    Hash::None => None,
+                };
+                if let (Hash::Sha1(want) | Hash::Sha256(want) | Hash::Sha512(want), Some(got)) =
+                    (&d.hash, got)
+                    && !want.eq_ignore_ascii_case(&got)
+                {
+                    return Err(HashMismatch {
+                        expected: want.to_ascii_lowercase(),
+                        got,
+                    }
+                    .into());
+                }
+                tokio::fs::rename(&part, &d.dest).await?;
+                Ok(())
             }
-            file.flush().await?;
-            drop(file);
-            let got = match d.hash {
-                Hash::Sha1(_) => Some(hex::encode(sha1.finalize())),
-                Hash::Sha256(_) => Some(hex::encode(sha256.finalize())),
-                Hash::Sha512(_) => Some(hex::encode(sha512.finalize())),
-                Hash::None => None,
-            };
-            if let (Hash::Sha1(want) | Hash::Sha256(want) | Hash::Sha512(want), Some(got)) =
-                (&d.hash, got)
-                && !want.eq_ignore_ascii_case(&got)
-            {
+            .await;
+            if result.is_err() {
                 let _ = tokio::fs::remove_file(&part).await;
-                return Err(HashMismatch {
-                    expected: want.to_ascii_lowercase(),
-                    got,
-                }
-                .into());
             }
-            tokio::fs::rename(&part, &d.dest).await?;
-            Ok(())
+            guard.disarm();
+            result
         })
         .await
         .with_context(|| format!("downloading {} to {}", d.url, d.dest.display()))
@@ -254,9 +275,29 @@ fn hash_file<D: Digest + std::io::Write>(path: &Path) -> Result<String> {
     Ok(hex::encode(hasher.finalize()))
 }
 
+static PART_SEQ: AtomicU64 = AtomicU64::new(0);
+
+/// Removes a temporary `.part` file if the download attempt is cancelled or fails before rename.
+struct PartGuard(Option<PathBuf>);
+
+impl PartGuard {
+    fn disarm(&mut self) {
+        self.0 = None;
+    }
+}
+
+impl Drop for PartGuard {
+    fn drop(&mut self) {
+        if let Some(path) = &self.0 {
+            let _ = std::fs::remove_file(path);
+        }
+    }
+}
+
 fn part_path(dest: &Path) -> PathBuf {
+    let seq = PART_SEQ.fetch_add(1, Ordering::Relaxed);
     let mut name = dest.file_name().unwrap_or_default().to_os_string();
-    name.push(".part");
+    name.push(format!(".{}.{seq}.part", std::process::id()));
     dest.with_file_name(name)
 }
 
@@ -300,6 +341,60 @@ mod tests {
                 .await
                 .unwrap()
         );
+        std::fs::remove_dir_all(&dir).unwrap();
+    }
+
+    #[test]
+    fn part_paths_are_unique_in_dest_dir() {
+        let dest = Path::new("/tmp/srl-test/foo.jar");
+        let a = part_path(dest);
+        let b = part_path(dest);
+        assert_ne!(a, b);
+        assert_eq!(a.parent(), dest.parent());
+        assert_eq!(b.parent(), dest.parent());
+    }
+
+    #[tokio::test]
+    async fn download_enforces_expected_size_and_cleans_up() {
+        use std::io::{Read, Write};
+        let dir = std::env::temp_dir().join(format!("srl-core-size-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&dir);
+        std::fs::create_dir_all(&dir).unwrap();
+
+        let listener = std::net::TcpListener::bind("127.0.0.1:0").unwrap();
+        let addr = listener.local_addr().unwrap();
+        let server = std::thread::spawn(move || {
+            for _ in 0..3 {
+                let Ok((mut stream, _)) = listener.accept() else {
+                    break;
+                };
+                let mut buf = [0u8; 512];
+                let _ = stream.read(&mut buf);
+                let resp =
+                    b"HTTP/1.1 200 OK\r\nContent-Length: 10\r\nConnection: close\r\n\r\n0123456789";
+                let _ = stream.write_all(resp);
+            }
+        });
+
+        let dl = Downloader::new().unwrap();
+        let dest = dir.join("file.bin");
+        let err = dl
+            .download(&Download {
+                url: format!("http://{addr}/file.bin"),
+                dest: dest.clone(),
+                hash: Hash::None,
+                size: Some(5),
+            })
+            .await
+            .unwrap_err();
+        server.join().unwrap();
+        assert!(
+            format!("{err:#}").contains("exceeded expected size"),
+            "{err:#}"
+        );
+        assert!(!dest.exists());
+        let leftovers: Vec<_> = std::fs::read_dir(&dir).unwrap().collect();
+        assert!(leftovers.is_empty(), "leftover temp files: {leftovers:?}");
         std::fs::remove_dir_all(&dir).unwrap();
     }
 }

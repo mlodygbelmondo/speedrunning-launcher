@@ -22,7 +22,10 @@
 //!   `WAYLAND_DISPLAY` it can't start, so the game starts without it, with a warning.
 //!
 //! waywall prints no version (`waywall --help` has none), so the status has no version.
-use std::path::{Path, PathBuf};
+use std::{
+    collections::HashSet,
+    path::{Path, PathBuf},
+};
 
 use srl_core::Mode;
 use srl_game::LaunchCommand;
@@ -98,6 +101,19 @@ pub fn status() -> ToolStatus {
     }
 }
 
+fn expand_tilde(path: &Path, home: Option<&Path>) -> PathBuf {
+    let (Some(s), Some(h)) = (path.to_str(), home) else {
+        return path.to_path_buf();
+    };
+    if s == "~" {
+        h.to_path_buf()
+    } else if let Some(rest) = s.strip_prefix("~/") {
+        h.join(rest)
+    } else {
+        path.to_path_buf()
+    }
+}
+
 /// The patched GLFW: `custom` if given, else the first of [`GLFW_PATHS`] that exists. Symlinks
 /// are followed before hashing, since the packages ship `libglfw.so` as a link.
 pub fn find_glfw(
@@ -106,7 +122,7 @@ pub fn find_glfw(
     legal: Option<&LegalDlls>,
 ) -> Option<Glfw> {
     let candidates: Vec<PathBuf> = match custom {
-        Some(p) => vec![p.to_path_buf()],
+        Some(p) => vec![expand_tilde(p, home)],
         None => GLFW_PATHS
             .iter()
             .filter_map(|p| match p.strip_prefix("~/") {
@@ -116,15 +132,22 @@ pub fn find_glfw(
             .collect(),
     };
     let path = candidates.into_iter().find(|p| p.is_file())?;
-    let legal_as = legal.and_then(|l| {
-        let real = std::fs::canonicalize(&path).ok()?;
-        let sha = srl_core::download::file_sha512(&real).ok()?;
-        l.get(&sha).map(|row| row.version.clone())
-    });
+    let (checked, legal_as) = match legal {
+        None => (false, None),
+        Some(l) => {
+            let hashed = std::fs::canonicalize(&path)
+                .ok()
+                .and_then(|real| srl_core::download::file_sha512(&real).ok());
+            match hashed {
+                Some(sha) => (true, l.get(&sha).map(|row| row.version.clone())),
+                None => (false, None),
+            }
+        }
+    };
     Some(Glfw {
         path,
         legal_as,
-        checked: legal.is_some(),
+        checked,
     })
 }
 
@@ -235,23 +258,40 @@ pub fn config_starts_ninjabrain(config_dir: &Path) -> bool {
     false
 }
 
-/// `.lua` files in `dir` and, `depth` levels down, in its subdirectories.
+/// `.lua` files in `dir` and, `depth` levels down, in its subdirectories (following symlinked
+/// directories, guarded against symlink loops by canonical path).
 fn lua_files(dir: &Path, depth: usize) -> Vec<PathBuf> {
-    let Ok(entries) = std::fs::read_dir(dir) else {
-        return Vec::new();
-    };
+    let mut visited = HashSet::new();
+    if let Ok(canon) = std::fs::canonicalize(dir) {
+        visited.insert(canon);
+    }
     let mut out = Vec::new();
+    collect_lua_files(dir, depth, &mut visited, &mut out);
+    out
+}
+
+fn collect_lua_files(
+    dir: &Path,
+    depth: usize,
+    visited: &mut HashSet<PathBuf>,
+    out: &mut Vec<PathBuf>,
+) {
+    let Ok(entries) = std::fs::read_dir(dir) else {
+        return;
+    };
     for e in entries.flatten() {
         let p = e.path();
-        if e.file_type().is_ok_and(|t| t.is_dir()) {
-            if depth > 0 {
-                out.extend(lua_files(&p, depth - 1));
+        if p.is_dir() {
+            if depth > 0
+                && let Ok(canon) = std::fs::canonicalize(&p)
+                && visited.insert(canon)
+            {
+                collect_lua_files(&p, depth - 1, visited, out);
             }
         } else if p.extension().is_some_and(|x| x == "lua") {
             out.push(p);
         }
     }
-    out
 }
 
 /// A `ninjabrain…jar` file name in lower-case code: `ninjabrain` followed by `.jar` within the
@@ -289,9 +329,19 @@ fn strip_lua_comments(text: &str) -> String {
             out.push(c);
         } else if c == '-' && text[i..].starts_with("--") {
             let rest = &text[i + 2..];
-            // Where the comment ends: after `]]` for a block, before the line break for a line.
-            let end = if rest.starts_with("[[") {
-                rest.find("]]").map_or(text.len(), |e| i + 2 + e + 2)
+            // Where the comment ends: after `]=*]` for a block comment (`--[[`, `--[=[`, …), else
+            // before the line break for a line comment.
+            let end = if let Some(after_open) = rest.strip_prefix('[') {
+                let eqs = after_open.bytes().take_while(|&b| b == b'=').count();
+                if after_open.as_bytes().get(eqs) == Some(&b'[') {
+                    let body_start = 1 + eqs + 1;
+                    let closer = format!("]{}]", "=".repeat(eqs));
+                    rest[body_start..]
+                        .find(&closer)
+                        .map_or(text.len(), |e| i + 2 + body_start + e + closer.len())
+                } else {
+                    rest.find('\n').map_or(text.len(), |e| i + 2 + e)
+                }
             } else {
                 rest.find('\n').map_or(text.len(), |e| i + 2 + e)
             };
@@ -461,6 +511,15 @@ mod tests {
         assert_eq!((g.path, g.legal_as, g.checked), (other.clone(), None, true));
         let g = find_glfw(Some(&other), Some(&home), None).unwrap();
         assert_eq!((g.legal_as, g.checked), (None, false));
+        // Custom path with `~/` expands against `home`.
+        let g = find_glfw(
+            Some(Path::new("~/.nix-profile/lib/libglfw.so")),
+            Some(&home),
+            Some(&legal),
+        )
+        .unwrap();
+        assert_eq!(g.path, lib.join("libglfw.so"));
+        assert_eq!(g.legal_as.as_deref(), Some("3.4-linux"));
 
         let cfg = root.join("cfg");
         std::fs::create_dir_all(&cfg).unwrap();
@@ -529,6 +588,24 @@ end
         )
         .unwrap();
         assert!(!config_starts_ninjabrain(&root));
+
+        // Symlinked subdirs (e.g. Nix/stow) are followed and symlink cycles don't loop.
+        #[cfg(unix)]
+        {
+            let target = root.join("linked-target");
+            std::fs::create_dir_all(&target).unwrap();
+            std::fs::write(
+                target.join("nb.lua"),
+                "waywall.exec(\"java -jar /x/Ninjabrain-Bot-1.5.2.jar\")\n",
+            )
+            .unwrap();
+            let sym_cfg = root.join("sym-cfg");
+            std::fs::create_dir_all(&sym_cfg).unwrap();
+            std::os::unix::fs::symlink(&target, sym_cfg.join("sub")).unwrap();
+            std::os::unix::fs::symlink(&sym_cfg, sym_cfg.join("loop")).unwrap();
+            assert!(config_starts_ninjabrain(&sym_cfg));
+        }
+
         std::fs::remove_dir_all(&root).unwrap();
     }
 
@@ -536,6 +613,8 @@ end
     fn strips_lua_comments_only() {
         assert_eq!(strip_lua_comments("a -- b\nc"), "a  \nc");
         assert_eq!(strip_lua_comments("a --[[ b\nb ]] c"), "a   c");
+        assert_eq!(strip_lua_comments("a --[=[ b ]] b ]=] c"), "a   c");
+        assert_eq!(strip_lua_comments("a --[==[ b ]=] b ]==] c"), "a   c");
         assert_eq!(
             strip_lua_comments("x = \"--not\" -- yes"),
             "x = \"--not\"  "

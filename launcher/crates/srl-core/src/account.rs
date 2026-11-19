@@ -1,6 +1,6 @@
-//! Accounts. Only offline accounts for now: Microsoft login needs our own client ID approved by
-//! Mojang, which Piotr decided to postpone (WORKLOG.md, 2026-10-26). Offline accounts play
-//! singleplayer (RSG, FSG, SSG); MCSR Ranked and Draftout need a real Microsoft account.
+//! Offline accounts. Microsoft accounts live in `srl-auth` (and `srl-game::GameAccount::Microsoft`);
+//! `srl-core` holds the offline fallback used for singleplayer modes (RSG, FSG, SSG) when no
+//! Microsoft account is signed in. MCSR Ranked and Draftout need a real Microsoft account.
 use md5::{Digest, Md5};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;

@@ -7,6 +7,7 @@
 use std::{
     collections::HashMap,
     path::{Path, PathBuf},
+    sync::atomic::{AtomicU64, Ordering},
     time::{Duration, SystemTime},
 };
 
@@ -107,20 +108,24 @@ impl LegalDlls {
         Some(list)
     }
 
-    /// The cached copy if younger than `max_age`, else a fresh one (one try, a few seconds at
-    /// most), else the cached copy whatever its age. Fails only with neither.
+    /// The cached copy if younger than `max_age`, else a fresh one (a short `refresh_bytes` try
+    /// when a cached copy exists, or `fetch_bytes` with retries on a cold start), else the cached
+    /// copy whatever its age. Fails only with neither.
     pub async fn load(paths: &Paths, downloader: &Downloader, max_age: Duration) -> Result<Self> {
         let path = Self::cache_path(paths);
-        let age = std::fs::metadata(&path)
-            .and_then(|m| m.modified())
-            .ok()
-            .and_then(|t| t.elapsed().ok());
-        if age.is_some_and(|a| a < max_age)
-            && let Some(list) = Self::cached(paths)
-        {
-            return Ok(list);
+        let cached = Self::cached(paths);
+        if let Some(list) = cached {
+            let fresh = std::fs::metadata(&path)
+                .and_then(|m| m.modified())
+                .ok()
+                .and_then(|t| t.elapsed().ok())
+                .is_some_and(|a| a < max_age);
+            if fresh {
+                return Ok(list);
+            }
+            return Self::settle(paths, downloader.refresh_bytes(URL).await).await;
         }
-        Self::settle(paths, downloader.refresh_bytes(URL).await).await
+        Self::settle(paths, downloader.fetch_bytes(URL).await).await
     }
 
     /// What [`Self::load`] makes of a fetch: the fetched list when it parses (it then becomes
@@ -130,7 +135,9 @@ impl LegalDlls {
         match fetched {
             Ok(bytes) => match Self::parse(&String::from_utf8_lossy(bytes.as_ref())) {
                 Ok(list) => {
-                    write_atomic(&path, bytes.as_ref()).await?;
+                    if let Err(err) = write_atomic(&path, bytes.as_ref()).await {
+                        eprintln!("couldn't cache legal-dlls.csv ({err:#})");
+                    }
                     Ok(list)
                 }
                 // Not the CSV (a captive portal page, a changed header upstream): keep using the
@@ -152,13 +159,24 @@ impl LegalDlls {
     }
 }
 
+static TMP_SEQ: AtomicU64 = AtomicU64::new(0);
+
 pub(crate) async fn write_atomic(path: &Path, bytes: &[u8]) -> Result<()> {
     if let Some(dir) = path.parent() {
         tokio::fs::create_dir_all(dir).await?;
     }
-    let tmp = path.with_extension("tmp");
-    tokio::fs::write(&tmp, bytes).await?;
-    tokio::fs::rename(&tmp, path).await?;
+    let seq = TMP_SEQ.fetch_add(1, Ordering::Relaxed);
+    let mut tmp_name = path.as_os_str().to_owned();
+    tmp_name.push(format!(".{}.{seq}.tmp", std::process::id()));
+    let tmp = PathBuf::from(tmp_name);
+    if let Err(e) = tokio::fs::write(&tmp, bytes).await {
+        let _ = tokio::fs::remove_file(&tmp).await;
+        return Err(e.into());
+    }
+    if let Err(e) = tokio::fs::rename(&tmp, path).await {
+        let _ = tokio::fs::remove_file(&tmp).await;
+        return Err(e.into());
+    }
     Ok(())
 }
 

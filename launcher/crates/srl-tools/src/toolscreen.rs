@@ -217,7 +217,11 @@ pub fn status(paths: &Paths, arch: Arch, legal: Option<&LegalDlls>) -> ToolStatu
     let Some((release, build)) = choose(RELEASES, arch, legal) else {
         return ToolStatus::NotAvailable;
     };
-    let present = |r: &Release, b: &Build| files(paths, r, b).iter().all(|(p, _)| p.is_file());
+    let present = |r: &Release, b: &Build| {
+        files(paths, r, b)
+            .iter()
+            .all(|(p, _)| std::fs::metadata(p).is_ok_and(|m| m.is_file() && m.len() > 0))
+    };
     if present(release, build) {
         return ToolStatus::Installed(InstalledTool {
             version: Some(release.version.into()),

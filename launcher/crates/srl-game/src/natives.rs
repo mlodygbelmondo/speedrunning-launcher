@@ -50,7 +50,15 @@ pub fn extract_all(sources: &[NativeSource], dir: &Path) -> Result<()> {
     for (rel, size) in files {
         text.push_str(&format!("{size}\t{rel}\n"));
     }
-    std::fs::write(&marker, text)?;
+    let tmp = crate::util::unique_tmp_path(&marker);
+    if let Err(e) = std::fs::write(&tmp, text) {
+        let _ = std::fs::remove_file(&tmp);
+        return Err(e.into());
+    }
+    if let Err(e) = std::fs::rename(&tmp, &marker) {
+        let _ = std::fs::remove_file(&tmp);
+        return Err(e.into());
+    }
     Ok(())
 }
 
@@ -101,11 +109,17 @@ pub fn extract_jar(jar: &Path, dir: &Path, exclude: &[String]) -> Result<Vec<(St
             written.push((name, bytes.len() as u64));
             continue;
         }
-        // Through a temporary file: a running game may have the old library mapped.
-        let mut tmp = out.as_os_str().to_owned();
-        tmp.push(".tmp");
-        std::fs::write(&tmp, &bytes)?;
-        std::fs::rename(&tmp, &out)?;
+        // Through a unique temporary file: a running game may have the old library mapped, and
+        // concurrent installs of the same Minecraft version must not collide.
+        let tmp = crate::util::unique_tmp_path(&out);
+        if let Err(e) = std::fs::write(&tmp, &bytes) {
+            let _ = std::fs::remove_file(&tmp);
+            return Err(e.into());
+        }
+        if let Err(e) = std::fs::rename(&tmp, &out) {
+            let _ = std::fs::remove_file(&tmp);
+            return Err(e.into());
+        }
         written.push((name, bytes.len() as u64));
     }
     Ok(written)

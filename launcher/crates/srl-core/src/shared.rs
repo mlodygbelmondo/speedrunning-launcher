@@ -18,10 +18,11 @@ use std::{
     collections::BTreeMap,
     fs,
     path::{Path, PathBuf},
+    sync::atomic::{AtomicU64, Ordering},
     time::UNIX_EPOCH,
 };
 
-use anyhow::{Context, Result};
+use anyhow::{Context, Result, bail};
 use serde::{Deserialize, Serialize};
 
 use crate::{Mode, Paths};
@@ -33,17 +34,29 @@ pub const DIR: &str = "mcsr";
 pub const STATE_DIR: &str = ".srl-modes";
 
 /// Files each mode keeps for itself, relative to the game directory: Atum's settings, which hold
-/// the seed and the world type (SpeedrunAPI versions, then the older Atum properties).
-pub const PER_MODE_FILES: [&str; 2] = ["config/mcsr/atum.json", "config/atum/atum.properties"];
+/// the seed and the world type (SpeedrunAPI versions, global toggle, then the older Atum
+/// properties).
+pub const PER_MODE_FILES: [&str; 3] = [
+    "config/mcsr/atum.json",
+    "config/mcsr/atum.global",
+    "config/atum/atum.properties",
+];
 
 /// Sessions kept for Stats; older ones only matter for worlds that are long deleted.
 const MAX_SESSIONS: usize = 5000;
+
+static TMP_SEQ: AtomicU64 = AtomicU64::new(0);
 
 #[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 struct State {
     /// The mode whose per-mode files are in place now.
     #[serde(default)]
     current: Option<Mode>,
+    /// Set mid-switch once the outgoing mode's files are safely stashed aside and the incoming
+    /// mode's files are being moved into the shared directory, so retrying after a partial I/O
+    /// failure never loses or cross-contaminates per-mode files.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    switching_to: Option<Mode>,
     /// Game starts, oldest first.
     #[serde(default)]
     sessions: Vec<Session>,
@@ -71,49 +84,78 @@ fn mode_files(paths: &Paths, mode: Mode) -> PathBuf {
     shared_dir(paths).join(STATE_DIR).join(mode.id())
 }
 
+fn load_strict(paths: &Paths) -> Result<State> {
+    let path = state_file(paths);
+    match fs::read(&path) {
+        Ok(bytes) => {
+            serde_json::from_slice(&bytes).with_context(|| format!("parsing {}", path.display()))
+        }
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => Ok(State::default()),
+        Err(e) => Err(e).with_context(|| format!("reading {}", path.display())),
+    }
+}
+
 fn load(paths: &Paths) -> State {
-    fs::read(state_file(paths))
-        .ok()
-        .and_then(|b| serde_json::from_slice(&b).ok())
-        .unwrap_or_default()
+    load_strict(paths).unwrap_or_default()
 }
 
 fn save(paths: &Paths, state: &State) -> Result<()> {
     let file = state_file(paths);
     let dir = file.parent().expect("state file has a parent");
     fs::create_dir_all(dir).with_context(|| format!("creating {}", dir.display()))?;
-    let tmp = file.with_extension("json.tmp");
-    fs::write(&tmp, serde_json::to_vec_pretty(state)?)
-        .with_context(|| format!("writing {}", tmp.display()))?;
-    fs::rename(&tmp, &file).with_context(|| format!("writing {}", file.display()))
+    let seq = TMP_SEQ.fetch_add(1, Ordering::Relaxed);
+    let tmp = file.with_extension(format!("json.{}.{seq}.tmp", std::process::id()));
+    let bytes = serde_json::to_vec_pretty(state)?;
+    if let Err(e) = fs::write(&tmp, bytes) {
+        let _ = fs::remove_file(&tmp);
+        return Err(e).with_context(|| format!("writing {}", tmp.display()));
+    }
+    if let Err(e) = fs::rename(&tmp, &file) {
+        let _ = fs::remove_file(&tmp);
+        return Err(e).with_context(|| format!("writing {}", file.display()));
+    }
+    Ok(())
 }
 
 /// The mode whose per-mode files are in place, if the launcher knows.
 pub fn current(paths: &Paths) -> Option<Mode> {
-    load(paths).current
+    let state = load(paths);
+    state.current.or(state.switching_to)
 }
 
 /// Puts `mode`'s per-mode files into the shared directory, the previous mode's aside. Call it
 /// before the mode's game starts (never while a game of the directory runs).
 pub fn switch_to(paths: &Paths, mode: Mode) -> Result<()> {
-    let mut state = load(paths);
-    if state.current == Some(mode) {
+    if !mode.is_shared() {
+        bail!("{} does not use the shared directory", mode.id());
+    }
+    let mut state = load_strict(paths)?;
+    if state.current == Some(mode) && state.switching_to.is_none() {
         return Ok(());
     }
     let game = shared_dir(paths);
-    // With no known previous mode the files in place are the ones the player has always used:
-    // they become this mode's.
-    if let Some(prev) = state.current {
-        let aside = mode_files(paths, prev);
-        for rel in PER_MODE_FILES {
-            move_file(&game.join(rel), &aside.join(rel))?;
+    // With no known previous mode (and no interrupted switch), the files in place are the ones
+    // the player has always used: they become this mode's.
+    let active = state.current.or(state.switching_to);
+    if let Some(prev) = active {
+        if prev != mode {
+            let aside = mode_files(paths, prev);
+            for rel in PER_MODE_FILES {
+                stash_file(&game.join(rel), &aside.join(rel))?;
+            }
+            // All of `prev`'s files are now safely stashed; record the in-progress switch so a
+            // retry or switch to another mode knows any file placed into `game` belongs to `mode`.
+            state.current = None;
+            state.switching_to = Some(mode);
+            save(paths, &state)?;
         }
         let own = mode_files(paths, mode);
         for rel in PER_MODE_FILES {
-            move_file(&own.join(rel), &game.join(rel))?;
+            stash_file(&own.join(rel), &game.join(rel))?;
         }
     }
     state.current = Some(mode);
+    state.switching_to = None;
     save(paths, &state)
 }
 
@@ -128,19 +170,19 @@ pub fn per_mode_file(paths: &Paths, mode: Mode, rel: &str) -> PathBuf {
     }
 }
 
-/// Moves `from` to `to` (replacing it) if `from` exists, else removes `to`'s stale copy: after
-/// this `to` is exactly what `from` was.
-fn move_file(from: &Path, to: &Path) -> Result<()> {
-    match fs::remove_file(to) {
-        Ok(()) => {}
-        Err(e) if e.kind() == std::io::ErrorKind::NotFound => {}
-        Err(e) => return Err(e).with_context(|| format!("removing {}", to.display())),
-    }
+/// Moves `from` to `to` (replacing `to`) if `from` exists; leaves `to` untouched when `from` is
+/// absent so retrying after a partial failure never deletes a file that was already moved.
+fn stash_file(from: &Path, to: &Path) -> Result<()> {
     if !from.is_file() {
         return Ok(());
     }
     if let Some(parent) = to.parent() {
         fs::create_dir_all(parent).with_context(|| format!("creating {}", parent.display()))?;
+    }
+    match fs::remove_file(to) {
+        Ok(()) => {}
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => {}
+        Err(e) => return Err(e).with_context(|| format!("removing {}", to.display())),
     }
     fs::rename(from, to).with_context(|| format!("moving {} to {}", from.display(), to.display()))
 }
@@ -151,7 +193,10 @@ pub fn record_session(paths: &Paths, mode: Mode) -> Result<()> {
 }
 
 fn record_session_at(paths: &Paths, mode: Mode, started_ms: i64) -> Result<()> {
-    let mut state = load(paths);
+    if !mode.is_shared() {
+        bail!("{} does not use the shared directory", mode.id());
+    }
+    let mut state = load_strict(paths)?;
     state.sessions.push(Session { mode, started_ms });
     if state.sessions.len() > MAX_SESSIONS {
         let cut = state.sessions.len() - MAX_SESSIONS;
@@ -244,7 +289,7 @@ pub fn migrate(paths: &Paths) -> Result<Migration> {
     if olds.is_empty() {
         return Ok(done);
     }
-    let mut state = load(paths);
+    let mut state = load_strict(paths)?;
     let mut rest = olds.clone();
     if !shared.exists() {
         let base = *olds
@@ -272,6 +317,8 @@ pub fn migrate(paths: &Paths) -> Result<Migration> {
             fs::rename(old.join("saves").join(&name), &to)
                 .with_context(|| format!("moving {name} into {}", saves.display()))?;
             state.worlds.insert(to_name, mode);
+            // Persist after each moved world so an error mid-loop never loses earlier mappings.
+            save(paths, &state)?;
             moved += 1;
         }
         let own = mode_files(paths, mode);
@@ -465,6 +512,43 @@ mod tests {
         );
         // Nothing left to do.
         assert!(migrate(&paths).unwrap().is_empty());
+        fs::remove_dir_all(&root).unwrap();
+    }
+
+    #[test]
+    fn rejects_non_shared_corrupt_state_and_preserves_retry_aside() {
+        let root = temp("safety");
+        let paths = Paths::new(&root);
+        assert!(switch_to(&paths, Mode::Draftout).is_err());
+        assert!(record_session(&paths, Mode::Draftout).is_err());
+
+        // atum.global is isolated per mode too.
+        let game = paths.instance(Mode::Rsg);
+        let global = game.join("config/mcsr/atum.global");
+        write(&global, "true");
+        switch_to(&paths, Mode::Rsg).unwrap();
+        switch_to(&paths, Mode::Ssg).unwrap();
+        assert!(!global.exists());
+        switch_to(&paths, Mode::Rsg).unwrap();
+        assert_eq!(fs::read_to_string(&global).unwrap(), "true");
+
+        // Simulated retry after partial failure: `prev`'s atum.json was already moved to `aside`,
+        // `game/atum.json` is missing, and `state.current` is still `Some(Rsg)`. Retrying
+        // `switch_to(Ssg)` must not delete `aside/atum.json`.
+        let rsg_aside = mode_files(&paths, Mode::Rsg).join(PER_MODE_FILES[0]);
+        write(&rsg_aside, r#"{"seed":"saved-before-failure"}"#);
+        let _ = fs::remove_file(game.join(PER_MODE_FILES[0]));
+        switch_to(&paths, Mode::Ssg).unwrap();
+        assert_eq!(
+            fs::read_to_string(&rsg_aside).unwrap(),
+            r#"{"seed":"saved-before-failure"}"#
+        );
+
+        // Corrupt state.json is rejected rather than overwritten.
+        fs::write(state_file(&paths), b"{not json").unwrap();
+        assert!(switch_to(&paths, Mode::Rsg).is_err());
+        assert!(record_session(&paths, Mode::Rsg).is_err());
+        assert_eq!(fs::read(state_file(&paths)).unwrap(), b"{not json");
         fs::remove_dir_all(&root).unwrap();
     }
 }

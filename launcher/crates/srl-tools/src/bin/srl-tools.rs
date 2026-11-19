@@ -149,10 +149,7 @@ async fn run() -> Result<()> {
                     }
                     println!("running after {s}s: {:?}", ninjabrain::running(&[]));
                     if let Some(c) = ready_cmd {
-                        let status = tokio::process::Command::new("sh")
-                            .args(["-c", &c])
-                            .status()
-                            .await?;
+                        let status = run_ready_cmd(&c).await?;
                         println!("ready-cmd: {status}");
                     }
                     let t = Instant::now();
@@ -256,10 +253,7 @@ async fn run() -> Result<()> {
             println!("ready after {:.1}s", started.elapsed().as_secs_f64());
             tokio::time::sleep(Duration::from_secs(settle)).await;
             if let Some(c) = ready_cmd {
-                let status = tokio::process::Command::new("sh")
-                    .args(["-c", &c])
-                    .status()
-                    .await?;
+                let status = run_ready_cmd(&c).await?;
                 println!("ready-cmd: {status}");
             }
             let report = game.stop_detailed(Duration::from_secs(30)).await;
@@ -307,4 +301,18 @@ async fn run() -> Result<()> {
             Ok(())
         }
     }
+}
+
+async fn run_ready_cmd(cmd: &str) -> Result<std::process::ExitStatus> {
+    #[cfg(windows)]
+    let status = tokio::process::Command::new("cmd")
+        .args(["/C", cmd])
+        .status()
+        .await?;
+    #[cfg(not(windows))]
+    let status = tokio::process::Command::new("sh")
+        .args(["-c", cmd])
+        .status()
+        .await?;
+    Ok(status)
 }

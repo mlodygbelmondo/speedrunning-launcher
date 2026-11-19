@@ -443,6 +443,36 @@ fn known_jars_tell_legal_from_illegal() {
         .unwrap();
     assert_eq!(rsg.known[&lazy_113].modid, "lazystronghold");
     assert!(rsg.known[&lazy_113].allowed);
+    // Older CSV builds for a different Minecraft version or unknown modid are NOT allowed.
+    let li_1165 = meta
+        .legal
+        .by_sha512
+        .iter()
+        .find(|(_, b)| b.filename == "lithium-fabric-mc1.16.5-0.6.6.jar")
+        .map(|(h, _)| h.clone())
+        .unwrap();
+    assert!(!rsg.known[&li_1165].allowed);
+    let fp_261 = meta
+        .legal
+        .by_sha512
+        .iter()
+        .find(|(_, b)| b.filename == "forceport-1.3.0+MC26.1.jar")
+        .map(|(h, _)| h.clone())
+        .unwrap();
+    assert!(!rsg.known[&fp_261].allowed);
+    // Unknown CSV modid (not in mods.json) is not marked allowed.
+    let mut meta2 = meta.clone();
+    let bogus = "fe".repeat(64);
+    meta2.legal.by_sha512.insert(
+        bogus.clone(),
+        srl_mods::meta::LegalBuild {
+            modid: "unknown-old-mod".into(),
+            filename: "unknown-1.0+1.16.1.jar".into(),
+            date: "2024-01-01".into(),
+        },
+    );
+    let rsg2 = set(&meta2, Mode::Rsg, Os::Linux);
+    assert!(!rsg2.known[&bogus].allowed);
 }
 
 /// fsg-mod needs atum, and atum needs speedrunapi. Without speedrunapi, atum can't stay, so the

@@ -369,22 +369,30 @@ impl GameInstaller {
             .meta()
             .join("verified")
             .join(format!("{}.json", target.instance.id()));
-        let mut stamp = Stamp::load(&stamp_path);
-        let stale = |items: &[Download]| -> Vec<Download> {
-            items
-                .iter()
-                .filter(|d| !stamp.is_fresh(d))
-                .cloned()
-                .collect()
-        };
-        let (java_todo, game_todo, assets_todo) = (
-            java_plan
+        let (mut stamp, java_todo, game_todo, assets_todo) = {
+            let stamp_path = stamp_path.clone();
+            let java_downloads = java_plan
                 .as_ref()
-                .map(|p| stale(&p.downloads))
-                .unwrap_or_default(),
-            stale(&game_files),
-            stale(&asset_files),
-        );
+                .map(|p| p.downloads.clone())
+                .unwrap_or_default();
+            let game_files = game_files.clone();
+            let asset_files = asset_files.clone();
+            tokio::task::spawn_blocking(move || {
+                let stamp = Stamp::load(&stamp_path);
+                let stale = |items: &[Download]| -> Vec<Download> {
+                    items
+                        .iter()
+                        .filter(|d| !stamp.is_fresh(d))
+                        .cloned()
+                        .collect()
+                };
+                let java_todo = stale(&java_downloads);
+                let game_todo = stale(&game_files);
+                let assets_todo = stale(&asset_files);
+                (stamp, java_todo, game_todo, assets_todo)
+            })
+            .await?
+        };
         let (java_got, game_got, assets_got) = tokio::join!(
             self.downloader
                 .download_all(java_todo, Stage::Java, progress.clone()),

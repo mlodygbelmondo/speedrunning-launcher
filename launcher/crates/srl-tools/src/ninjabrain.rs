@@ -125,13 +125,15 @@ pub fn command(java: &Path, jar: &Path) -> SideCommand {
 /// True if a command line is a Ninjabrain Bot: a `-jar` whose file name starts with
 /// `Ninjabrain` (any version, any folder: the player's own copy counts).
 pub fn is_ninjabrain_cmdline(args: &[&str]) -> bool {
-    args.iter().any(|a| {
-        let name = a
-            .rsplit(['/', '\\'])
-            .next()
-            .unwrap_or(a)
-            .to_ascii_lowercase();
-        name.starts_with("ninjabrain") && name.ends_with(".jar")
+    args.windows(2).any(|w| {
+        w[0] == "-jar" && {
+            let name = w[1]
+                .rsplit(['/', '\\'])
+                .next()
+                .unwrap_or(w[1])
+                .to_ascii_lowercase();
+            name.starts_with("ninjabrain") && name.ends_with(".jar")
+        }
     })
 }
 
@@ -231,6 +233,10 @@ mod tests {
             "Jingle-2.0.0.jar"
         ]));
         assert!(!is_ninjabrain_cmdline(&["vim", "ninjabrain.txt"]));
+        assert!(!is_ninjabrain_cmdline(&[
+            "vim",
+            "/home/a/Ninjabrain-Bot-1.5.2.jar"
+        ]));
     }
 
     #[test]

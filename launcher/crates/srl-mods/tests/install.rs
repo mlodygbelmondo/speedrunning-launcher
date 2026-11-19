@@ -431,3 +431,82 @@ async fn a_mod_waiting_for_legal_builds_keeps_its_installed_build() {
     install(&paths, &dl, &set, &guard, None).await.unwrap();
     assert_eq!(names(&dir), ["atum-2.7.2.jar"]);
 }
+
+#[tokio::test]
+async fn keep_installed_survives_shared_mode_switch() {
+    let paths = home("keep-switch");
+    let (atum, wp, ss) = (
+        Jar::new("atum", "2.7.2"),
+        Jar::new("worldpreview", "6.3.1"),
+        Jar::new("setspawnmod", "4.2.1"),
+    );
+    put_in_store(&paths, &[&atum, &wp, &ss]);
+    let (dl, guard) = (Downloader::new().unwrap(), InstanceGuard::new());
+
+    install(
+        &paths,
+        &dl,
+        &set_of(Mode::Rsg, &[&atum, &wp], vec![]),
+        &guard,
+        None,
+    )
+    .await
+    .unwrap();
+
+    // WorldPreview lags behind legal-builds.csv: RSG keeps 6.3.1 and records it in rsg.json.
+    let mut rsg_lag = set_of(Mode::Rsg, &[&atum], vec![wp.known(true)]);
+    rsg_lag.keep_installed = vec!["worldpreview".into()];
+    install(&paths, &dl, &rsg_lag, &guard, None).await.unwrap();
+    let dir = mods_dir(&paths, Mode::Rsg);
+    assert_eq!(names(&dir), ["atum-2.7.2.jar", "worldpreview-6.3.1.jar"]);
+
+    // Switch to SSG (removes worldpreview from mods/), then back to RSG: worldpreview is restored.
+    let ssg = set_of(Mode::Ssg, &[&atum, &ss], vec![]);
+    install(&paths, &dl, &ssg, &guard, None).await.unwrap();
+    assert_eq!(names(&dir), ["atum-2.7.2.jar", "setspawnmod-4.2.1.jar"]);
+    assert_eq!(status(&paths, &rsg_lag).await.unwrap(), Status::UpToDate);
+    install(&paths, &dl, &rsg_lag, &guard, None).await.unwrap();
+    assert_eq!(names(&dir), ["atum-2.7.2.jar", "worldpreview-6.3.1.jar"]);
+}
+
+#[tokio::test]
+async fn corrupted_custom_jar_and_aside_collision_and_filename_collision() {
+    let paths = home("edge-cases");
+    let (dl, guard) = (Downloader::new().unwrap(), InstanceGuard::new());
+    let mine = Jar::new("mymod", "1");
+    let mut entry = mine.entry();
+    entry.source = ModSource::Custom;
+    entry.url = String::new();
+    let mut set = set_of(Mode::Rsg, &[], vec![mine.known(true)]);
+    set.mods.push(entry);
+
+    // Corrupted store copy of a custom jar gives the clear re-add error instead of empty-URL fetch.
+    let store_path = paths.store_sha512(&mine.sha());
+    std::fs::create_dir_all(store_path.parent().unwrap()).unwrap();
+    std::fs::write(&store_path, b"corrupted bytes").unwrap();
+    let err = install(&paths, &dl, &set, &guard, None).await.unwrap_err();
+    assert!(err.to_string().contains("add the jar again"), "{err:#}");
+
+    // Two same-second removals of a foreign jar with the same name preserve both copies.
+    let (a, b) = (Jar::new("atum", "2.7.2"), Jar::new("seedqueue", "1.8"));
+    put_in_store(&paths, &[&a, &b]);
+    let set2 = set_of(Mode::Rsg, &[&a, &b], vec![]);
+    let dir = mods_dir(&paths, Mode::Rsg);
+    std::fs::create_dir_all(&dir).unwrap();
+    std::fs::write(dir.join("foreign.jar"), b"first").unwrap();
+    let r1 = install(&paths, &dl, &set2, &guard, None).await.unwrap();
+    std::fs::write(dir.join("foreign.jar"), b"second").unwrap();
+    let r2 = install(&paths, &dl, &set2, &guard, None).await.unwrap();
+    assert_eq!(std::fs::read(&r1.set_aside[0]).unwrap(), b"first");
+    assert_eq!(std::fs::read(&r2.set_aside[0]).unwrap(), b"second");
+    assert_ne!(r1.set_aside[0], r2.set_aside[0]);
+
+    // A jar matching `a`'s sha512 but named `b.file_name()` must not be kept and overwritten.
+    // Unlink both first: `materialise` hard-links from the store on Unix.
+    std::fs::remove_file(dir.join(a.file_name())).unwrap();
+    std::fs::remove_file(dir.join(b.file_name())).unwrap();
+    std::fs::write(dir.join(b.file_name()), &a.bytes).unwrap();
+    install(&paths, &dl, &set2, &guard, None).await.unwrap();
+    assert_eq!(std::fs::read(dir.join(a.file_name())).unwrap(), a.bytes);
+    assert_eq!(std::fs::read(dir.join(b.file_name())).unwrap(), b.bytes);
+}

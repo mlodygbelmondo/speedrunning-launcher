@@ -40,7 +40,9 @@ mod windows;
 use windows as os;
 #[cfg(not(any(target_os = "linux", target_os = "macos", windows)))]
 mod os {
-    pub async fn get(_: &str) -> Result<Option<Vec<u8>>, String> {
+    use zeroize::Zeroizing;
+
+    pub async fn get(_: &str) -> Result<Option<Zeroizing<Vec<u8>>>, String> {
         Err("no keystore on this OS".into())
     }
     pub async fn set(_: &str, _: &[u8]) -> Result<(), String> {
@@ -225,28 +227,60 @@ fn to_key(bytes: &[u8]) -> Option<Key> {
     Some(Zeroizing::new(arr))
 }
 
-/// Writes a file only the current user can read, atomically (temp file, then rename).
+/// Writes a file only the current user can read, atomically (unique temp file, then rename).
+/// Does not change the parent directory's permissions: callers that own a private directory
+/// (`auth/`, `auth/tokens/`) call [`create_private_dir`] themselves so `paths.root()` keeps its
+/// normal permissions.
 pub(crate) fn write_private(path: &Path, bytes: &[u8]) -> io::Result<()> {
     use std::io::Write;
     let dir = path.parent().unwrap_or(Path::new("."));
-    create_private_dir(dir)?;
-    let tmp = path.with_extension(format!("tmp-{}", std::process::id()));
-    let mut opts = std::fs::OpenOptions::new();
-    opts.write(true).create(true).truncate(true);
-    #[cfg(unix)]
-    {
-        use std::os::unix::fs::OpenOptionsExt;
-        opts.mode(0o600);
+    std::fs::create_dir_all(dir)?;
+    let (tmp, f) = create_temp_private(path)?;
+    let res = (|| -> io::Result<()> {
+        let mut f = f;
+        f.write_all(bytes)?;
+        f.sync_all()?;
+        drop(f);
+        std::fs::rename(&tmp, path)
+    })();
+    if res.is_err() {
+        let _ = std::fs::remove_file(&tmp);
     }
-    let mut f = opts.open(&tmp)?;
-    f.write_all(bytes)?;
-    f.sync_all()?;
-    drop(f);
-    std::fs::rename(&tmp, path)
+    res
 }
 
-/// `auth/` is 0700 on Unix. On Windows the per-user profile folder's ACL already keeps other
-/// users out.
+fn create_temp_private(path: &Path) -> io::Result<(PathBuf, std::fs::File)> {
+    use std::sync::atomic::{AtomicU64, Ordering};
+    static COUNTER: AtomicU64 = AtomicU64::new(0);
+    let pid = std::process::id();
+    let base = path.file_name().unwrap_or_default().to_os_string();
+    for _ in 0..16 {
+        let n = COUNTER.fetch_add(1, Ordering::Relaxed);
+        let rand = hex::encode(crate::pkce::random_bytes::<6>());
+        let mut name = base.clone();
+        name.push(format!(".tmp-{pid}-{n}-{rand}"));
+        let tmp = path.with_file_name(name);
+        let mut opts = std::fs::OpenOptions::new();
+        opts.write(true).create_new(true);
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::OpenOptionsExt;
+            opts.mode(0o600);
+        }
+        match opts.open(&tmp) {
+            Ok(f) => return Ok((tmp, f)),
+            Err(e) if e.kind() == io::ErrorKind::AlreadyExists => continue,
+            Err(e) => return Err(e),
+        }
+    }
+    Err(io::Error::new(
+        io::ErrorKind::AlreadyExists,
+        "could not create a unique temporary file",
+    ))
+}
+
+/// `auth/` and `auth/tokens/` are 0700 on Unix. On Windows the per-user profile folder's ACL
+/// already keeps other users out.
 pub(crate) fn create_private_dir(dir: &Path) -> io::Result<()> {
     std::fs::create_dir_all(dir)?;
     #[cfg(unix)]
@@ -258,6 +292,9 @@ pub(crate) fn create_private_dir(dir: &Path) -> io::Result<()> {
 }
 
 fn write_key_file(path: &Path, key: &[u8]) -> io::Result<()> {
+    if let Some(dir) = path.parent() {
+        create_private_dir(dir)?;
+    }
     #[cfg(windows)]
     let protected = windows::dpapi_protect(key)?;
     #[cfg(not(windows))]
@@ -266,7 +303,7 @@ fn write_key_file(path: &Path, key: &[u8]) -> io::Result<()> {
     write_private(path, &protected)
 }
 
-fn read_key_file(path: &Path) -> Result<Option<Vec<u8>>, KeyFileError> {
+fn read_key_file(path: &Path) -> Result<Option<Zeroizing<Vec<u8>>>, KeyFileError> {
     let bytes = match std::fs::read(path) {
         Ok(b) => Zeroizing::new(b),
         Err(e) if e.kind() == io::ErrorKind::NotFound => return Ok(None),
@@ -287,7 +324,7 @@ fn read_key_file(path: &Path) -> Result<Option<Vec<u8>>, KeyFileError> {
     #[cfg(windows)]
     return Ok(Some(windows::dpapi_unprotect(&bytes)?));
     #[cfg(not(windows))]
-    Ok(Some(bytes.to_vec()))
+    Ok(Some(bytes))
 }
 
 #[cfg(test)]
@@ -370,9 +407,25 @@ mod tests {
         let sealed = windows::dpapi_protect(b"0123456789abcdef").unwrap();
         assert_ne!(sealed.as_slice(), b"0123456789abcdef");
         assert_eq!(
-            windows::dpapi_unprotect(&sealed).unwrap(),
+            windows::dpapi_unprotect(&sealed).unwrap().as_slice(),
             b"0123456789abcdef"
         );
+    }
+
+    #[test]
+    fn write_private_cleans_up_temp_file_on_error() {
+        let d = dir("tmp-cleanup");
+        std::fs::create_dir_all(&d).unwrap();
+        // Renaming a file onto an existing directory fails on every OS.
+        let target = d.join("target-dir");
+        std::fs::create_dir_all(&target).unwrap();
+        assert!(write_private(&target, b"secret").is_err());
+        let entries: Vec<_> = std::fs::read_dir(&d)
+            .unwrap()
+            .map(|e| e.unwrap().file_name())
+            .collect();
+        assert_eq!(entries, [std::ffi::OsString::from("target-dir")]);
+        std::fs::remove_dir_all(&d).unwrap();
     }
 
     /// What the OS keystore tests may do, from `SRL_AUTH_OS_TEST`. They are `#[ignore]`d and also
@@ -396,7 +449,7 @@ mod tests {
         os::set(&name, b"first").await.unwrap();
         os::set(&name, b"second").await.unwrap(); // replaces, never duplicates
         assert_eq!(
-            os::get(&name).await.unwrap().as_deref(),
+            os::get(&name).await.unwrap().as_deref().map(Vec::as_slice),
             Some(&b"second"[..])
         );
         os::delete(&name).await.unwrap();

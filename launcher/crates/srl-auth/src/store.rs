@@ -216,7 +216,8 @@ impl Store {
         );
         let sealed = seal(&key, uuid, &plain);
         let path = self.tokens_path(uuid);
-        create_private_dir(path.parent().expect("tokens path has a parent"))
+        create_private_dir(&self.root.join("auth"))
+            .and_then(|_| create_private_dir(path.parent().expect("tokens path has a parent")))
             .and_then(|_| write_private(&path, &sealed))
             .map_err(|e| AuthError::Storage(format!("token file: {e}")))
     }
@@ -499,6 +500,28 @@ mod tests {
         assert_ne!(file.key_id.as_deref(), Some(old.as_str()));
         assert!(!old_file.exists());
         assert!(file.accounts[0].needs_login.is_some());
+        std::fs::remove_dir_all(&root).unwrap();
+    }
+
+    #[cfg(unix)]
+    #[tokio::test]
+    async fn save_does_not_chmod_root_while_auth_dirs_are_0700() {
+        use std::os::unix::fs::PermissionsExt;
+        let root = dir("root-perms");
+        std::fs::create_dir_all(&root).unwrap();
+        std::fs::set_permissions(&root, std::fs::Permissions::from_mode(0o755)).unwrap();
+        let mut store = Store::new(&root, KeystoreChoice::FileOnly);
+        let mut file = Store::load(&root).unwrap();
+        let uuid = Uuid::new_v4();
+        store
+            .write_tokens(&mut file, uuid, &tokens("T"))
+            .await
+            .unwrap();
+        store.save(&file).unwrap();
+        let mode = |p: &Path| std::fs::metadata(p).unwrap().permissions().mode() & 0o777;
+        assert_eq!(mode(&root), 0o755);
+        assert_eq!(mode(&root.join("auth")), 0o700);
+        assert_eq!(mode(&root.join("auth").join("tokens")), 0o700);
         std::fs::remove_dir_all(&root).unwrap();
     }
 

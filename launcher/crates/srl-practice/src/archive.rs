@@ -9,7 +9,7 @@
 //! before anything is written, symlink entries are refused, and the total size is capped. A zip
 //! that breaks a rule is refused as a whole rather than half-extracted.
 use std::{
-    collections::HashMap,
+    collections::HashSet,
     fs::File,
     io::{Read, Write},
     path::{Component, Path, PathBuf},
@@ -213,11 +213,14 @@ pub fn extract_worlds(
     }
     let total = plan.len() as u64;
     let mut written: u64 = 0;
-    let mut seen: HashMap<PathBuf, ()> = HashMap::new();
+    let mut files: u64 = 0;
+    let mut seen = HashSet::new();
     for (n, (i, w, rel)) in plan.into_iter().enumerate() {
         let target = out[w].join(&rel);
-        // Two entries for one path (`a/b` and `a\b`): keep the first, like most unzip tools.
-        if seen.insert(target.clone(), ()).is_some() {
+        // Two entries for one path (`a/b` and `a\b`, or differing only in case on Windows): keep
+        // the first, like most unzip tools.
+        if !seen.insert(dedup_key(&target)) {
+            on_file(n as u64 + 1, total);
             continue;
         }
         if let Some(parent) = target.parent() {
@@ -238,13 +241,24 @@ pub fn extract_worlds(
         }
         file.flush()?;
         written += copied;
+        files += 1;
         on_file(n as u64 + 1, total);
     }
     Ok(Extracted {
         worlds: out.into_iter().zip(worlds).collect(),
-        files: total,
+        files,
         bytes: written,
     })
+}
+
+#[cfg(windows)]
+fn dedup_key(path: &Path) -> String {
+    path.to_string_lossy().to_lowercase()
+}
+
+#[cfg(not(windows))]
+fn dedup_key(path: &Path) -> PathBuf {
+    path.to_path_buf()
 }
 
 /// A folder name that is safe on every OS, from a map name: separators and characters Windows
@@ -499,5 +513,26 @@ pub(crate) mod tests {
         let taken = ["Map", "Map (2)"];
         assert_eq!(unique_name("Map", |n| taken.contains(&n)), "Map (3)");
         assert_eq!(unique_name("Other", |n| taken.contains(&n)), "Other");
+    }
+
+    #[test]
+    fn duplicate_entries_keep_first_and_are_not_double_counted() {
+        let dir = temp_dir("dupes");
+        let z = dir.join("dupes.zip");
+        make_zip(
+            &z,
+            &[
+                ("Map/level.dat", b"L"),
+                ("Map/data/a.dat", b"first"),
+                ("Map/data\\a.dat", b"second"),
+            ],
+        );
+        let out = extract_worlds(&z, &dir.join("out"), |_, _| {}).unwrap();
+        assert_eq!(out.files, 2);
+        assert_eq!(
+            std::fs::read(out.worlds[0].0.join("data/a.dat")).unwrap(),
+            b"first"
+        );
+        std::fs::remove_dir_all(&dir).unwrap();
     }
 }

@@ -209,6 +209,18 @@ struct RawParticipant {
     elo_after: Option<i32>,
 }
 
+fn same_uuid(a: &str, b: &str) -> bool {
+    let mut ai = a.bytes().filter(|&c| c != b'-');
+    let mut bi = b.bytes().filter(|&c| c != b'-');
+    loop {
+        match (ai.next(), bi.next()) {
+            (Some(x), Some(y)) if x.eq_ignore_ascii_case(&y) => continue,
+            (None, None) => return true,
+            _ => return false,
+        }
+    }
+}
+
 fn parse(body: &[u8]) -> Result<DraftoutStats, ApiError> {
     let raw: Raw =
         serde_json::from_slice(body).map_err(|e| ApiError::BadResponse(e.to_string()))?;
@@ -218,9 +230,9 @@ fn parse(body: &[u8]) -> Result<DraftoutStats, ApiError> {
         .matches
         .into_iter()
         .filter_map(|m| {
-            let mine = m.participants.iter().find(|x| x.uuid == me)?;
+            let mine = m.participants.iter().find(|x| same_uuid(&x.uuid, &me))?;
             let opponent = (m.participants.len() == 2)
-                .then(|| m.participants.iter().find(|x| x.uuid != me))
+                .then(|| m.participants.iter().find(|x| !same_uuid(&x.uuid, &me)))
                 .flatten()
                 .map(|o| (o.username.clone(), o.score));
             Some(DraftoutMatch {
@@ -251,7 +263,11 @@ fn parse(body: &[u8]) -> Result<DraftoutStats, ApiError> {
             losses: raw.record.losses,
             draws: raw.record.draws,
             win_rate: raw.record.win_rate,
-            average_finish_ms: raw.record.average_finish_time.map(|t| t.max(0.0) as u64),
+            average_finish_ms: raw
+                .record
+                .average_finish_time
+                .filter(|t| t.is_finite())
+                .map(|t| t.max(0.0) as u64),
             peak_elo: raw.aggregate.peak_elo,
             best_streak: raw.aggregate.best_streak,
             fastest_win_ms: raw.aggregate.fastest_win_ms,
@@ -330,5 +346,22 @@ mod tests {
             not_found_or(br#"{"error":"route_not_found"}"#),
             ApiError::Http(404)
         );
+    }
+
+    #[test]
+    fn matches_uuids_ignoring_case_and_dashes() {
+        let body = br##"{"player":{"uuid":"AAAAAAAA-BBBB-CCCC-DDDD-EEEEEEEEEEEE",
+            "username":"Me","elo":1500,"ranked":true,"rank":1,"rankName":"Gold","rankColor":"#fff"},
+            "record":{"matches":1,"wins":1,"losses":0,"draws":0,"winRate":1.0,"averageFinishTime":null},
+            "aggregate":{"peakElo":1500,"bestStreak":1,"fastestWinMs":null,"forfeitCount":0},
+            "matches":[{"id":9,"matchType":"competitive","outcome":"finished","completedAt":1000,
+                "durationMs":500,"participants":[
+                    {"uuid":"aaaaaaaabbbbccccddddeeeeeeeeeeee","username":"Me","won":true,"score":5,"eloChange":10,"eloAfter":1510},
+                    {"uuid":"11111111-2222-3333-4444-555555555555","username":"Opp","won":false,"score":3,"eloChange":-10,"eloAfter":1490}
+                ]}]}"##;
+        let s = parse(body).unwrap();
+        assert_eq!(s.matches.len(), 1);
+        assert!(s.matches[0].won);
+        assert_eq!(s.matches[0].opponent, Some(("Opp".into(), 3)));
     }
 }

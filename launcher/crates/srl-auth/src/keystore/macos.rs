@@ -3,16 +3,17 @@
 use security_framework::passwords::{
     delete_generic_password, get_generic_password, set_generic_password,
 };
+use zeroize::Zeroizing;
 
 use super::SERVICE;
 
 /// `errSecItemNotFound`.
 const NOT_FOUND: i32 = -25300;
 
-pub async fn get(name: &str) -> Result<Option<Vec<u8>>, String> {
+pub async fn get(name: &str) -> Result<Option<Zeroizing<Vec<u8>>>, String> {
     let name = name.to_string();
     blocking(move || match get_generic_password(SERVICE, &name) {
-        Ok(v) => Ok(Some(v)),
+        Ok(v) => Ok(Some(Zeroizing::new(v))),
         Err(e) if e.code() == NOT_FOUND => Ok(None),
         Err(e) => Err(e.to_string()),
     })
@@ -20,7 +21,7 @@ pub async fn get(name: &str) -> Result<Option<Vec<u8>>, String> {
 }
 
 pub async fn set(name: &str, value: &[u8]) -> Result<(), String> {
-    let (name, value) = (name.to_string(), zeroize::Zeroizing::new(value.to_vec()));
+    let (name, value) = (name.to_string(), Zeroizing::new(value.to_vec()));
     blocking(move || set_generic_password(SERVICE, &name, &value).map_err(|e| e.to_string())).await
 }
 

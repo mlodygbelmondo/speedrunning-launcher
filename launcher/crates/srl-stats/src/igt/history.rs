@@ -229,13 +229,14 @@ fn category_stats(key: CategoryKey, runs: &[&Run]) -> CategoryStats {
         }
         for (i, point) in route_points(&run.record).into_iter().enumerate() {
             if point.is_some() {
-                *reached.entry(Segment::ALL[i]).or_insert(0) += 1;
+                let c = reached.entry(Segment::ALL[i]).or_insert(0u32);
+                *c = c.saturating_add(1);
             }
         }
     }
     let sum_of_best_ms = best
         .iter()
-        .try_fold(0u64, |acc, b| b.map(|(ms, _, _)| acc + ms));
+        .try_fold(0u64, |acc, b| b.map(|(ms, _, _)| acc.saturating_add(ms)));
     let best_segments = best
         .iter()
         .enumerate()
@@ -463,6 +464,39 @@ mod tests {
                 .unwrap()
                 .id,
             "s"
+        );
+    }
+
+    #[test]
+    fn sum_of_best_saturates_on_extreme_segment_times() {
+        let half = u64::MAX / 2;
+        // Run A provides Nether (half) and FirstStructure (half - 2000).
+        let run_a = rec(
+            1,
+            false,
+            0,
+            &[("enter_nether", half), ("enter_bastion", u64::MAX - 2000)],
+        );
+        // Run B has no enter_nether, so it does not compete on segments 0..=1, while providing
+        // SecondStructure (half - 10) and segments 3..=6 (10 each). Sum of best > u64::MAX.
+        let run_b = rec(
+            2,
+            true,
+            half + 40,
+            &[
+                ("enter_bastion", 10),
+                ("enter_fortress", half),
+                ("nether_travel", half + 10),
+                ("enter_stronghold", half + 20),
+                ("enter_end", half + 30),
+            ],
+        );
+        let h = RunHistory::new(vec![run("a", run_a), run("b", run_b)]);
+        assert_eq!(
+            h.category("ANY", &RunType::RandomSeed)
+                .unwrap()
+                .sum_of_best_ms,
+            Some(u64::MAX)
         );
     }
 }

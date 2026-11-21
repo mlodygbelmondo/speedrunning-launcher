@@ -4,6 +4,7 @@ description = "Import the player's settings from MultiMC, Prism Launcher, MCSR L
 version.workspace = true
 edition.workspace = true
 publish.workspace = true
+license.workspace = true
 
 [dependencies]
 directories.workspace = true

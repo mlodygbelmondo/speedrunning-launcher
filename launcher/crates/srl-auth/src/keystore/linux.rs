@@ -3,6 +3,8 @@
 //! its attributes, `replace = true` on write.
 use std::time::Duration;
 
+use zeroize::Zeroizing;
+
 use super::SERVICE;
 
 /// Connecting needs no prompt: if the bus or the service isn't there, it fails fast, and if
@@ -26,7 +28,7 @@ fn attributes(name: &str) -> [(&'static str, &str); 2] {
     [("application", SERVICE), ("srl-entry", name)]
 }
 
-pub async fn get(name: &str) -> Result<Option<Vec<u8>>, String> {
+pub async fn get(name: &str) -> Result<Option<Zeroizing<Vec<u8>>>, String> {
     let keyring = keyring().await?;
     let items = keyring
         .search_items(&attributes(name))
@@ -36,7 +38,7 @@ pub async fn get(name: &str) -> Result<Option<Vec<u8>>, String> {
         None => Ok(None),
         Some(item) => {
             let secret = item.secret().await.map_err(|e| e.to_string())?;
-            Ok(Some(secret.as_bytes().to_vec()))
+            Ok(Some(Zeroizing::new(secret.as_bytes().to_vec())))
         }
     }
 }

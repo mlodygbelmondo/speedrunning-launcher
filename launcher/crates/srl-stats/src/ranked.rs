@@ -89,7 +89,7 @@ impl Tier {
     pub fn next(elo: i32) -> Option<(Tier, i32)> {
         let i = Tier::ALL.iter().position(|&t| t == Tier::from_elo(elo))?;
         let next = *Tier::ALL.get(i + 1)?;
-        Some((next, next.min_elo() - elo))
+        Some((next, next.min_elo().saturating_sub(elo)))
     }
 
     pub fn name(self) -> &'static str {
@@ -504,7 +504,7 @@ struct ApiPair {
 
 impl ApiStatMap {
     fn record(&self) -> RankedRecord {
-        let n = |p: &ApiPair| p.ranked.unwrap_or(0).max(0) as u32;
+        let n = |p: &ApiPair| p.ranked.unwrap_or(0).clamp(0, i64::from(u32::MAX)) as u32;
         RankedRecord {
             played: n(&self.played_matches),
             wins: n(&self.wins),
@@ -556,7 +556,7 @@ fn parse_profile(body: &[u8]) -> Result<RankedProfile, ApiError> {
             .timestamp
             .and_then(|t| t.last_ranked)
             .filter(|&s| s > 0)
-            .map(|s| s * 1000),
+            .map(|s| s.saturating_mul(1000)),
         weekly_races: u
             .weekly_races
             .into_iter()
@@ -632,7 +632,7 @@ impl ApiMatch {
         };
         let mine = self.changes.iter().find(|c| same(&c.uuid));
         let elo_change = mine.and_then(|c| c.change);
-        let elo_after = mine.and_then(|c| Some(c.elo_rate? + c.change?));
+        let elo_after = mine.and_then(|c| Some(c.elo_rate?.saturating_add(c.change?)));
         let players = self.players.len() as u32;
         let opponent = if players == 2 {
             self.players
@@ -652,7 +652,7 @@ impl ApiMatch {
             id: self.id,
             kind: MatchKind::from_api(self.kind),
             season: self.season,
-            date_ms: self.date * 1000,
+            date_ms: self.date.saturating_mul(1000),
             category: self.category,
             opponent,
             players,
@@ -685,7 +685,7 @@ fn parse_weekly_race(body: &[u8]) -> Result<WeeklyRace, ApiError> {
     let r: ApiWeeklyRace = envelope(body)?;
     Ok(WeeklyRace {
         id: r.id,
-        ends_at_ms: r.ends_at * 1000,
+        ends_at_ms: r.ends_at.saturating_mul(1000),
         leaderboard: r
             .leaderboard
             .into_iter()
@@ -840,5 +840,29 @@ mod tests {
             envelope::<ApiLive>(b"{}"),
             Err(ApiError::BadResponse(_))
         ));
+    }
+
+    #[test]
+    fn extreme_json_integers_saturate() {
+        let profile = parse_profile(
+            br#"{"status":"success","data":{"uuid":"aa","nickname":"n","eloRate":1000,"eloRank":1,
+                "timestamp":{"lastRanked":9223372036854775807}}}"#,
+        )
+        .unwrap();
+        assert_eq!(profile.last_ranked_ms, Some(i64::MAX));
+        let race = parse_weekly_race(
+            br#"{"status":"success","data":{"id":1,"endsAt":9223372036854775807,"leaderboard":[]}}"#,
+        )
+        .unwrap();
+        assert_eq!(race.ends_at_ms, i64::MAX);
+        let m: Vec<ApiMatch> = envelope(
+            br#"{"status":"success","data":[{"id":1,"type":2,"date":9223372036854775807,
+                "players":[],"result":{"uuid":null,"time":0},
+                "changes":[{"uuid":"aa","eloRate":2147483647,"change":100}]}]}"#,
+        )
+        .unwrap();
+        let rm = m.into_iter().next().unwrap().into_match("aa");
+        assert_eq!(rm.date_ms, i64::MAX);
+        assert_eq!(rm.elo_after, Some(i32::MAX));
     }
 }

@@ -4,8 +4,10 @@ use std::{
     path::{Path, PathBuf},
 };
 
+#[cfg(unix)]
+use srl_import::SkipWhy;
 use srl_import::{
-    Choice, Launcher, Os, Part, SearchRoots, SkipWhy, Source, Target, detect, import, inspect,
+    Choice, Launcher, Os, Part, SearchRoots, Source, Target, detect, import, inspect,
 };
 
 struct Tmp(PathBuf);
@@ -278,7 +280,9 @@ fn a_chosen_folder_can_be_an_instance_its_game_dir_or_a_launcher() {
     // The game directory alone: the version from options.txt, the name from the instance.
     assert_eq!(inspect(&game)[0].version.as_deref(), Some("1.16.1"));
     assert_eq!(inspect(&t.0.join("MultiMC")).len(), 1);
-    assert_eq!(inspect(&t.0.join("MultiMC/instances")).len(), 1);
+    let from_instances = inspect(&t.0.join("MultiMC/instances"));
+    assert_eq!(from_instances.len(), 1);
+    assert_eq!(from_instances[0].launcher, Launcher::MultiMc);
     fs::create_dir_all(t.0.join("empty")).unwrap();
     assert!(inspect(&t.0.join("empty")).is_empty());
     assert!(inspect(&t.0.join("missing")).is_empty());
@@ -580,7 +584,41 @@ fn importing_a_folder_into_itself_is_refused() {
         &mut |_, _| {},
     );
     assert!(r.targets[0].error.is_some());
+    // Importing into a non-existent subfolder of the source is refused too.
+    let nested = game.join("nested/not-yet-created");
+    let r = import(
+        &src,
+        Choice::default(),
+        &[Target::new("nested", &nested, "1.16.1")],
+        1,
+        &mut |_, _| {},
+    );
+    assert!(r.targets[0].error.is_some());
+    assert!(!nested.exists());
     assert_eq!(snapshot(&game), before);
+}
+
+#[test]
+fn world_session_lock_is_skipped() {
+    let t = Tmp::new("session-lock");
+    let game = t.0.join("src");
+    full_game_dir(&game);
+    write(&game.join("saves/Practice Seed/session.lock"), "lock");
+    let src = source(&game, "1.16.1");
+    let dest = t.0.join("dest");
+    let r = import(
+        &src,
+        Choice {
+            worlds: true,
+            ..Choice::default()
+        },
+        &[Target::new("rsg", &dest, "1.16.1")],
+        1,
+        &mut |_, _| {},
+    );
+    assert!(r.targets[0].error.is_none());
+    assert!(dest.join("saves/Practice Seed/level.dat").is_file());
+    assert!(!dest.join("saves/Practice Seed/session.lock").exists());
 }
 
 #[cfg(unix)]
@@ -633,21 +671,36 @@ fn links_are_never_followed_and_huge_files_stay_out() {
     assert_eq!(why("saves/Linked World"), Some(SkipWhy::Link));
     assert_eq!(why("speedrunigt/.useglobaloption"), Some(SkipWhy::Link));
     assert_eq!(why("config/huge.log"), Some(SkipWhy::TooLarge));
-    // A linked options.txt isn't read either.
+    // A linked options.txt, resourcepacks/ and saves/ are skipped and recorded.
     let game2 = t.0.join("src2");
     fs::create_dir_all(&game2).unwrap();
     symlink(&secret, game2.join("options.txt")).unwrap();
+    symlink(t.0.join("outside"), game2.join("resourcepacks")).unwrap();
+    symlink(t.0.join("outside"), game2.join("saves")).unwrap();
     write(&game2.join("config/a.json"), "{}");
     let src2 = source(&game2, "1.16.1");
     assert!(!src2.contents.options);
-    import(
+    let r2 = import(
         &src2,
-        Choice::default(),
+        Choice {
+            worlds: true,
+            ..Choice::default()
+        },
         &[Target::new("x", t.0.join("x"), "1.16.1")],
         1,
         &mut |_, _| {},
     );
     assert!(!t.0.join("x/options.txt").exists());
+    for p in ["options.txt", "resourcepacks", "saves"] {
+        assert_eq!(
+            r2.skipped
+                .iter()
+                .find(|s| s.path == Path::new(p))
+                .map(|s| s.why),
+            Some(SkipWhy::Link),
+            "{p}"
+        );
+    }
     // A linked instance folder in a launcher isn't followed by detection.
     let home = t.0.join("home");
     let mmc = home.join("Desktop/MultiMC");

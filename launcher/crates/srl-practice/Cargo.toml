@@ -4,6 +4,7 @@ description = "Practice maps: the install catalogue, the practice instance profi
 version.workspace = true
 edition.workspace = true
 publish.workspace = true
+license.workspace = true
 
 [dependencies]
 srl-core.workspace = true
@@ -22,6 +23,10 @@ flate2 = { version = "1.1", default-features = false, features = ["zlib-rs"] }
 [target.'cfg(unix)'.dependencies]
 # fcntl(F_GETLK): is the game holding a world's session.lock?
 libc.workspace = true
+
+[target.'cfg(windows)'.dependencies]
+# LockFileEx/UnlockFileEx: is the game holding a world's session.lock?
+windows-sys = { workspace = true, features = ["Win32_Foundation", "Win32_Storage_FileSystem", "Win32_System_IO"] }
 
 [dev-dependencies]
 # Only for the examples that start the practice instance (examples/practice_game.rs). The real

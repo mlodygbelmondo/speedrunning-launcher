@@ -5502,6 +5502,7 @@ dependencies = [
  "srl-game",
  "srl-mods",
  "tokio",
+ "windows-sys 0.61.2",
  "zip",
 ]
 

@@ -240,19 +240,16 @@ fn place_from_stage(
 
 /// True if a running game has the world open. Minecraft 1.16.1 locks the whole of
 /// `session.lock` (Java `FileChannel.tryLock`) for as long as the world is loaded: a POSIX
-/// record lock on Linux and macOS, `LockFileEx` on Windows. Checked without taking the lock,
-/// so the check can't get in the game's way.
+/// record lock on Linux and macOS, `LockFileEx` on Windows.
 pub fn world_in_use(dir: &Path) -> bool {
-    let Ok(file) = std::fs::OpenOptions::new()
-        .read(true)
-        .write(true)
-        .open(dir.join("session.lock"))
-    else {
-        return false;
-    };
+    let path = dir.join("session.lock");
     #[cfg(unix)]
     {
         use std::os::fd::AsRawFd;
+        // F_GETLK works on O_RDONLY even when querying F_WRLCK, so read-only files still work.
+        let Ok(file) = std::fs::File::open(&path) else {
+            return false;
+        };
         // SAFETY: `flock` is plain data, all-zero is a valid value, and F_GETLK only writes into
         // the struct we pass, on a descriptor that stays open for the call.
         let mut fl: libc::flock = unsafe { std::mem::zeroed() };
@@ -263,15 +260,50 @@ pub fn world_in_use(dir: &Path) -> bool {
     }
     #[cfg(windows)]
     {
-        // Reading a range another process locked fails (ERROR_LOCK_VIOLATION). The game writes
-        // a character into the file before locking it, so there is a byte to read.
-        use std::io::Read;
-        let mut byte = [0u8; 1];
-        (&file).read(&mut byte).is_err()
+        use std::os::windows::io::AsRawHandle;
+        use windows_sys::Win32::{
+            Foundation::ERROR_SHARING_VIOLATION,
+            Storage::FileSystem::{
+                LOCKFILE_EXCLUSIVE_LOCK, LOCKFILE_FAIL_IMMEDIATELY, LockFileEx, UnlockFileEx,
+            },
+            System::IO::OVERLAPPED,
+        };
+        let file = match std::fs::File::open(&path) {
+            Ok(f) => f,
+            Err(e) if e.kind() == std::io::ErrorKind::NotFound => return false,
+            Err(e)
+                if e.raw_os_error() == Some(ERROR_SHARING_VIOLATION as i32)
+                    || e.kind() == std::io::ErrorKind::PermissionDenied =>
+            {
+                return true;
+            }
+            Err(_) => return false,
+        };
+        // Non-blocking LockFileEx + immediate UnlockFileEx on byte 0 detects locks held by another
+        // process even when `session.lock` is 0 bytes (Windows byte-range locks extend past EOF).
+        // SAFETY: `overlapped` is plain data (zeroed for offset 0) and `file` stays open across
+        // both calls.
+        unsafe {
+            let mut overlapped: OVERLAPPED = std::mem::zeroed();
+            let handle = file.as_raw_handle();
+            if LockFileEx(
+                handle,
+                LOCKFILE_EXCLUSIVE_LOCK | LOCKFILE_FAIL_IMMEDIATELY,
+                0,
+                1,
+                0,
+                &mut overlapped,
+            ) == 0
+            {
+                return true;
+            }
+            let _ = UnlockFileEx(handle, 0, 1, 0, &mut overlapped);
+            false
+        }
     }
     #[cfg(not(any(unix, windows)))]
     {
-        drop(file);
+        let _ = path;
         false
     }
 }

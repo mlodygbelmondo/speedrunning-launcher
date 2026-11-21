@@ -4,6 +4,7 @@ description = "Read-only stats for Speedrunning Launcher: SpeedRunIGT run record
 version.workspace = true
 edition.workspace = true
 publish.workspace = true
+license.workspace = true
 
 [dependencies]
 srl-core.workspace = true

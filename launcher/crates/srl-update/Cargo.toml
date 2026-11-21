@@ -4,6 +4,7 @@ description = "Self-update for Speedrunning Launcher: the GitHub release check, 
 version.workspace = true
 edition.workspace = true
 publish.workspace = true
+license.workspace = true
 
 [dependencies]
 srl-core.workspace = true

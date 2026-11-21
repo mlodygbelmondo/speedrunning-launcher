@@ -257,3 +257,21 @@ async fn no_release_rate_limits_and_bad_answers() {
     assert_eq!(err.kind, ErrorKind::Offline, "{err}");
     std::fs::remove_dir_all(&dir).unwrap();
 }
+
+#[tokio::test]
+async fn an_oversized_checksum_is_rejected() {
+    let (base, server) = github("v0.2.0", false).await;
+    server.lock().unwrap().files.insert(
+        format!("/download/{CHECKSUM_NAME}"),
+        (200, vec![b'a'; 8192]),
+    );
+    let dir = temp_dir("bigsum");
+    let up = updater(&base, "0.1.0", &dir);
+    let Check::Newer(offer) = up.check().await.unwrap() else {
+        panic!("no update offered")
+    };
+    let err = up.download(&offer).await.unwrap_err();
+    assert_eq!(err.kind, ErrorKind::Other, "{err}");
+    assert!(!dir.join("updates/0.2.0").join(ZIP_NAME).exists());
+    std::fs::remove_dir_all(&dir).unwrap();
+}

@@ -8,8 +8,8 @@ use base64::{Engine, engine::general_purpose::URL_SAFE_NO_PAD};
 use chrono::{DateTime, Duration, Utc};
 use reqwest::{RequestBuilder, Response, StatusCode};
 use serde::{Deserialize, Serialize};
-use serde_json::json;
 use uuid::Uuid;
+use zeroize::Zeroizing;
 
 use crate::{
     config::AuthConfig,
@@ -19,6 +19,8 @@ use crate::{
 
 const XBOX: &str = "Xbox Live";
 const MINECRAFT: &str = "Minecraft services";
+const MIN_EXPIRES_IN_S: i64 = 1;
+const MAX_EXPIRES_IN_S: i64 = 30 * 86_400;
 
 /// An Xbox Live user token (about 14 days) or an XSTS token (about 16 hours), with the user hash.
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -81,7 +83,7 @@ impl Entitlements {
 struct XboxResponse {
     issue_instant: Option<DateTime<Utc>>,
     not_after: Option<DateTime<Utc>>,
-    token: String,
+    token: Secret,
     display_claims: DisplayClaims,
 }
 
@@ -111,10 +113,13 @@ async fn send(service: &'static str, req: RequestBuilder) -> Result<Response, Au
     Ok(resp)
 }
 
-async fn body(service: &'static str, resp: Response) -> Result<(StatusCode, Vec<u8>), AuthError> {
+async fn body(
+    service: &'static str,
+    resp: Response,
+) -> Result<(StatusCode, Zeroizing<Vec<u8>>), AuthError> {
     let status = resp.status();
     let bytes = resp.bytes().await.map_err(|e| network(service, &e))?;
-    Ok((status, bytes.to_vec()))
+    Ok((status, Zeroizing::new(bytes.to_vec())))
 }
 
 fn service_error(service: &'static str, status: StatusCode, body: &[u8]) -> AuthError {
@@ -134,14 +139,18 @@ fn unreadable(service: &'static str, status: StatusCode) -> AuthError {
 }
 
 /// Expiry on our clock: the token's lifetime as the server states it, counted from now, so a wrong
-/// system clock doesn't make a fresh token look expired.
+/// system clock doesn't make a fresh token look expired. Clamped to prevent overflow from untrusted
+/// timestamps.
 fn expiry(
     issued: Option<DateTime<Utc>>,
     not_after: Option<DateTime<Utc>>,
     default: Duration,
 ) -> DateTime<Utc> {
     let lifetime = match (issued, not_after) {
-        (Some(i), Some(n)) if n > i => n - i,
+        (Some(i), Some(n)) if n > i => (n - i).clamp(
+            Duration::seconds(MIN_EXPIRES_IN_S),
+            Duration::seconds(MAX_EXPIRES_IN_S),
+        ),
         _ => default,
     };
     Utc::now() + lifetime
@@ -156,7 +165,7 @@ fn parse_xbox(status: StatusCode, bytes: &[u8], default: Duration) -> Result<Xbo
         .ok_or_else(|| unreadable(XBOX, status))?;
     let field = |k: &str| claims.get(k).and_then(|v| v.as_str()).map(str::to_string);
     Ok(XboxToken {
-        token: Secret::new(r.token),
+        token: r.token,
         uhs: field("uhs").ok_or_else(|| unreadable(XBOX, status))?,
         xid: field("xid"),
         expires_at: expiry(r.issue_instant, r.not_after, default),
@@ -169,18 +178,34 @@ pub async fn xbox_user(
     cfg: &AuthConfig,
     msa_access: &Secret,
 ) -> Result<XboxToken, AuthError> {
+    #[derive(Serialize)]
+    #[serde(rename_all = "PascalCase")]
+    struct Props<'a> {
+        auth_method: &'static str,
+        site_name: &'static str,
+        rps_ticket: &'a str,
+    }
+    #[derive(Serialize)]
+    #[serde(rename_all = "PascalCase")]
+    struct Body<'a> {
+        properties: Props<'a>,
+        relying_party: &'static str,
+        token_type: &'static str,
+    }
+    let rps_ticket = Zeroizing::new(format!("d={}", msa_access.expose()));
+    let payload = Body {
+        properties: Props {
+            auth_method: "RPS",
+            site_name: "user.auth.xboxlive.com",
+            rps_ticket: &rps_ticket,
+        },
+        relying_party: "http://auth.xboxlive.com",
+        token_type: "JWT",
+    };
     let req = http
         .post(cfg.endpoints.xbox_user.clone())
         .header("x-xbl-contract-version", "1")
-        .json(&json!({
-            "Properties": {
-                "AuthMethod": "RPS",
-                "SiteName": "user.auth.xboxlive.com",
-                "RpsTicket": format!("d={}", msa_access.expose()),
-            },
-            "RelyingParty": "http://auth.xboxlive.com",
-            "TokenType": "JWT",
-        }));
+        .json(&payload);
     let (status, bytes) = body(XBOX, send(XBOX, req).await?).await?;
     if !status.is_success() {
         return Err(service_error(XBOX, status, &bytes));
@@ -195,14 +220,31 @@ pub async fn xsts(
     cfg: &AuthConfig,
     xbl: &XboxToken,
 ) -> Result<XboxToken, AuthError> {
+    #[derive(Serialize)]
+    #[serde(rename_all = "PascalCase")]
+    struct Props<'a> {
+        sandbox_id: &'static str,
+        user_tokens: [&'a str; 1],
+    }
+    #[derive(Serialize)]
+    #[serde(rename_all = "PascalCase")]
+    struct Body<'a> {
+        properties: Props<'a>,
+        relying_party: &'static str,
+        token_type: &'static str,
+    }
+    let payload = Body {
+        properties: Props {
+            sandbox_id: "RETAIL",
+            user_tokens: [xbl.token.expose()],
+        },
+        relying_party: "rp://api.minecraftservices.com/",
+        token_type: "JWT",
+    };
     let req = http
         .post(cfg.endpoints.xsts.clone())
         .header("x-xbl-contract-version", "1")
-        .json(&json!({
-            "Properties": { "SandboxId": "RETAIL", "UserTokens": [xbl.token.expose()] },
-            "RelyingParty": "rp://api.minecraftservices.com/",
-            "TokenType": "JWT",
-        }));
+        .json(&payload);
     let (status, bytes) = body(XBOX, send(XBOX, req).await?).await?;
     if status == StatusCode::UNAUTHORIZED
         && let Ok(XstsError { xerr: Some(code) }) = serde_json::from_slice(&bytes)
@@ -226,7 +268,7 @@ pub async fn xsts(
 
 #[derive(Deserialize)]
 struct LoginResponse {
-    access_token: String,
+    access_token: Secret,
     expires_in: Option<i64>,
 }
 
@@ -237,10 +279,18 @@ pub async fn minecraft_login(
     cfg: &AuthConfig,
     xsts: &XboxToken,
 ) -> Result<MinecraftToken, AuthError> {
-    let identity = format!("XBL3.0 x={};{}", xsts.uhs, xsts.token.expose());
+    #[derive(Serialize)]
+    struct Body<'a> {
+        #[serde(rename = "identityToken")]
+        identity_token: &'a str,
+    }
+    let identity = Zeroizing::new(format!("XBL3.0 x={};{}", xsts.uhs, xsts.token.expose()));
+    let payload = Body {
+        identity_token: &identity,
+    };
     let req = http
         .post(cfg.endpoints.minecraft_login.clone())
-        .json(&json!({ "identityToken": identity }));
+        .json(&payload);
     let (status, bytes) = body(MINECRAFT, send(MINECRAFT, req).await?).await?;
     if status == StatusCode::FORBIDDEN {
         let text = String::from_utf8_lossy(&bytes);
@@ -253,9 +303,13 @@ pub async fn minecraft_login(
     }
     let r: LoginResponse =
         serde_json::from_slice(&bytes).map_err(|_| unreadable(MINECRAFT, status))?;
+    let expires_in = r
+        .expires_in
+        .unwrap_or(86_400)
+        .clamp(MIN_EXPIRES_IN_S, MAX_EXPIRES_IN_S);
     Ok(MinecraftToken {
-        token: Secret::new(r.access_token),
-        expires_at: Utc::now() + Duration::seconds(r.expires_in.unwrap_or(86400)),
+        token: r.access_token,
+        expires_at: Utc::now() + Duration::seconds(expires_in),
     })
 }
 
@@ -347,7 +401,7 @@ pub async fn profile(
 /// The signature isn't checked: the value is informational and came straight from Mojang over TLS.
 pub fn xuid_from_access_token(token: &Secret) -> Option<String> {
     let payload = token.expose().split('.').nth(1)?;
-    let bytes = URL_SAFE_NO_PAD.decode(payload.trim_end_matches('=')).ok()?;
+    let bytes = Zeroizing::new(URL_SAFE_NO_PAD.decode(payload.trim_end_matches('=')).ok()?);
     let claims: serde_json::Value = serde_json::from_slice(&bytes).ok()?;
     match claims.get("xuid")? {
         serde_json::Value::String(s) => Some(s.clone()),
@@ -380,6 +434,11 @@ mod tests {
         assert!(left > Duration::days(13) && left <= Duration::days(14));
         assert_eq!(t.uhs, "123");
         assert_eq!(t.xid, None);
+        // Huge untrusted lifetimes are clamped instead of overflowing chrono.
+        let huge = br#"{"IssueInstant":"2000-01-01T00:00:00Z","NotAfter":"9999-01-01T00:00:00Z",
+            "Token":"t","DisplayClaims":{"xui":[{"uhs":"123"}]}}"#;
+        let t = parse_xbox(StatusCode::OK, huge, Duration::hours(1)).unwrap();
+        assert!(t.expires_at - Utc::now() <= Duration::seconds(MAX_EXPIRES_IN_S));
     }
 
     #[test]

@@ -34,13 +34,16 @@ pub(crate) fn jingle_paths(options: &Path) -> Vec<PathBuf> {
     };
     let mut paths: Vec<(u64, PathBuf)> = seen
         .iter()
-        .take(MAX_RECORDED)
         .filter(|(p, _)| !p.trim().is_empty())
         .map(|(p, t)| (t.as_u64().unwrap_or(0), PathBuf::from(p.trim())))
         .filter(|(_, p)| p.is_absolute())
         .collect();
     paths.sort_by_key(|p| std::cmp::Reverse(p.0));
-    paths.into_iter().map(|(_, p)| p).collect()
+    paths
+        .into_iter()
+        .take(MAX_RECORDED)
+        .map(|(_, p)| p)
+        .collect()
 }
 
 /// The folder of a launcher's exe in one of Windows' value names: `C:\MMC\MultiMC.exe` or
@@ -48,7 +51,7 @@ pub(crate) fn jingle_paths(options: &Path) -> Vec<PathBuf> {
 #[cfg_attr(not(windows), allow(dead_code))]
 pub(crate) fn launcher_folder(value_name: &str) -> Option<PathBuf> {
     let lower = value_name.to_ascii_lowercase();
-    let end = lower.find(".exe")? + ".exe".len();
+    let end = lower.rfind(".exe")? + ".exe".len();
     let exe = Path::new(value_name.get(..end)?);
     let file = exe.file_name()?.to_string_lossy().to_ascii_lowercase();
     if !LAUNCHER_EXES.contains(&file.as_str()) || !exe.is_absolute() {
@@ -153,11 +156,19 @@ mod tests {
                 Some(r"C:\Games\MultiMC")
             );
             assert_eq!(
+                dir(r"C:\Users\bob.exe\MultiMC\MultiMC.exe").as_deref(),
+                Some(r"C:\Users\bob.exe\MultiMC")
+            );
+            assert_eq!(
                 dir(r"D:\mc\Prism\prismlauncher.exe.FriendlyAppName").as_deref(),
                 Some(r"D:\mc\Prism")
             );
         } else {
             assert_eq!(dir("/g/MMC/MultiMC.exe").as_deref(), Some("/g/MMC"));
+            assert_eq!(
+                dir("/g/bob.exe/MMC/MultiMC.exe").as_deref(),
+                Some("/g/bob.exe/MMC")
+            );
             assert_eq!(
                 dir("/g/Prism/prismlauncher.exe.ApplicationCompany").as_deref(),
                 Some("/g/Prism")
@@ -166,5 +177,32 @@ mod tests {
         assert_eq!(dir("/g/Other/javaw.exe"), None);
         assert_eq!(dir("MultiMC.exe"), None);
         assert_eq!(dir("@%SystemRoot%\\system32\\shell32.dll,-1"), None);
+    }
+
+    #[test]
+    fn jingle_paths_sorts_by_recency_before_taking_limit() {
+        let dir = std::env::temp_dir().join(format!("srl-import-jingle-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&dir);
+        std::fs::create_dir_all(&dir).unwrap();
+        let file = dir.join("options.json");
+        let mut seen = serde_json::Map::new();
+        for i in 0..(MAX_RECORDED + 25) {
+            let path = if cfg!(windows) {
+                format!(r"C:\mc\inst-{i:04}")
+            } else {
+                format!("/mc/inst-{i:04}")
+            };
+            seen.insert(path, serde_json::json!(i as u64 + 1));
+        }
+        let newest = if cfg!(windows) {
+            format!(r"C:\mc\inst-{:04}", MAX_RECORDED + 24)
+        } else {
+            format!("/mc/inst-{:04}", MAX_RECORDED + 24)
+        };
+        std::fs::write(&file, serde_json::json!({ "seenPaths": seen }).to_string()).unwrap();
+        let got = jingle_paths(&file);
+        assert_eq!(got.len(), MAX_RECORDED);
+        assert_eq!(got[0], PathBuf::from(newest));
+        std::fs::remove_dir_all(&dir).unwrap();
     }
 }

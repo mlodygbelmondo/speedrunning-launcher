@@ -75,6 +75,9 @@ impl Release {
         };
         let (zip, checksum) =
             pick_assets(&self.assets).map_err(|e| format!("{}: {e}", self.tag_name))?;
+        if zip.size == 0 {
+            return Err(format!("{}: {ZIP_NAME} is empty", self.tag_name));
+        }
         if zip.size > MAX_ZIP_BYTES {
             return Err(format!(
                 "{}: {ZIP_NAME} is {} bytes (the limit is {MAX_ZIP_BYTES})",
@@ -183,6 +186,8 @@ mod tests {
         // A newer release without its checksum, or with a zip too big, is an error.
         let no_sum = release("v0.2.0", vec![asset(ZIP_NAME, 1)]);
         assert!(no_sum.offer(&current).unwrap_err().contains(CHECKSUM_NAME));
+        let empty_zip = release("v0.2.0", vec![asset(ZIP_NAME, 0), asset(CHECKSUM_NAME, 1)]);
+        assert!(empty_zip.offer(&current).is_err());
         let huge = release(
             "v0.2.0",
             vec![asset(ZIP_NAME, MAX_ZIP_BYTES + 1), asset(CHECKSUM_NAME, 1)],

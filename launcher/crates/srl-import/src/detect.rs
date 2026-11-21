@@ -295,9 +295,11 @@ pub fn inspect(dir: &Path) -> Vec<Source> {
             return finish(
                 found
                     .into_iter()
-                    .map(|s| Source {
-                        launcher: kind,
-                        ..s
+                    .map(|mut s| {
+                        if kind != Launcher::Folder {
+                            s.launcher = kind;
+                        }
+                        s
                     })
                     .collect(),
             );
@@ -698,7 +700,7 @@ fn options_version(game: &Path) -> Option<String> {
 /// Minecraft releases by the data version their options.txt carries (minecraft.wiki "Data
 /// version"). Only exact matches: an unknown number is an unknown version.
 pub fn version_of_data(data_version: u32) -> Option<&'static str> {
-    const TABLE: [(u32, &str); 27] = [
+    const TABLE: &[(u32, &str)] = &[
         (1976, "1.14.4"),
         (2230, "1.15.2"),
         (2566, "1.16"),
@@ -726,6 +728,14 @@ pub fn version_of_data(data_version: u32) -> Option<&'static str> {
         (3955, "1.21.1"),
         (4189, "1.21.4"),
         (4325, "1.21.5"),
+        (4435, "1.21.6"),
+        (4438, "1.21.7"),
+        (4440, "1.21.8"),
+        (4555, "1.21.9"),
+        (4556, "1.21.10"),
+        (4671, "1.21.11"),
+        (4786, "26.1"),
+        (5023, "26.3"),
     ];
     TABLE
         .iter()
@@ -830,6 +840,9 @@ mod tests {
         assert_eq!(iso_seconds("2026-10-26T12:00:00Z"), Some(1_793_016_000));
         assert_eq!(iso_seconds("garbage"), None);
         assert_eq!(version_of_data(2567), Some("1.16.1"));
+        assert_eq!(version_of_data(4435), Some("1.21.6"));
+        assert_eq!(version_of_data(4671), Some("1.21.11"));
+        assert_eq!(version_of_data(5023), Some("26.3"));
         assert_eq!(version_of_data(9999), None);
         assert_eq!(clean_name("  a\u{7}b "), "ab");
         assert_eq!(clean_name(""), "Minecraft");

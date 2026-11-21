@@ -18,6 +18,9 @@ pub const MAX_RETRY_AFTER: Duration = Duration::from_secs(3600);
 /// data while it waits, so a slow network should fail fast rather than hang the refresh.
 pub const REQUEST_TIMEOUT: Duration = Duration::from_secs(8);
 
+/// Maximum API response body size buffered while streaming (profiles and match lists are a few KB).
+pub const MAX_BODY_BYTES: usize = 8 << 20;
+
 /// Why fresh data could not be had. Cloneable and comparable so it can sit in UI state.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub enum ApiError {
@@ -127,7 +130,7 @@ pub(crate) async fn get(
     url: &str,
 ) -> Result<(u16, bytes::Bytes), ApiError> {
     limiter.acquire()?;
-    let resp = client
+    let mut resp = client
         .get(url)
         .header(reqwest::header::ACCEPT, "application/json")
         .timeout(REQUEST_TIMEOUT)
@@ -144,8 +147,23 @@ pub(crate) async fn get(
             retry_after_s: wait,
         });
     }
-    let body = resp.bytes().await.map_err(net_error)?;
-    Ok((status, body))
+    if let Some(len) = resp.content_length()
+        && len > MAX_BODY_BYTES as u64
+    {
+        return Err(ApiError::BadResponse(format!(
+            "response body too large ({len} bytes)"
+        )));
+    }
+    let mut buf = Vec::new();
+    while let Some(chunk) = resp.chunk().await.map_err(net_error)? {
+        if buf.len().saturating_add(chunk.len()) > MAX_BODY_BYTES {
+            return Err(ApiError::BadResponse(format!(
+                "response body exceeds {MAX_BODY_BYTES} bytes"
+            )));
+        }
+        buf.extend_from_slice(&chunk);
+    }
+    Ok((status, bytes::Bytes::from(buf)))
 }
 
 fn net_error(e: reqwest::Error) -> ApiError {
@@ -282,5 +300,29 @@ mod tests {
         ] {
             assert!(!is_lookup_name(bad), "{bad}");
         }
+    }
+
+    #[tokio::test]
+    async fn oversized_response_is_rejected() {
+        use std::io::{Read, Write};
+        let listener = std::net::TcpListener::bind("127.0.0.1:0").unwrap();
+        let url = format!("http://{}/big", listener.local_addr().unwrap());
+        let server = std::thread::spawn(move || {
+            let (mut sock, _) = listener.accept().unwrap();
+            let mut buf = [0u8; 1024];
+            let _ = sock.read(&mut buf);
+            let head = format!(
+                "HTTP/1.1 200 OK\r\nContent-Length: {}\r\nConnection: close\r\n\r\n",
+                MAX_BODY_BYTES + 1
+            );
+            let _ = sock.write_all(head.as_bytes());
+        });
+        let client = reqwest::Client::new();
+        let l = Limiter::new(10, Duration::from_secs(600));
+        assert!(matches!(
+            get(&client, &l, &url).await,
+            Err(ApiError::BadResponse(_))
+        ));
+        server.join().unwrap();
     }
 }

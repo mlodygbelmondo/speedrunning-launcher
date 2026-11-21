@@ -51,6 +51,8 @@ pub const EXE_NAME: &str = "speedrunning-launcher.exe";
 pub const MAX_ZIP_BYTES: u64 = 256 << 20;
 /// A checksum file is one line.
 const MAX_CHECKSUM_BYTES: usize = 4096;
+/// A GitHub release JSON is a few KB; cap it while streaming so a bad answer can't OOM us.
+const MAX_RELEASE_JSON_BYTES: usize = 2 << 20;
 /// The whole release check, connect included. The answer is a few KB.
 const CHECK_DEADLINE: Duration = Duration::from_secs(20);
 
@@ -219,12 +221,10 @@ impl Updater {
                 detail: format!("GET {}: HTTP {status}", self.latest_url),
             });
         }
-        let body = resp
+        let resp = resp
             .error_for_status()
-            .map_err(|e| UpdateError::from_chain(&e.into()))?
-            .bytes()
-            .await
             .map_err(|e| UpdateError::from_chain(&e.into()))?;
+        let body = read_capped(resp, MAX_RELEASE_JSON_BYTES, &self.latest_url).await?;
         let release: Release = serde_json::from_slice(&body).map_err(|e| {
             UpdateError::other(format!("the release from {}: {e}", self.latest_url))
         })?;
@@ -241,23 +241,26 @@ impl Updater {
     /// download is kept at a time, and an unfinished one of the same version is resumed from
     /// its verified zip.
     pub async fn download(&self, offer: &Offer) -> Result<Staged, UpdateError> {
+        if offer.zip.size == 0 || offer.zip.size > MAX_ZIP_BYTES {
+            return Err(UpdateError::other(format!(
+                "{ZIP_NAME} has invalid size {} (must be 1..={MAX_ZIP_BYTES})",
+                offer.zip.size
+            )));
+        }
         let vdir = self.dir.join(offer.version.to_string());
-        self.forget_others(&offer.version);
+        let dir = self.dir.clone();
+        let keep = offer.version.to_string();
+        let _ = tokio::task::spawn_blocking(move || forget_others(&dir, &keep)).await;
         tokio::fs::create_dir_all(&vdir)
             .await
             .map_err(|e| UpdateError::other(format!("creating {}: {e}", vdir.display())))?;
-        let sum = self
-            .downloader
-            .fetch_bytes(&offer.checksum.browser_download_url)
-            .await
-            .map_err(|e| UpdateError::from_chain(&e))?;
-        if sum.len() > MAX_CHECKSUM_BYTES {
-            return Err(UpdateError::other(format!(
-                "{} is {} bytes, not one line",
-                CHECKSUM_NAME,
-                sum.len()
-            )));
-        }
+        let sum = fetch_capped(
+            self.downloader.client(),
+            &offer.checksum.browser_download_url,
+            MAX_CHECKSUM_BYTES,
+            CHECKSUM_NAME,
+        )
+        .await?;
         let want = release::parse_checksum(&String::from_utf8_lossy(&sum), ZIP_NAME)
             .map_err(UpdateError::other)?;
         let zip = vdir.join(ZIP_NAME);
@@ -270,6 +273,17 @@ impl Updater {
             })
             .await
             .map_err(|e| UpdateError::from_chain(&e))?;
+        let zip_len = tokio::fs::metadata(&zip)
+            .await
+            .map_err(|e| UpdateError::other(format!("reading {}: {e}", zip.display())))?
+            .len();
+        if zip_len == 0 || zip_len > MAX_ZIP_BYTES || zip_len != offer.zip.size {
+            let _ = tokio::fs::remove_file(&zip).await;
+            return Err(UpdateError::other(format!(
+                "{ZIP_NAME} is {zip_len} bytes, expected {}",
+                offer.zip.size
+            )));
+        }
         let staged = vdir.join("staged");
         let version = offer.version.clone();
         tokio::task::spawn_blocking(move || stage(&zip, &staged, version))
@@ -281,22 +295,97 @@ impl Updater {
     pub fn forget(&self, version: &Version) {
         let _ = std::fs::remove_dir_all(self.dir.join(version.to_string()));
     }
+}
 
-    fn forget_others(&self, keep: &Version) {
-        let Ok(entries) = std::fs::read_dir(&self.dir) else {
-            return;
-        };
-        for e in entries.flatten() {
-            if e.file_name() != keep.to_string().as_str() {
-                let p = e.path();
-                let _ = if p.is_dir() {
-                    std::fs::remove_dir_all(&p)
-                } else {
-                    std::fs::remove_file(&p)
-                };
-            }
+fn forget_others(dir: &Path, keep: &str) {
+    let Ok(entries) = std::fs::read_dir(dir) else {
+        return;
+    };
+    for e in entries.flatten() {
+        if e.file_name() != keep {
+            let p = e.path();
+            let _ = if p.is_dir() {
+                std::fs::remove_dir_all(&p)
+            } else {
+                std::fs::remove_file(&p)
+            };
         }
     }
+}
+
+/// Streams a response body, capping what is buffered to `max_bytes + 1` bytes.
+async fn read_capped(
+    mut resp: reqwest::Response,
+    max_bytes: usize,
+    label: &str,
+) -> Result<Vec<u8>, UpdateError> {
+    if let Some(len) = resp.content_length()
+        && len > max_bytes as u64
+    {
+        return Err(UpdateError::other(format!(
+            "{label} is {len} bytes (the limit is {max_bytes})"
+        )));
+    }
+    let limit = max_bytes.saturating_add(1);
+    let mut buf = Vec::new();
+    while let Some(chunk) = resp
+        .chunk()
+        .await
+        .map_err(|e| UpdateError::from_chain(&e.into()))?
+    {
+        let take = chunk.len().min(limit.saturating_sub(buf.len()));
+        buf.extend_from_slice(&chunk[..take]);
+        if buf.len() > max_bytes {
+            return Err(UpdateError::other(format!(
+                "{label} is over {max_bytes} bytes"
+            )));
+        }
+    }
+    Ok(buf)
+}
+
+async fn fetch_capped(
+    client: &reqwest::Client,
+    url: &str,
+    max_bytes: usize,
+    label: &str,
+) -> Result<Vec<u8>, UpdateError> {
+    let mut last = None;
+    for delay_ms in [0u64, 500, 2000] {
+        if delay_ms > 0 {
+            tokio::time::sleep(Duration::from_millis(delay_ms)).await;
+        }
+        let resp = match client.get(url).send().await {
+            Ok(r) => r,
+            Err(e) => {
+                last = Some(UpdateError::from_chain(
+                    &anyhow::Error::new(e).context(format!("GET {url}")),
+                ));
+                continue;
+            }
+        };
+        if rate_limited(resp.status()) {
+            return Err(UpdateError {
+                kind: ErrorKind::RateLimited,
+                detail: format!("GET {url}: HTTP {}", resp.status()),
+            });
+        }
+        let resp = match resp.error_for_status() {
+            Ok(r) => r,
+            Err(e) => {
+                last = Some(UpdateError::from_chain(
+                    &anyhow::Error::new(e).context(format!("GET {url}")),
+                ));
+                continue;
+            }
+        };
+        match read_capped(resp, max_bytes, label).await {
+            Ok(bytes) => return Ok(bytes),
+            Err(e) if e.kind == ErrorKind::Other => return Err(e),
+            Err(e) => last = Some(e),
+        }
+    }
+    Err(last.unwrap())
 }
 
 /// Extracts the verified zip into a fresh `staged` folder and checks that the exe is there.

@@ -23,7 +23,7 @@ use std::{
     collections::{BTreeMap, HashMap, HashSet},
     fs,
     path::{Path, PathBuf},
-    time::{Instant, UNIX_EPOCH},
+    time::{Instant, SystemTime, UNIX_EPOCH},
 };
 
 use serde::{Deserialize, Serialize};
@@ -242,13 +242,15 @@ pub fn scan_with(paths: &Paths, sources: &IgtSources, extra: &[(PathBuf, Mode)])
     // Global records. The same id in two global folders (an update moving the folder) is one run.
     let mut globals: Vec<GlobalRecord> = Vec::new();
     let mut seen_ids = HashSet::new();
-    let mut latest_world = None;
+    let mut latest_world: Option<(SystemTime, LatestWorld)> = None;
     // False when a records folder exists but could not be listed: then no remembered mode is
     // dropped, because its record may still be there.
     let mut globals_listed = true;
     for dir in &sources.global_dirs {
-        if latest_world.is_none() {
-            latest_world = read_latest_world(paths, extra, &dir.join("latest_world.json"));
+        if let Some((mtime, lw)) = read_latest_world(paths, extra, &dir.join("latest_world.json"))
+            && latest_world.as_ref().is_none_or(|(best, _)| mtime > *best)
+        {
+            latest_world = Some((mtime, lw));
         }
         let records = dir.join("records");
         let entries = match list(&records) {
@@ -377,7 +379,7 @@ pub fn scan_with(paths: &Paths, sources: &IgtSources, extra: &[(PathBuf, Mode)])
             .map(|(m, runs)| (m, RunHistory::new(runs)))
             .collect(),
         unattributed: RunHistory::new(unattributed),
-        latest_world,
+        latest_world: latest_world.map(|(_, lw)| lw),
         skipped: sc.skipped,
         unreadable,
         files: sc.files,
@@ -407,7 +409,11 @@ fn list(dir: &Path) -> std::io::Result<Vec<PathBuf>> {
     Ok(out)
 }
 
-fn read_latest_world(paths: &Paths, extra: &[(PathBuf, Mode)], file: &Path) -> Option<LatestWorld> {
+fn read_latest_world(
+    paths: &Paths,
+    extra: &[(PathBuf, Mode)],
+    file: &Path,
+) -> Option<(SystemTime, LatestWorld)> {
     #[derive(Deserialize)]
     struct Raw {
         world_path: String,
@@ -416,15 +422,21 @@ fn read_latest_world(paths: &Paths, extra: &[(PathBuf, Mode)], file: &Path) -> O
         version: Option<String>,
         category: Option<String>,
     }
+    let mtime = fs::metadata(file)
+        .and_then(|m| m.modified())
+        .unwrap_or(UNIX_EPOCH);
     let raw: Raw = serde_json::from_slice(&fs::read(file).ok()?).ok()?;
     let world_path = PathBuf::from(&raw.world_path);
-    Some(LatestWorld {
-        mode: super::mode_of_world_in(paths, extra, &world_path).map(|(m, _)| m),
-        world_path,
-        category: raw.category,
-        version: raw.version,
-        mods: raw.mods,
-    })
+    Some((
+        mtime,
+        LatestWorld {
+            mode: super::mode_of_world_in(paths, extra, &world_path).map(|(m, _)| m),
+            world_path,
+            category: raw.category,
+            version: raw.version,
+            mods: raw.mods,
+        },
+    ))
 }
 
 /// True when `newer` can be a later write of the same run as `older`: SpeedRunIGT only ever adds
@@ -453,7 +465,7 @@ fn same_run_evidence(global: &Record, world: &WorldRecord) -> bool {
     !global.splits.is_empty()
         || world
             .created_ms
-            .is_some_and(|created| global.date_ms >= created - CREATED_SLACK_MS)
+            .is_some_and(|created| global.date_ms >= created.saturating_sub(CREATED_SLACK_MS))
 }
 
 /// Applies the attribution rule (`igt/mod.rs`) and merges each global record with its world
@@ -998,5 +1010,40 @@ mod tests {
         assert!(stats.unreadable.is_empty());
         assert_eq!(stats.mode(Mode::Rsg).run_count, 7);
         assert_eq!(stats.unattributed.run_count, 0);
+    }
+
+    #[test]
+    fn latest_world_picks_newest_mtime_across_global_dirs() {
+        let s = Scratch::new("latest-mtime");
+        let paths = Paths::new(s.0.join("srl"));
+        let dir_old = s.0.join("global-old");
+        let dir_new = s.0.join("global-new");
+        fs::create_dir_all(&dir_old).unwrap();
+        fs::create_dir_all(&dir_new).unwrap();
+        let p_old = dir_old.join("latest_world.json");
+        let p_new = dir_new.join("latest_world.json");
+        fs::write(&p_old, br#"{"world_path":"/old/world","category":"ANY"}"#).unwrap();
+        fs::write(&p_new, br#"{"world_path":"/new/world","category":"ANY"}"#).unwrap();
+        let older_time = UNIX_EPOCH + std::time::Duration::from_secs(1_700_000_000);
+        let newer_time = UNIX_EPOCH + std::time::Duration::from_secs(1_700_000_600);
+        fs::File::options()
+            .write(true)
+            .open(&p_old)
+            .unwrap()
+            .set_modified(older_time)
+            .unwrap();
+        fs::File::options()
+            .write(true)
+            .open(&p_new)
+            .unwrap()
+            .set_modified(newer_time)
+            .unwrap();
+        // Old directory listed first: must still pick the newer file from the second directory.
+        let sources = IgtSources::with_global_dirs([dir_old, dir_new]);
+        let stats = scan(&paths, &sources);
+        assert_eq!(
+            stats.latest_world.as_ref().map(|l| l.world_path.as_path()),
+            Some(Path::new("/new/world"))
+        );
     }
 }

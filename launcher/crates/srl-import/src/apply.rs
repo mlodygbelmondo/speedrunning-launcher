@@ -147,21 +147,23 @@ pub(crate) fn count_files(dir: &Path, max: usize) -> u32 {
     n as u32
 }
 
-/// Walks `base/rel` (no links followed) and adds its files to `out`, its folders to `dirs`.
-/// Returns the bytes added; stops at `max_files` or `max_bytes`.
+/// Walks `base/root` (no links followed) and adds its files to `out`, its folders to `dirs`.
+/// Stops at `max_files` or `max_bytes`. When `skip_session_lock` is true, `session.lock` at the
+/// world root is omitted so an open/stale Minecraft lock file is never copied.
 #[allow(clippy::too_many_arguments)]
 fn walk(
     base: &Path,
-    rel: &Path,
+    root: &Path,
     max_file: u64,
     max_files: usize,
     max_bytes: u64,
+    skip_session_lock: bool,
     bytes: &mut u64,
     out: &mut Vec<Entry>,
     dirs: &mut Vec<PathBuf>,
     files: &mut Files,
 ) -> bool {
-    let mut stack = vec![rel.to_path_buf()];
+    let mut stack = vec![root.to_path_buf()];
     while let Some(r) = stack.pop() {
         let Ok(entries) = fs::read_dir(base.join(&r)) else {
             files.skip(r, SkipWhy::Unreadable);
@@ -171,7 +173,11 @@ fn walk(
         let mut entries: Vec<_> = entries.flatten().collect();
         entries.sort_by_key(|e| e.file_name());
         for e in entries {
-            let rel = r.join(e.file_name());
+            let name = e.file_name();
+            if skip_session_lock && r == root && name.eq_ignore_ascii_case("session.lock") {
+                continue;
+            }
+            let rel = r.join(&name);
             let Ok(t) = e.file_type() else {
                 files.skip(rel, SkipWhy::Unreadable);
                 continue;
@@ -184,7 +190,7 @@ fn walk(
                 let len = e.metadata().map(|m| m.len()).unwrap_or(u64::MAX);
                 if len > max_file {
                     files.skip(rel, SkipWhy::TooLarge);
-                } else if out.len() >= max_files || *bytes + len > max_bytes {
+                } else if out.len() >= max_files || bytes.saturating_add(len) > max_bytes {
                     files.skip(rel, SkipWhy::TooMany);
                     return false;
                 } else {
@@ -203,6 +209,9 @@ fn walk(
 fn gather(source: &Source, choice: Choice) -> Files {
     let base = &source.game_dir;
     let mut files = Files::default();
+    if (choice.options || choice.resource_packs) && is_link(&base.join("options.txt")) {
+        files.skip("options.txt".into(), SkipWhy::Link);
+    }
     if choice.mod_settings {
         let (mut out, mut dirs, mut bytes) = (Vec::new(), Vec::new(), 0);
         if is_real_dir(&base.join("config")) {
@@ -212,6 +221,7 @@ fn gather(source: &Source, choice: Choice) -> Files {
                 MAX_TEXT,
                 MAX_CONFIG_FILES,
                 u64::MAX,
+                false,
                 &mut bytes,
                 &mut out,
                 &mut dirs,
@@ -230,73 +240,83 @@ fn gather(source: &Source, choice: Choice) -> Files {
         }
         files.config = out;
     }
-    if choice.resource_packs && is_real_dir(&base.join("resourcepacks")) {
-        let (mut out, mut dirs, mut bytes) = (Vec::new(), Vec::new(), 0);
-        walk(
-            base,
-            Path::new("resourcepacks"),
-            MAX_FILE,
-            MAX_PACK_FILES,
-            u64::MAX,
-            &mut bytes,
-            &mut out,
-            &mut dirs,
-            &mut files,
-        );
-        files.packs = out;
-    }
-    if choice.worlds && is_real_dir(&base.join("saves")) {
-        let saves = base.join("saves");
-        let mut worlds: Vec<(u64, String)> = fs::read_dir(&saves)
-            .map(|d| {
-                d.flatten()
-                    .filter_map(|e| {
-                        let name = e.file_name().to_str()?.to_string();
-                        let t = e.file_type().ok()?;
-                        if t.is_symlink() {
-                            return Some((u64::MAX, name));
-                        }
-                        if !t.is_dir() || name.starts_with('.') {
-                            return None;
-                        }
-                        let played = fs::metadata(e.path().join("level.dat"))
-                            .or_else(|_| e.metadata())
-                            .and_then(|m| m.modified())
-                            .ok()
-                            .and_then(|t| t.duration_since(std::time::UNIX_EPOCH).ok())
-                            .map_or(0, |d| d.as_secs());
-                        Some((played, name))
-                    })
-                    .collect()
-            })
-            .unwrap_or_default();
-        // The most recently played first, so the limits leave out the oldest.
-        worlds.sort_by(|a, b| b.0.cmp(&a.0).then(a.1.cmp(&b.1)));
-        let (mut count, mut bytes) = (0usize, 0u64);
-        for (played, name) in worlds {
-            let rel = Path::new("saves").join(&name);
-            if played == u64::MAX {
-                files.skip(rel, SkipWhy::Link);
-                continue;
-            }
-            let (mut out, mut dirs) = (Vec::new(), Vec::new());
-            let room = MAX_WORLD_FILES.saturating_sub(count);
-            if !walk(
+    if choice.resource_packs {
+        if is_real_dir(&base.join("resourcepacks")) {
+            let (mut out, mut dirs, mut bytes) = (Vec::new(), Vec::new(), 0);
+            walk(
                 base,
-                &rel,
+                Path::new("resourcepacks"),
                 MAX_FILE,
-                room,
-                MAX_WORLD_BYTES,
+                MAX_PACK_FILES,
+                u64::MAX,
+                false,
                 &mut bytes,
                 &mut out,
                 &mut dirs,
                 &mut files,
-            ) {
-                // A world that doesn't fit whole isn't copied at all, nor any older one.
-                break;
+            );
+            files.packs = out;
+        } else if is_link(&base.join("resourcepacks")) {
+            files.skip("resourcepacks".into(), SkipWhy::Link);
+        }
+    }
+    if choice.worlds {
+        if is_real_dir(&base.join("saves")) {
+            let saves = base.join("saves");
+            let mut worlds: Vec<(u64, String)> = fs::read_dir(&saves)
+                .map(|d| {
+                    d.flatten()
+                        .filter_map(|e| {
+                            let name = e.file_name().to_str()?.to_string();
+                            let t = e.file_type().ok()?;
+                            if t.is_symlink() {
+                                return Some((u64::MAX, name));
+                            }
+                            if !t.is_dir() || name.starts_with('.') {
+                                return None;
+                            }
+                            let played = fs::metadata(e.path().join("level.dat"))
+                                .or_else(|_| e.metadata())
+                                .and_then(|m| m.modified())
+                                .ok()
+                                .and_then(|t| t.duration_since(std::time::UNIX_EPOCH).ok())
+                                .map_or(0, |d| d.as_secs());
+                            Some((played, name))
+                        })
+                        .collect()
+                })
+                .unwrap_or_default();
+            // The most recently played first, so the limits leave out the oldest.
+            worlds.sort_by(|a, b| b.0.cmp(&a.0).then(a.1.cmp(&b.1)));
+            let (mut count, mut bytes) = (0usize, 0u64);
+            for (played, name) in worlds {
+                let rel = Path::new("saves").join(&name);
+                if played == u64::MAX {
+                    files.skip(rel, SkipWhy::Link);
+                    continue;
+                }
+                let (mut out, mut dirs) = (Vec::new(), Vec::new());
+                let room = MAX_WORLD_FILES.saturating_sub(count);
+                if !walk(
+                    base,
+                    &rel,
+                    MAX_FILE,
+                    room,
+                    MAX_WORLD_BYTES,
+                    true,
+                    &mut bytes,
+                    &mut out,
+                    &mut dirs,
+                    &mut files,
+                ) {
+                    // A world that doesn't fit whole isn't copied at all, nor any older one.
+                    break;
+                }
+                count += out.len();
+                files.worlds.push((name, out, dirs));
             }
-            count += out.len();
-            files.worlds.push((name, out, dirs));
+        } else if is_link(&base.join("saves")) {
+            files.skip("saves".into(), SkipWhy::Link);
         }
     }
     files
@@ -310,8 +330,78 @@ fn is_link(p: &Path) -> bool {
     fs::symlink_metadata(p).is_ok_and(|m| m.is_symlink())
 }
 
+/// Resolves `p` by canonicalizing it or its nearest existing ancestor and reattaching any
+/// non-existent suffix, stripping Windows' `\\?\` prefix so existing and non-existent paths
+/// compare consistently.
 fn canonical(p: &Path) -> PathBuf {
-    fs::canonicalize(p).unwrap_or_else(|_| p.to_path_buf())
+    let abs = if p.is_relative() {
+        std::env::current_dir()
+            .map(|cwd| cwd.join(p))
+            .unwrap_or_else(|_| p.to_path_buf())
+    } else {
+        p.to_path_buf()
+    };
+    if let Ok(real) = fs::canonicalize(&abs) {
+        return strip_verbatim(real);
+    }
+    let mut norm = PathBuf::new();
+    for c in abs.components() {
+        match c {
+            std::path::Component::CurDir => {}
+            std::path::Component::ParentDir => {
+                norm.pop();
+            }
+            other => norm.push(other.as_os_str()),
+        }
+    }
+    let mut tail = Vec::new();
+    let mut cur = norm.as_path();
+    let base = loop {
+        if let Ok(real) = fs::canonicalize(cur) {
+            break strip_verbatim(real);
+        }
+        match (cur.file_name(), cur.parent()) {
+            (Some(name), Some(parent)) if !parent.as_os_str().is_empty() => {
+                tail.push(name.to_os_string());
+                cur = parent;
+            }
+            _ => break strip_verbatim(cur.to_path_buf()),
+        }
+    };
+    let mut out = base;
+    for comp in tail.into_iter().rev() {
+        out.push(comp);
+    }
+    out
+}
+
+fn strip_verbatim(p: PathBuf) -> PathBuf {
+    #[cfg(windows)]
+    {
+        let s = p.to_string_lossy();
+        if let Some(rest) = s.strip_prefix(r"\\?\UNC\") {
+            return PathBuf::from(format!(r"\\{rest}"));
+        }
+        if let Some(rest) = s.strip_prefix(r"\\?\")
+            && rest.as_bytes().get(1) == Some(&b':')
+        {
+            return PathBuf::from(rest);
+        }
+    }
+    p
+}
+
+fn paths_overlap(a: &Path, b: &Path) -> bool {
+    #[cfg(windows)]
+    {
+        let a = PathBuf::from(a.to_string_lossy().to_lowercase());
+        let b = PathBuf::from(b.to_string_lossy().to_lowercase());
+        a.starts_with(&b) || b.starts_with(&a)
+    }
+    #[cfg(not(windows))]
+    {
+        a.starts_with(b) || b.starts_with(a)
+    }
 }
 
 /// Imports `choice` from `source` into every target. `stamp` names the backup folders (the Unix
@@ -373,7 +463,7 @@ pub fn import(
                 .collect();
         }
         let dst_dir = canonical(&target.dir);
-        if dst_dir.starts_with(&src_dir) || src_dir.starts_with(&dst_dir) {
+        if paths_overlap(&dst_dir, &src_dir) {
             tr.error = Some(format!(
                 "{} is the folder being imported from",
                 target.dir.display()
@@ -476,11 +566,12 @@ impl Writer<'_> {
         Ok(dir)
     }
 
-    /// Moves the instance's `rel` into the backup folder, if it exists.
-    fn save_old(&mut self, rel: &Path) -> io::Result<()> {
+    /// Moves the instance's `rel` into the backup folder, if it exists. Returns the backup path
+    /// when a file was moved so a failed rename can put it back.
+    fn save_old(&mut self, rel: &Path) -> io::Result<Option<PathBuf>> {
         let path = self.dir.join(rel);
         if fs::symlink_metadata(&path).is_err() {
-            return Ok(());
+            return Ok(None);
         }
         let to = self.backup_dir()?.join(rel);
         if let Some(parent) = to.parent() {
@@ -489,6 +580,26 @@ impl Writer<'_> {
         if fs::rename(&path, &to).is_err() {
             fs::copy(&path, &to)?;
             fs::remove_file(&path)?;
+        }
+        Ok(Some(to))
+    }
+
+    fn commit_temp(&mut self, rel: &Path, tmp: &Path, dest: &Path) -> io::Result<()> {
+        let backed_up = match self.save_old(rel) {
+            Ok(b) => b,
+            Err(e) => {
+                let _ = fs::remove_file(tmp);
+                return Err(e);
+            }
+        };
+        if let Err(e) = fs::rename(tmp, dest) {
+            let _ = fs::remove_file(tmp);
+            if let Some(backup_path) = backed_up {
+                let _ = fs::rename(&backup_path, dest).or_else(|_| {
+                    fs::copy(&backup_path, dest).and_then(|_| fs::remove_file(&backup_path))
+                });
+            }
+            return Err(e);
         }
         Ok(())
     }
@@ -499,9 +610,11 @@ impl Writer<'_> {
             fs::create_dir_all(parent)?;
         }
         let tmp = tmp_name(&path);
-        fs::write(&tmp, bytes)?;
-        self.save_old(rel)?;
-        fs::rename(&tmp, &path)
+        if let Err(e) = fs::write(&tmp, bytes) {
+            let _ = fs::remove_file(&tmp);
+            return Err(e);
+        }
+        self.commit_temp(rel, &tmp, &path)
     }
 
     /// Copies the source's `rel` over the instance's. False when they are already the same.
@@ -528,9 +641,11 @@ impl Writer<'_> {
             fs::create_dir_all(parent)?;
         }
         let tmp = tmp_name(&dest);
-        fs::copy(&src, &tmp)?;
-        self.save_old(rel)?;
-        fs::rename(&tmp, &dest)?;
+        if let Err(e) = fs::copy(&src, &tmp) {
+            let _ = fs::remove_file(&tmp);
+            return Err(e);
+        }
+        self.commit_temp(rel, &tmp, &dest)?;
         Ok(true)
     }
 

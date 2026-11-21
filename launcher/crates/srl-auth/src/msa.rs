@@ -4,10 +4,13 @@
 //! Written against Microsoft's identity platform docs; the shape of the calls follows Pandora
 //! Launcher's `crates/auth/src/authenticator.rs` (MIT), which uses the `oauth2` crate. We talk to
 //! the endpoint directly instead, to map every error code ourselves and to control the polling.
+use std::time::Duration;
+
 use chrono::{DateTime, Utc};
 use reqwest::{StatusCode, Url};
 use serde::Deserialize;
 use tokio::time::Instant;
+use zeroize::Zeroizing;
 
 use crate::{
     config::AuthConfig,
@@ -19,6 +22,15 @@ use crate::{
 pub const SCOPE: &str = "XboxLive.signin offline_access";
 
 const SERVICE: &str = "Microsoft login";
+const MIN_EXPIRES_IN_S: i64 = 1;
+const MAX_EXPIRES_IN_S: i64 = 30 * 86_400;
+const MAX_POLL_INTERVAL_S: u64 = 300;
+
+fn clamp_expires_in(seconds: Option<i64>, default: i64) -> i64 {
+    seconds
+        .unwrap_or(default)
+        .clamp(MIN_EXPIRES_IN_S, MAX_EXPIRES_IN_S)
+}
 
 /// What the token endpoint gives back.
 #[derive(Debug)]
@@ -31,8 +43,8 @@ pub struct MsaTokens {
 
 #[derive(Deserialize)]
 struct TokenResponse {
-    access_token: String,
-    refresh_token: Option<String>,
+    access_token: Secret,
+    refresh_token: Option<Secret>,
     expires_in: Option<i64>,
 }
 
@@ -76,17 +88,23 @@ async fn token_request(
         }
         .into());
     }
-    let body = resp.bytes().await.map_err(|e| network(SERVICE, &e))?;
+    let body = Zeroizing::new(
+        resp.bytes()
+            .await
+            .map_err(|e| network(SERVICE, &e))?
+            .to_vec(),
+    );
     if status.is_success() {
         let t: TokenResponse = serde_json::from_slice(&body).map_err(|_| AuthError::Service {
             service: SERVICE,
             status: status.as_u16(),
             detail: "unreadable token response".into(),
         })?;
+        let expires_in = clamp_expires_in(t.expires_in, 3600);
         return Ok(MsaTokens {
-            access: Secret::new(t.access_token),
-            expires_at: Utc::now() + chrono::Duration::seconds(t.expires_in.unwrap_or(3600)),
-            refresh: t.refresh_token.map(Secret::new),
+            access: t.access_token,
+            expires_at: Utc::now() + chrono::Duration::seconds(expires_in),
+            refresh: t.refresh_token,
         });
     }
     match serde_json::from_slice::<OAuthError>(&body) {
@@ -215,7 +233,7 @@ pub struct DeviceCode {
 #[derive(Deserialize)]
 struct DeviceCodeResponse {
     user_code: String,
-    device_code: String,
+    device_code: Secret,
     verification_uri: String,
     #[serde(default)]
     verification_uri_complete: Option<String>,
@@ -241,7 +259,12 @@ pub async fn start_device_code(
             retry_after: retry_after(resp.headers()),
         });
     }
-    let body = resp.bytes().await.map_err(|e| network(SERVICE, &e))?;
+    let body = Zeroizing::new(
+        resp.bytes()
+            .await
+            .map_err(|e| network(SERVICE, &e))?
+            .to_vec(),
+    );
     if !status.is_success() {
         return Err(match serde_json::from_slice::<OAuthError>(&body) {
             Ok(e) if !e.error.is_empty() => map_oauth(status, &e),
@@ -261,13 +284,21 @@ pub async fn start_device_code(
         .verification_uri_complete
         .clone()
         .unwrap_or_else(|| qr_url(&r.verification_uri, &r.user_code));
+    let expires_in = r
+        .expires_in
+        .clamp(MIN_EXPIRES_IN_S as u64, MAX_EXPIRES_IN_S as u64);
+    let interval_s = r.interval.unwrap_or(5).clamp(1, MAX_POLL_INTERVAL_S);
+    let deadline_offset = cfg
+        .poll_unit
+        .saturating_mul(expires_in as u32)
+        .min(Duration::from_secs(MAX_EXPIRES_IN_S as u64));
     Ok(DeviceCode {
         qr_url,
-        expires_at: Utc::now() + chrono::Duration::seconds(r.expires_in as i64),
-        deadline: Instant::now() + cfg.poll_unit * r.expires_in as u32,
-        interval_s: r.interval.unwrap_or(5).max(1),
+        expires_at: Utc::now() + chrono::Duration::seconds(expires_in as i64),
+        deadline: Instant::now() + deadline_offset,
+        interval_s,
         user_code: r.user_code,
-        device_code: Secret::new(r.device_code),
+        device_code: r.device_code,
         verification_uri: r.verification_uri,
     })
 }
@@ -292,9 +323,20 @@ pub async fn poll_device_code(
     cfg: &AuthConfig,
     dc: &DeviceCode,
 ) -> Result<MsaTokens, AuthError> {
-    let mut interval = dc.interval_s;
+    let mut interval = dc.interval_s.clamp(1, MAX_POLL_INTERVAL_S);
+    let mut next_wait: Option<Duration> = None;
     loop {
-        tokio::time::sleep(cfg.poll_unit * interval as u32).await;
+        let Some(remaining) = dc.deadline.checked_duration_since(Instant::now()) else {
+            return Err(AuthError::DeviceCodeExpired);
+        };
+        if remaining.is_zero() {
+            return Err(AuthError::DeviceCodeExpired);
+        }
+        let delay = next_wait
+            .take()
+            .unwrap_or_else(|| cfg.poll_unit.saturating_mul(interval as u32))
+            .min(remaining);
+        tokio::time::sleep(delay).await;
         if Instant::now() >= dc.deadline {
             return Err(AuthError::DeviceCodeExpired);
         }
@@ -307,13 +349,19 @@ pub async fn poll_device_code(
             Ok(tokens) => return Ok(tokens),
             Err(TokenFailure::OAuth(s, e)) => match e.error.as_str() {
                 "authorization_pending" => {}
-                "slow_down" => interval += 5,
+                "slow_down" => interval = interval.saturating_add(5).min(MAX_POLL_INTERVAL_S),
                 // A passing outage: the code stays valid, keep polling.
                 "temporarily_unavailable" => {}
                 _ => return Err(map_oauth(s, &e)),
             },
             Err(TokenFailure::Other(AuthError::Network(_))) => {}
-            Err(TokenFailure::Other(AuthError::RateLimited { .. })) => interval += 5,
+            Err(TokenFailure::Other(AuthError::RateLimited { retry_after })) => {
+                interval = interval.saturating_add(5).min(MAX_POLL_INTERVAL_S);
+                if let Some(ra) = retry_after {
+                    let secs = ra.as_secs().clamp(1, MAX_POLL_INTERVAL_S);
+                    next_wait = Some(cfg.poll_unit.saturating_mul(secs as u32));
+                }
+            }
             Err(TokenFailure::Other(e)) => return Err(e),
         }
     }
@@ -393,5 +441,35 @@ mod tests {
         assert!(busy.is_transient() && !busy.needs_relogin(), "{busy:?}");
         let other = refresh_error(bad, &e("invalid_request"));
         assert!(!other.is_transient() && !other.needs_relogin(), "{other:?}");
+    }
+
+    #[test]
+    fn untrusted_expires_in_is_clamped() {
+        assert_eq!(clamp_expires_in(None, 3600), 3600);
+        assert_eq!(clamp_expires_in(Some(-100), 3600), MIN_EXPIRES_IN_S);
+        assert_eq!(clamp_expires_in(Some(0), 3600), MIN_EXPIRES_IN_S);
+        assert_eq!(clamp_expires_in(Some(i64::MAX), 3600), MAX_EXPIRES_IN_S);
+        assert_eq!(clamp_expires_in(Some(i64::MIN), 3600), MIN_EXPIRES_IN_S);
+    }
+
+    #[tokio::test]
+    async fn poll_device_code_clamps_sleep_to_deadline() {
+        let cfg = AuthConfig::new("11111111-2222-3333-4444-555555555555").unwrap();
+        let dc = DeviceCode {
+            user_code: "ABCD".into(),
+            verification_uri: "https://example.invalid".into(),
+            qr_url: "https://example.invalid".into(),
+            expires_at: Utc::now(),
+            device_code: Secret::new("code"),
+            // Interval far larger than remaining time: must wake at deadline, not sleep 300s.
+            interval_s: u64::MAX,
+            deadline: Instant::now() + Duration::from_millis(20),
+        };
+        let started = Instant::now();
+        let err = poll_device_code(&reqwest::Client::new(), &cfg, &dc)
+            .await
+            .unwrap_err();
+        assert_eq!(err, AuthError::DeviceCodeExpired);
+        assert!(started.elapsed() < Duration::from_secs(2));
     }
 }

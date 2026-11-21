@@ -4,6 +4,7 @@ description = "Microsoft login for Speedrunning Launcher: MSA (browser + device 
 version.workspace = true
 edition.workspace = true
 publish.workspace = true
+license.workspace = true
 
 [dependencies]
 srl-core.workspace = true

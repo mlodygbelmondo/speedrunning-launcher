@@ -55,7 +55,10 @@ where
             store(file, &c).await;
             Ok(c)
         }
-        Err(ApiError::NotFound) => Err(ApiError::NotFound),
+        Err(ApiError::NotFound) => {
+            let _ = tokio::fs::remove_file(file).await;
+            Err(ApiError::NotFound)
+        }
         Err(e) => match cached {
             Some(mut c) => {
                 c.refresh_error = Some(e);
@@ -211,11 +214,12 @@ mod tests {
         assert_eq!(c.value, 7);
         assert!(c.age() >= Duration::from_secs(3600));
         assert!(matches!(c.refresh_error, Some(ApiError::Offline(_))));
-        // NotFound is never hidden.
+        // NotFound is never hidden, and deletes the stale cache file.
         let nf = cached_fetch(&file, ttl, Refresh::IfStale, async {
             Err::<u32, _>(ApiError::NotFound)
         });
         assert_eq!(nf.await.unwrap_err(), ApiError::NotFound);
+        assert!(!file.exists());
         std::fs::remove_dir_all(&dir).unwrap();
     }
 

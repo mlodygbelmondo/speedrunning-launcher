@@ -104,6 +104,17 @@ fn new_name(exe: &Path) -> PathBuf {
     exe.with_file_name(name)
 }
 
+fn is_exe_name(rel: &Path) -> bool {
+    #[cfg(windows)]
+    {
+        rel.as_os_str().eq_ignore_ascii_case(EXE_NAME)
+    }
+    #[cfg(not(windows))]
+    {
+        rel.as_os_str() == EXE_NAME
+    }
+}
+
 /// Swaps `staged` in for the exe at `exe`. See the module's comment for the steps.
 pub fn install(staged: &Staged, exe: &Path) -> Result<Installed, SwapError> {
     install_with(&Fs, staged, exe)
@@ -128,7 +139,10 @@ pub fn install_with(ops: &dyn Ops, staged: &Staged, exe: &Path) -> Result<Instal
             },
         );
     }
-    // The running exe's permissions (on Linux its execute bits; a zip entry carries none).
+    // The running exe's permissions (on Unix its execute bits; a zip entry carries none).
+    // On Windows, `Permissions` is only the read-only attribute; copying it would break rollback
+    // or `.old.exe` cleanup if the running exe was marked read-only.
+    #[cfg(unix)]
     if let Ok(meta) = std::fs::metadata(exe) {
         let _ = std::fs::set_permissions(&new, meta.permissions());
     }
@@ -161,7 +175,7 @@ pub fn install_with(ops: &dyn Ops, staged: &Staged, exe: &Path) -> Result<Instal
     // The rest of the release, over the previous copies. Only what the zip has.
     let mut notes = Vec::new();
     for rel in &staged.files {
-        if rel.as_os_str() == EXE_NAME {
+        if is_exe_name(rel) {
             continue;
         }
         let to = dir.join(rel);

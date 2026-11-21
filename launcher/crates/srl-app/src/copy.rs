@@ -113,7 +113,9 @@ fn plural_form(lang: Language, n: u64) -> Option<&'static str> {
 pub fn size(bytes: u64) -> String {
     const MB: f64 = 1024. * 1024.;
     let mb = bytes as f64 / MB;
-    if bytes < 1024 * 1024 {
+    if bytes == 0 {
+        "0 KB".into()
+    } else if bytes < 1024 * 1024 {
         format!("{} KB", (bytes as f64 / 1024.).round().max(1.) as u64)
     } else if mb < 1000. {
         format!("{} MB", mb.round() as u64)
@@ -134,11 +136,14 @@ mod tests {
     fn both_languages_have_the_same_keys() {
         let [en, pl] = tables();
         let mut missing: Vec<_> = en.keys().filter(|k| !pl.contains_key(*k)).collect();
-        // Polish plural forms (`tn`) have no English counterpart.
-        missing.extend(
-            pl.keys()
-                .filter(|k| !en.contains_key(*k) && !k.ends_with("_few") && !k.ends_with("_many")),
-        );
+        // Polish plural forms (`tn`) have no English counterpart, but their base key must exist.
+        missing.extend(pl.keys().filter(|k| {
+            if en.contains_key(*k) {
+                return false;
+            }
+            let base = k.strip_suffix("_few").or_else(|| k.strip_suffix("_many"));
+            !base.is_some_and(|b| en.contains_key(b))
+        }));
         assert!(missing.is_empty(), "keys in only one language: {missing:?}");
     }
 
@@ -205,6 +210,7 @@ mod tests {
         assert_eq!(size(1288 * 1024 * 1024), "1.3 GB");
         // BT Practice's zip.
         assert_eq!(size(56_314), "55 KB");
+        assert_eq!(size(0), "0 KB");
         assert_eq!(size(1), "1 KB");
     }
 }

@@ -76,8 +76,8 @@ fn version_line(tool: &ToolSnapshot) -> Option<SharedString> {
 
 impl Launcher {
     /// One "start with the game" toggle, in the Mods page's chip style: on is the accent fill with
-    /// a tick, off is dim; a mode whose rules ban the tool (or that can't have it yet) is struck
-    /// through and takes no clicks. The chips share out the card's width.
+    /// a tick, off is dim; a mode whose rules ban the tool (or that can't have it yet) is dimmed
+    /// further and takes no clicks. The chips share out the card's width.
     fn tool_chip(&self, tool: ToolId, mode: Mode, cx: &mut Context<Self>) -> AnyElement {
         let label = catalog::def(mode).short;
         if tools::mode_rule(tool, mode).is_some() {

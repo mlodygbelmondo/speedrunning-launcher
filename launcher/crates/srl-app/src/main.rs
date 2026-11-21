@@ -338,11 +338,11 @@ fn deep_link(id: &str, data_dir: &Path) -> Option<(Start, Option<Preset>)> {
                 ),
                 _ => return None,
             };
-            // Before the first sign-in nobody is in the list yet.
-            let accounts = if mode == Some("sign-in-first") {
-                AccountsPreset::Empty
-            } else {
-                AccountsPreset::SignedIn
+            // Before the first sign-in nobody is in the list yet; `relogin` needs a new sign-in.
+            let accounts = match mode {
+                Some("sign-in-first") => AccountsPreset::Empty,
+                Some("relogin") => AccountsPreset::Relogin,
+                _ => AccountsPreset::SignedIn,
             };
             start.page = page;
             return Some((
@@ -504,13 +504,21 @@ fn main() {
     if flag("SRL_TRACE_RENDERS") {
         app::TRACE_RENDERS.store(true, std::sync::atomic::Ordering::Relaxed);
     }
-    let paths = srl_core::Paths::from_env()
-        .map_err(|e| eprintln!("settings won't be saved: {e:#}"))
-        .ok();
-    let data_dir = paths
-        .as_ref()
-        .map(|p| p.root().to_path_buf())
-        .unwrap_or_default();
+    // Resolve `Paths` once, and skip it completely under `SRL_DEMO` (the demo saves nothing and
+    // uses only `SRL_HOME` if set by a screenshot script).
+    let paths_res = if demo::get().is_some() {
+        None
+    } else {
+        Some(srl_core::Paths::from_env())
+    };
+    let data_dir = match &paths_res {
+        Some(Ok(p)) => p.root().to_path_buf(),
+        Some(Err(_)) => std::path::PathBuf::new(),
+        None => std::env::var_os("SRL_HOME")
+            .filter(|v| !v.is_empty())
+            .map(std::path::PathBuf::from)
+            .unwrap_or_default(),
+    };
     let screen = std::env::var("SRL_SCREEN").ok().filter(|s| !s.is_empty());
     let (mut start, preset) = match &screen {
         Some(id) => deep_link(id, &data_dir).unwrap_or_else(|| {
@@ -536,7 +544,18 @@ fn main() {
 
     // The fake backend keeps its settings where the real one does: `<data root>/settings.json`.
     // The demo uses the prototype's player and saves nothing.
-    let settings_file = paths.as_ref().map(Settings::file);
+    let settings_file = if demo::get().is_some() {
+        None
+    } else {
+        match &paths_res {
+            Some(Ok(p)) => Some(Settings::file(p)),
+            Some(Err(e)) if fake => {
+                eprintln!("settings won't be saved: {e:#}");
+                None
+            }
+            _ => None,
+        }
+    };
     let demo_settings = demo::get().map(|d| Settings {
         player_name: Some(d.account.name.clone()),
         language: lang_override.unwrap_or(Language::En),
@@ -610,7 +629,10 @@ fn main() {
                 }
                 Rc::new(FakeBackend::new(tx, options))
             } else {
-                match RealBackend::new(tx) {
+                let real = paths_res
+                    .expect("real backend always resolves paths")
+                    .and_then(|paths| RealBackend::new(paths, tx));
+                match real {
                     Ok(b) => Rc::new(b),
                     Err(e) => {
                         let msg = format!("The launcher can't start: {e:#}");

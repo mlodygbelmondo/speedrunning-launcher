@@ -4,6 +4,7 @@ description = "The Speedrunning Launcher desktop app (GPUI)"
 version.workspace = true
 edition.workspace = true
 publish.workspace = true
+license.workspace = true
 
 [[bin]]
 name = "speedrunning-launcher"
@@ -40,7 +41,7 @@ zip.workspace = true
 libc.workspace = true
 
 [target.'cfg(windows)'.dependencies]
-windows-sys = { workspace = true, features = ["Win32_Foundation", "Win32_System_Console", "Win32_System_Registry", "Win32_System_Threading", "Win32_UI_WindowsAndMessaging"] }
+windows-sys = { workspace = true, features = ["Win32_Foundation", "Win32_System_Console", "Win32_System_Registry", "Win32_System_Threading", "Win32_UI_Shell", "Win32_UI_WindowsAndMessaging"] }
 
 # srl-auth's mock of the Microsoft, Xbox and Minecraft services (tests/mock), shared by the account
 # glue tests.

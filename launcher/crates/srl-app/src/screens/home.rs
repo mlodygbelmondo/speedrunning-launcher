@@ -14,7 +14,7 @@ use gpui::{
     Styled, div, img, prelude::*, px, relative,
 };
 use srl_core::Mode;
-use srl_stats::SplitKind;
+use srl_stats::{MatchKind, SplitKind};
 
 use crate::{
     app::{Launcher, Page},
@@ -164,7 +164,7 @@ impl Launcher {
                 let delta = o
                     .matches
                     .as_ref()
-                    .and_then(|m| m.value.first())
+                    .and_then(|m| m.value.iter().find(|m| m.kind == MatchKind::Ranked))
                     .and_then(|m| m.elo_change);
                 let lift = baseline(26., 26., PLEX_ASC, PLEX_DESC)
                     - baseline(13., 13., PLEX_ASC, PLEX_DESC);
@@ -282,7 +282,9 @@ impl Launcher {
     fn home_matches(&self) -> Option<Div> {
         let Some(d) = demo::get() else {
             let o = self.stats.ranked.as_ref()?.value.as_ref()?;
-            o.matches.as_ref().filter(|m| !m.value.is_empty())?;
+            if !has_ranked_match(o) && o.weekly_race.is_none() {
+                return None;
+            }
             return Some(
                 div()
                     .flex()

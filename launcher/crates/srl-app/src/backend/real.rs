@@ -109,8 +109,8 @@ impl RealBackend {
     /// directory that can't be written is not an error here: the snapshot carries it
     /// (`data_error`) so the window can say so, instead of a launcher that accepts a name it
     /// can't save and fails every Play with a raw path error.
-    pub fn new(events: Events) -> Result<Self> {
-        Self::open(Paths::from_env()?, events, true)
+    pub fn new(paths: Paths, events: Events) -> Result<Self> {
+        Self::open(paths, events, true)
     }
 
     /// [`RealBackend::new`] on `paths`. Without `start_checks` (tests) nothing reaches the
@@ -220,6 +220,14 @@ impl RealBackend {
         });
         let list = inner.snap.lock().unwrap().settings.custom_instances.clone();
         inner.stats_follow(&list);
+        {
+            let weak = Arc::downgrade(&inner);
+            inner.accounts.on_change(move || {
+                if let Some(inner) = weak.upgrade() {
+                    inner.clear_sign_in_failures();
+                }
+            });
+        }
         // Games an earlier session left running (it was closed or crashed while they ran):
         // Running from the first frame, with Stop, until they exit.
         {
@@ -606,6 +614,52 @@ impl Inner {
         self.set_state_if(instance, |_| true, state);
     }
 
+    /// Clears `FailKind::SignIn` failures across modes and custom instances once an account login,
+    /// switch or log out completes, so Play is no longer stuck on a stale sign-in fix.
+    fn clear_sign_in_failures(&self) {
+        let runs = self.runs.lock().unwrap();
+        let mut snap = self.snap.lock().unwrap();
+        for mode in Mode::ALL {
+            let instance = Instance::Mode(mode);
+            if runs.contains_key(&instance) {
+                continue;
+            }
+            let slot = &mut snap.modes[super::index(mode)].state;
+            if let ModeState::Failed(f) = slot
+                && f.kind == FailKind::SignIn
+            {
+                let next = if f.installed {
+                    ModeState::Ready
+                } else {
+                    ModeState::NotInstalled
+                };
+                *slot = next.clone();
+                if let Some(ev) = state_event(instance, next) {
+                    let _ = self.events.unbounded_send(ev);
+                }
+            }
+        }
+        for (&id, mode_snap) in &mut snap.customs {
+            let instance = Instance::Custom(id);
+            if runs.contains_key(&instance) {
+                continue;
+            }
+            if let ModeState::Failed(f) = &mode_snap.state
+                && f.kind == FailKind::SignIn
+            {
+                let next = if f.installed {
+                    ModeState::Ready
+                } else {
+                    ModeState::NotInstalled
+                };
+                mode_snap.state = next.clone();
+                if let Some(ev) = state_event(instance, next) {
+                    let _ = self.events.unbounded_send(ev);
+                }
+            }
+        }
+    }
+
     fn set_state_if(
         &self,
         instance: Instance,
@@ -816,7 +870,11 @@ impl Inner {
             CopyFrom::Instance(_) => CopyWhat::Everything { worlds },
             CopyFrom::Folder(..) => CopyWhat::Import { worlds },
         };
-        let plan = CopyPlan::new(&src, what);
+        let Some(plan) = CopyPlan::new_until(&src, what, &self.cancel_copy) else {
+            instances::discard(paths, id);
+            log(format_args!("{id}: copy cancelled while counting, removed"));
+            anyhow::bail!(instances::COPY_CANCELLED);
+        };
         let (files_total, bytes_total) = (plan.files(), plan.bytes());
         log(format_args!(
             "{id}: copying {} into \"{name}\" ({files_total} files, {} MB{})",
@@ -1072,6 +1130,8 @@ async fn play(
         Err(problem) => {
             log(format_args!("{id}: Microsoft sign-in failed: {problem}"));
             let relogin = problem.relogin;
+            // Refresh the account list first so `needs_login` is reflected in the UI snapshot.
+            inner.accounts.reload().await;
             let failure = Failure {
                 kind: FailKind::SignIn,
                 detail: FailDetail::Account(problem),
@@ -1301,10 +1361,12 @@ async fn check_updates(inner: Arc<Inner>, max_age: Duration) {
         };
         let catalogue = srl_mods::catalogue(&meta, &own, &set, base);
         let concerns = srl_mods::concerns(&meta, &set, base);
-        let installed = matches!(
-            inner.state(instance),
-            ModeState::Ready | ModeState::UpdateAvailable
-        );
+        let recoverable = |s: &ModeState| match s {
+            ModeState::Ready | ModeState::UpdateAvailable => true,
+            ModeState::Failed(f) => f.installed,
+            _ => false,
+        };
+        let installed = recoverable(&inner.state(instance));
         let plan = if installed {
             match inner.core.mods_plan(&set).await {
                 Ok(p) => p,
@@ -1337,18 +1399,10 @@ async fn check_updates(inner: Arc<Inner>, max_age: Duration) {
                     plan.add.len() + plan.update.len(),
                     plan.remove.len()
                 ));
-                inner.set_state_if(
-                    instance,
-                    |s| *s == ModeState::Ready,
-                    ModeState::UpdateAvailable,
-                );
+                inner.set_state_if(instance, recoverable, ModeState::UpdateAvailable);
             }
             None if installed => {
-                inner.set_state_if(
-                    instance,
-                    |s| *s == ModeState::UpdateAvailable,
-                    ModeState::Ready,
-                );
+                inner.set_state_if(instance, recoverable, ModeState::Ready);
             }
             None => {}
         }
@@ -1852,5 +1906,55 @@ mod tests {
         for s in PARALLEL {
             assert!(mux.update(p(s, 0, 0, Unit::Bytes), t).is_some());
         }
+    }
+
+    #[test]
+    fn sign_in_and_installed_failures_clear_on_recovery() {
+        let root = std::env::temp_dir().join(format!("srl-real-recover-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&root);
+        let paths = Paths::new(&root);
+        let (tx, _rx) = futures::channel::mpsc::unbounded();
+        let b = RealBackend::open(paths, tx, false).unwrap();
+        b.rt.block_on(
+            b.inner
+                .core
+                .seed_mod_meta(super::super::fake::fake_meta().clone()),
+        );
+
+        // A SignIn failure clears back to Ready when account state changes.
+        b.inner.set_state(
+            Instance::Mode(Mode::Ranked),
+            ModeState::Failed(Failure {
+                kind: FailKind::SignIn,
+                detail: FailDetail::Account(account::AccountProblem::sign_in_first()),
+                installed: true,
+                log: None,
+            }),
+        );
+        b.inner.clear_sign_in_failures();
+        assert_eq!(
+            b.inner.state(Instance::Mode(Mode::Ranked)),
+            ModeState::Ready
+        );
+
+        // An installed Launch failure (e.g. Draftout disallowed mod) re-evaluates in check_updates.
+        b.inner.set_state(
+            Instance::Mode(Mode::Draftout),
+            ModeState::Failed(Failure {
+                kind: FailKind::Launch,
+                detail: FailDetail::Stopped(
+                    "Draftout blocked launch. Disallowed mods (1): planifolia".into(),
+                ),
+                installed: true,
+                log: None,
+            }),
+        );
+        b.rt.block_on(check_updates(b.inner.clone(), pipeline::META_FRESH));
+        assert!(matches!(
+            b.inner.state(Instance::Mode(Mode::Draftout)),
+            ModeState::Ready | ModeState::UpdateAvailable
+        ));
+        drop(b);
+        let _ = std::fs::remove_dir_all(&root);
     }
 }

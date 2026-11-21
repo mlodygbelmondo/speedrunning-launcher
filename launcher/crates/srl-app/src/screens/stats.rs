@@ -21,7 +21,8 @@ use gpui::{
 };
 use srl_core::Mode;
 use srl_stats::{
-    ApiError, Cached, LocalStats, MatchKind, Outcome, RankedOverview, Run, RunHistory, SplitKind,
+    ApiError, Cached, LocalStats, MatchKind, Outcome, RankedOverview, Refresh, Run, RunHistory,
+    SplitKind,
 };
 
 use crate::{
@@ -142,8 +143,8 @@ fn refresh_note(e: &ApiError) -> Option<(SharedString, gpui::Hsla)> {
 
 /// The age line of cached API data, when it is past its cache time: "Updated 3 h ago" (`short`:
 /// "3 h ago") and "offline" after it. `None` while the data is current.
-pub fn age_line<T>(c: &Cached<T>, short: bool) -> Option<Div> {
-    let e = c.refresh_error.as_ref()?;
+pub fn age_line<T>(c: &Cached<T>, fallback: Option<&ApiError>, short: bool) -> Option<Div> {
+    let e = c.refresh_error.as_ref().or(fallback)?;
     Some(
         div()
             .flex()
@@ -402,9 +403,31 @@ impl Launcher {
                 .text_color(if ask_name { accent2() } else { muted3() })
                 .child(wrap_even(&s, INTER, FontWeight::MEDIUM, 13., 190.)),
         };
+        #[derive(Clone, Copy)]
+        enum DraftoutAction {
+            EditName,
+            Retry,
+        }
+        let draftout_action = if mode == Mode::Draftout {
+            match &self.stats.draftout {
+                None => Some(DraftoutAction::EditName),
+                Some(l) => match (&l.value, &l.error) {
+                    (None, Some(ApiError::NotFound | ApiError::InvalidName)) => {
+                        Some(DraftoutAction::EditName)
+                    }
+                    (None, Some(_)) => Some(DraftoutAction::Retry),
+                    (Some(c), err) if c.refresh_error.is_some() || err.is_some() => {
+                        Some(DraftoutAction::Retry)
+                    }
+                    _ => None,
+                },
+            }
+        } else {
+            None
+        };
         let has_runs = history.is_some_and(|h| h.run_count > 0);
         let selected = self.stats_mode == Some(mode);
-        let clickable = (has_runs && mode != Mode::Draftout) || ask_name;
+        let clickable = (has_runs && mode != Mode::Draftout) || draftout_action.is_some();
         let group: SharedString = format!("stats-tile-{}", mode.id()).into();
         div()
             .id(("stats-tile", crate::backend::index(mode)))
@@ -429,18 +452,33 @@ impl Launcher {
             .child(div().absolute().left(px(14.)).bottom(px(12.)).child(bottom))
             .when(clickable, |d| {
                 d.cursor_pointer()
-                    .on_click(cx.listener(move |this, _, window, cx| {
-                        if ask_name {
-                            this.edit_stats_name(Field::Draftout, window, cx);
-                        } else {
-                            this.stats_mode = if this.stats_mode == Some(mode) {
-                                None
-                            } else {
-                                Some(mode)
-                            };
-                            cx.notify();
-                        }
-                    }))
+                    .on_click(
+                        cx.listener(move |this, _, window, cx| match draftout_action {
+                            Some(DraftoutAction::EditName) => {
+                                this.edit_stats_name(Field::Draftout, window, cx);
+                            }
+                            Some(DraftoutAction::Retry) => {
+                                let (_, draftout) = this.stats_names();
+                                if this.stats.want_draftout(draftout.as_deref(), Refresh::Now)
+                                    && let Some(name) = draftout
+                                {
+                                    if let Some(l) = this.stats.draftout.as_mut() {
+                                        l.error = None;
+                                    }
+                                    this.backend().stats().draftout(&name, Refresh::Now);
+                                    cx.notify();
+                                }
+                            }
+                            None => {
+                                this.stats_mode = if this.stats_mode == Some(mode) {
+                                    None
+                                } else {
+                                    Some(mode)
+                                };
+                                cx.notify();
+                            }
+                        }),
+                    )
                     .child(if selected { ring() } else { group_ring(group) })
             })
     }
@@ -457,7 +495,7 @@ impl Launcher {
                 let Some(elo) = p.elo else {
                     return TileBody::Text(t("stats.draftout_no_elo"));
                 };
-                if let Some(line) = age_line(c, true) {
+                if let Some(line) = age_line(c, l.error.as_ref(), true) {
                     return TileBody::Aged(elo.to_string(), Box::new(line));
                 }
                 let label = if p.ranked {
@@ -846,12 +884,12 @@ impl Launcher {
                     .child(note(&t("stats.ranked_loading"), RANKED_W).mt(px(12.))),
             };
         };
-        self.ranked_full(col, o)
+        self.ranked_full(col, o, l.error.as_ref())
     }
 
     /// The column with data: elo and tier, the season record, recent matches, the weekly race,
     /// then the source and, for cached data, its age.
-    fn ranked_full(&self, col: Div, o: &RankedOverview) -> Div {
+    fn ranked_full(&self, col: Div, o: &RankedOverview, error: Option<&ApiError>) -> Div {
         let p = &o.profile.value;
         let season = ranked_season(o);
         let head = match season {
@@ -955,7 +993,9 @@ impl Launcher {
             .flex_row()
             .items_center()
             .justify_end()
-            .child(age_line(&o.profile, true).unwrap_or_else(|| label(&t("v3.matches_src"))));
+            .child(
+                age_line(&o.profile, error, true).unwrap_or_else(|| label(&t("v3.matches_src"))),
+            );
         // No elo and no match this season: a big dash and "no elo yet" would only repeat "No
         // ranked matches this season yet" below.
         let empty = p.elo.is_none() && record.is_none();
@@ -1170,7 +1210,9 @@ fn group_ring(group: SharedString) -> Div {
 
 /// The lookup's age line, for Home.
 pub fn ranked_age(l: &Lookup<RankedOverview>) -> Option<Div> {
-    l.value.as_ref().and_then(|o| age_line(&o.profile, false))
+    l.value
+        .as_ref()
+        .and_then(|o| age_line(&o.profile, l.error.as_ref(), false))
 }
 
 #[cfg(test)]

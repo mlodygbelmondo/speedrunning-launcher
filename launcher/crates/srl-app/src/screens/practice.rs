@@ -490,7 +490,8 @@ impl Launcher {
     /// Play on a map: the name prompt first if there is no name yet (as for a mode), then the
     /// practice game. The page stays: the row says where to find the map in the game.
     fn practice_play(&mut self, id: &str, cx: &mut Context<Self>) {
-        if self.settings.player_name.is_none() {
+        if self.settings.player_name.is_none() && self.account.active_name().is_none() {
+            self.return_to = self.target;
             self.navigate(crate::app::Page::Name, cx);
             return;
         }
@@ -619,19 +620,69 @@ impl Launcher {
                 } else {
                     tf("practice.in_game_line", &[("world", &names(&worlds))])
                 };
-                Some(
-                    div()
-                        .flex()
-                        .flex_row()
-                        .items_center()
-                        .gap(px(24.))
-                        .child(arch(15., FontWeight::BOLD).text_color(ok3()).child(line))
-                        .child(if self.practice_stopping {
-                            div().child(tertiary_off(&t("game.stopping")))
-                        } else {
-                            div().child(stop(t("game.stop"), cx))
-                        }),
-                )
+                let launched = game.launched.as_ref();
+                let renew_warning = launched.and_then(|l| l.valid_until).map(|until| {
+                    tf(
+                        "auth.renew_warning",
+                        &[("time", &super::account::local_time(until))],
+                    )
+                });
+                let notes: Vec<SharedString> = renew_warning
+                    .into_iter()
+                    .chain(launched.into_iter().flat_map(|l| {
+                        l.tool_notes.iter().map(|n| {
+                            let (key, args) = n.copy();
+                            let args: Vec<(&str, &str)> =
+                                args.iter().map(|(k, v)| (*k, v.as_str())).collect();
+                            tf(key, &args)
+                        })
+                    }))
+                    .collect();
+                let row = div()
+                    .flex()
+                    .flex_row()
+                    .items_center()
+                    .gap(px(24.))
+                    .child(arch(15., FontWeight::BOLD).text_color(ok3()).child(line))
+                    .child(if self.practice_stopping {
+                        div().child(tertiary_off(&t("game.stopping")))
+                    } else {
+                        div().child(stop(t("game.stop"), cx))
+                    });
+                Some(div().flex().flex_col().gap(px(8.)).child(row).children(
+                    (!notes.is_empty()).then(|| {
+                        div()
+                            .flex()
+                            .flex_col()
+                            .gap(px(6.))
+                            .children(notes.into_iter().map(|n| {
+                                div()
+                                    .flex()
+                                    .flex_row()
+                                    .items_start()
+                                    .child(
+                                        div()
+                                            .flex_none()
+                                            .size(px(5.))
+                                            .mt(px(6.))
+                                            .mr(px(9.))
+                                            .bg(gold()),
+                                    )
+                                    .child(
+                                        inter(13., FontWeight::NORMAL, 1.4)
+                                            .whitespace_nowrap()
+                                            .text_color(muted3())
+                                            .child(wrap(
+                                                &n,
+                                                INTER,
+                                                FontWeight::NORMAL,
+                                                13.,
+                                                LIST_W - INDENT - 14.,
+                                            )),
+                                    )
+                            }))
+                    }),
+                ))
             }
             ModeState::Failed(f) => {
                 let key = match (f.kind, f.installed) {
@@ -1101,16 +1152,26 @@ impl Launcher {
                 let title = tf("practice.ask.remove.title", &[("map", &map_name(id))]);
                 // Title and button say "delete"; the body only warns about progress.
                 let mut lines = Vec::new();
-                if worlds.iter().any(|w| w.state == WorldState::Played) {
+                let played: Vec<WorldView> = worlds
+                    .iter()
+                    .filter(|w| w.state == WorldState::Played)
+                    .cloned()
+                    .collect();
+                if !played.is_empty() {
                     lines.push(body(tf(
                         "practice.ask.remove.played",
-                        &[("worlds", &names(worlds))],
+                        &[("worlds", &names(&played))],
                     )));
                 }
                 if !kept.is_empty() {
+                    let kept_names = kept
+                        .iter()
+                        .map(|w| quoted(w))
+                        .collect::<Vec<_>>()
+                        .join(", ");
                     lines.push(body(tf(
                         "practice.ask.remove.kept",
-                        &[("worlds", &kept.join(", "))],
+                        &[("worlds", &kept_names)],
                     )));
                 }
                 let id = id.clone();
@@ -1262,12 +1323,11 @@ impl Launcher {
             .child(last_col.flex_basis(px(0.)));
 
         // The list for the selection, most popular first.
-        let (title, rows, notes): (SharedString, Vec<Div>, Vec<SharedString>) = match self
+        let (title, rows, notes): (Option<SharedString>, Vec<Div>, Vec<SharedString>) = match self
             .practice_sel
         {
             PracticeSel::Category(ci) => {
                 let maps: Vec<&'static MapEntry> = catalog::maps_in(&cats[ci].id).collect();
-                let n = maps.len();
                 if self.practice_reveal {
                     self.practice_reveal = false;
                     if let Some(ix) = maps
@@ -1291,17 +1351,7 @@ impl Launcher {
                     .enumerate()
                     .map(|(i, e)| self.map_row(i, e, cx))
                     .collect();
-                (
-                    tf(
-                        "v3.practice_list",
-                        &[
-                            ("category", &Self::cat_name(ci)),
-                            ("count", &Self::practice_count(n)),
-                        ],
-                    ),
-                    rows,
-                    vec![],
-                )
+                (None, rows, vec![])
             }
             PracticeSel::Tools => {
                 let n = p.tools.len();
@@ -1323,13 +1373,13 @@ impl Launcher {
                     })
                     .collect();
                 (
-                    tf(
+                    Some(tf(
                         "v3.practice_list",
                         &[
                             ("category", &t("v3.practice_tools_tile")),
                             ("count", &Self::practice_count(n)),
                         ],
-                    ),
+                    )),
                     rows,
                     if demo.is_none() {
                         vec![t("practice.tools_later")]
@@ -1355,9 +1405,7 @@ impl Launcher {
                     .flex()
                     .flex_row()
                     .justify_between()
-                    .when(matches!(self.practice_sel, PracticeSel::Tools), |d| {
-                        d.child(section_head(&title))
-                    }),
+                    .children(title.map(|t| section_head(&t))),
             )
             // While rows are hidden above or below, they fade into the page at that edge instead
             // of being cut by it (and never run into the header).

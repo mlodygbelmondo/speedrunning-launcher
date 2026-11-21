@@ -227,6 +227,10 @@ pub struct InstancesView {
     /// The New instance form is bringing another launcher's instance over (`copying` has the
     /// progress).
     pub importing: bool,
+    /// `Event::CustomInstances` arrived: reload unfocused custom fields on the next render.
+    pub reload_fields: bool,
+    /// Custom instances whose Stop button was pressed and that haven't exited yet.
+    pub stopping: std::collections::HashSet<CustomId>,
 }
 
 impl Default for InstancesView {
@@ -257,6 +261,8 @@ impl Default for InstancesView {
             copy_worlds: false,
             submitting: false,
             importing: false,
+            reload_fields: false,
+            stopping: std::collections::HashSet::new(),
         }
     }
 }
@@ -677,6 +683,19 @@ impl Launcher {
     }
 
     pub fn render_instances(&mut self, window: &Window, cx: &mut Context<Self>) -> AnyElement {
+        if std::mem::take(&mut self.instances.reload_fields)
+            && let InstKey::Custom(id) = self.instances.sel
+            && let Some(c) = self.settings.custom(id).cloned()
+        {
+            if !self.inst_rename.focus.is_focused(window) {
+                self.inst_rename.text = c.name;
+                self.instances.name_problem = None;
+            }
+            if !self.inst_jvm.focus.is_focused(window) {
+                self.inst_jvm.text = c.jvm_args.join(" ");
+                self.instances.jvm_problem = None;
+            }
+        }
         let v = &mut self.instances;
         if v.confirm != v.confirm_drawn {
             v.confirm_at = v.confirm.is_some().then(std::time::Instant::now);
@@ -1034,20 +1053,40 @@ impl Launcher {
             }
             InstKey::Custom(id) => {
                 row = row.child(self.custom_play(id, cx));
-                if matches!(
-                    self.custom_state(key),
-                    Some(ModeState::Installing(_) | ModeState::Running)
-                ) {
-                    let running = self.custom_state(key) == Some(&ModeState::Running);
-                    row = row.child(
-                        tertiary(
-                            "inst-custom-cancel",
-                            &t(if running { "game.stop" } else { "v3.cancel" }),
-                        )
-                        .on_click(
-                            cx.listener(move |this, _, _, _| this.backend().cancel_custom(id)),
-                        ),
-                    );
+                match self.custom_state(key) {
+                    Some(ModeState::Installing(_) | ModeState::Running) => {
+                        let running = self.custom_state(key) == Some(&ModeState::Running);
+                        if running && self.instances.stopping.contains(&id) {
+                            row = row.child(tertiary_off(&t("game.stopping")));
+                        } else {
+                            row = row.child(
+                                tertiary(
+                                    "inst-custom-cancel",
+                                    &t(if running { "game.stop" } else { "v3.cancel" }),
+                                )
+                                .on_click(cx.listener(
+                                    move |this, _, _, cx| {
+                                        if running {
+                                            this.instances.stopping.insert(id);
+                                            cx.notify();
+                                        }
+                                        this.backend().cancel_custom(id);
+                                    },
+                                )),
+                            );
+                        }
+                    }
+                    Some(ModeState::Failed(f)) => {
+                        if let Some(log) = f.log.clone() {
+                            row =
+                                row.child(tertiary("inst-custom-log", &t("v3.open_log")).on_click(
+                                    cx.listener(move |this, _, _, _| {
+                                        this.backend().open_containing_folder(&log);
+                                    }),
+                                ));
+                        }
+                    }
+                    _ => {}
                 }
             }
         }

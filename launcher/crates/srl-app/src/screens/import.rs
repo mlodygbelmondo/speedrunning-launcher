@@ -401,9 +401,13 @@ impl Launcher {
                 );
             }
         }
-        let choose = secondary("import-choose", &t("import.choose")).when(!busy, |b| {
-            b.on_click(cx.listener(|this, _, _, cx| this.choose_folder(cx)))
-        });
+        let choose = if busy {
+            secondary_off(&t("import.choose")).into_any_element()
+        } else {
+            secondary("import-choose", &t("import.choose"))
+                .on_click(cx.listener(|this, _, _, cx| this.choose_folder(cx)))
+                .into_any_element()
+        };
         col = col.child(div().mt(px(18.)).flex().flex_row().child(choose));
         if let Some(note) = &self.import.note {
             let text = match note {
@@ -621,17 +625,18 @@ impl Launcher {
             .when(press == Press::Live, |b| {
                 b.on_click(cx.listener(|this, _, _, cx| this.start_import(cx)))
             });
-        let leave = tertiary(
-            "import-leave",
-            &t(if self.import.offer {
-                "import.skip"
-            } else {
-                "import.back"
-            }),
-        )
-        .when(!busy, |b| {
-            b.on_click(cx.listener(|this, _, _, cx| this.leave_import(cx)))
+        let leave_label = t(if self.import.offer {
+            "import.skip"
+        } else {
+            "import.back"
         });
+        let leave = if busy {
+            tertiary_off(&leave_label).into_any_element()
+        } else {
+            tertiary("import-leave", &leave_label)
+                .on_click(cx.listener(|this, _, _, cx| this.leave_import(cx)))
+                .into_any_element()
+        };
 
         let note = |s: &str, color: Hsla| {
             inter(12., FontWeight::NORMAL, 1.45)

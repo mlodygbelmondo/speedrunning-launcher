@@ -88,10 +88,15 @@ pub struct MapJob {
 }
 
 impl MapJob {
-    /// Cancel stops a download only: once extracting starts, srl-practice finishes on its own in
-    /// a few seconds and a cancel would change nothing.
+    /// Cancel stops a queued job (`progress: None`, except `Remove`) or a download; once
+    /// verifying/extracting starts, srl-practice finishes on its own in a few seconds and a
+    /// cancel would change nothing.
     pub fn cancellable(&self) -> bool {
-        self.progress.is_some_and(|p| p.step == Step::Downloading)
+        self.kind != JobKind::Remove
+            && matches!(
+                self.progress.map(|p| p.step),
+                None | Some(Step::Downloading)
+            )
     }
 }
 
@@ -423,6 +428,26 @@ impl RealPractice {
             }),
             rt,
         };
+        {
+            let weak = Arc::downgrade(&this.inner);
+            this.inner.host.accounts.on_change(move || {
+                if let Some(inner) = weak.upgrade()
+                    && !inner.shared.game_busy()
+                {
+                    inner.shared.update_game(|g| {
+                        if let ModeState::Failed(f) = &g.state
+                            && f.kind == FailKind::SignIn
+                        {
+                            g.state = if f.installed {
+                                ModeState::Ready
+                            } else {
+                                ModeState::NotInstalled
+                            };
+                        }
+                    });
+                }
+            });
+        }
         this.reload();
         Ok(this)
     }
@@ -825,6 +850,7 @@ async fn run_game(
                 "practice: Microsoft sign-in failed: {problem}"
             ));
             let relogin = problem.relogin;
+            accounts.reload().await;
             let failure = Failure {
                 kind: FailKind::SignIn,
                 detail: FailDetail::Account(problem),
@@ -848,6 +874,13 @@ async fn run_game(
             "offline"
         }
     ));
+    if let Some(w) = &signed_in.warning {
+        log(format_args!(
+            "practice: couldn't renew the Microsoft sign-in ({w}); starting with the saved one, \
+             valid until {:?}",
+            signed_in.valid_until
+        ));
+    }
 
     inner
         .shared
@@ -1568,8 +1601,15 @@ mod tests {
         assert!(!job(Step::Extracting).cancellable());
         assert!(!job(Step::Verifying).cancellable());
         assert!(
-            !MapJob {
+            MapJob {
                 kind: JobKind::Install,
+                progress: None
+            }
+            .cancellable()
+        );
+        assert!(
+            !MapJob {
+                kind: JobKind::Remove,
                 progress: None
             }
             .cancellable()

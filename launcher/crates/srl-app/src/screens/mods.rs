@@ -195,7 +195,7 @@ impl Launcher {
             .flex_col()
             .child(bar)
             .children(note)
-            .child(concern_block(mode, short, &concerns, known, list_w).pb(px(12.)))
+            .child(concern_block(short, &concerns, known, list_w).pb(px(12.)))
             .child(
                 div()
                     .flex_1()
@@ -330,7 +330,7 @@ fn mode_category(mode: Mode) -> &'static str {
 }
 
 /// Whether the set is legal for the mode, and if not, why, one line per mod.
-fn concern_block(mode: Mode, short: &str, concerns: &[Concern], known: bool, w: f32) -> Div {
+fn concern_block(short: &str, concerns: &[Concern], known: bool, w: f32) -> Div {
     let block = div().flex().flex_col().gap(px(6.));
     if !known {
         return block.child(
@@ -354,7 +354,6 @@ fn concern_block(mode: Mode, short: &str, concerns: &[Concern], known: bool, w: 
                 ),
         );
     }
-    let _ = mode;
     let mut block = block.child(
         div()
             .flex()

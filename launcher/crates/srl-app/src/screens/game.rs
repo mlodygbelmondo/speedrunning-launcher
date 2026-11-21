@@ -91,15 +91,10 @@ impl Launcher {
         .when(!stopping, |b| {
             b.on_click(cx.listener(move |this, _, _, cx| this.cancel(mi, cx)))
         });
-        let mem_gb = launched
+        let mem_mb = launched
             .as_ref()
-            .map_or(self.settings.memory_mb(self.mode(mi)), |l| l.memory_mb)
-            as f32
-            / 1024.;
-        let memory = crate::copy::tf(
-            "settings.memory_value",
-            &[("n", &format!("{}", (mem_gb * 10.).round() / 10.))],
-        );
+            .map_or(self.settings.memory_mb(self.mode(mi)), |l| l.memory_mb);
+        let memory = crate::copy::tf("settings.memory_value", &[("n", &super::play::gb(mem_mb))]);
         // The tools this game runs with, and what was left out and why: only what the launch
         // reported (nothing while it isn't known).
         let tools: Option<SharedString> = launched.as_ref().map(|l| {

@@ -148,13 +148,24 @@ pub struct CopyPlan {
 impl CopyPlan {
     /// Walks `from` (no links followed) for what `what` takes.
     pub fn new(from: &Path, what: CopyWhat) -> CopyPlan {
+        Self::new_until(from, what, &AtomicBool::new(false)).unwrap_or_default()
+    }
+
+    /// Walks `from` (no links followed) for what `what` takes, returning `None` if `stop` is set.
+    pub fn new_until(from: &Path, what: CopyWhat, stop: &AtomicBool) -> Option<CopyPlan> {
         let mut plan = CopyPlan::default();
+        if stop.load(Ordering::Relaxed) {
+            return None;
+        }
         let Ok(top) = fs::read_dir(from) else {
             // A source that was never started has no directory yet: nothing to copy.
-            return plan;
+            return Some(plan);
         };
         let mut stack: Vec<PathBuf> = Vec::new();
         for entry in top.flatten() {
+            if stop.load(Ordering::Relaxed) {
+                return None;
+            }
             let name = entry.file_name().to_string_lossy().into_owned();
             let Ok(kind) = entry.file_type() else {
                 continue;
@@ -178,6 +189,9 @@ impl CopyPlan {
             }
         }
         while let Some(dir) = stack.pop() {
+            if stop.load(Ordering::Relaxed) {
+                return None;
+            }
             let entries = match fs::read_dir(from.join(&dir)) {
                 Ok(e) => e,
                 Err(e) => {
@@ -186,6 +200,9 @@ impl CopyPlan {
                 }
             };
             for entry in entries.flatten() {
+                if stop.load(Ordering::Relaxed) {
+                    return None;
+                }
                 let rel = dir.join(entry.file_name());
                 match entry.file_type() {
                     Ok(t) if t.is_symlink() => plan
@@ -206,7 +223,7 @@ impl CopyPlan {
         }
         // Parents before children (the walk is depth-first from a stack).
         plan.dirs.sort();
-        plan
+        Some(plan)
     }
 
     pub fn files(&self) -> u64 {
@@ -443,6 +460,8 @@ mod tests {
         assert_eq!(answer, None);
         assert_eq!(copied, 2);
         assert_eq!(tree(&to).len(), 2);
+        // Stopping during the counting walk returns None right away.
+        assert!(CopyPlan::new_until(&src, CopyWhat::Everything { worlds: true }, &stop).is_none());
         let _ = fs::remove_dir_all(&root);
     }
 

@@ -532,13 +532,35 @@ pub(super) fn file_row(
         let v = &mut this.instances;
         if v.viewing.as_ref().is_some_and(|(r, _)| *r == rel) {
             v.viewing = None;
-        } else {
-            let lines = content::preview(&path, VIEW_LINES, VIEW_WIDTH)
-                .map(|l| l.into_iter().map(SharedString::from).collect())
-                .map_err(|e| SharedString::from(format!("{e:#}")));
-            v.viewing = Some((rel.clone(), lines));
+            cx.notify();
+            return;
         }
+        let generation = v.generation;
+        let rel_done = rel.clone();
+        let path_bg = path.clone();
+        v.viewing = Some((rel.clone(), Ok(Vec::new())));
         cx.notify();
+        let task = cx.background_spawn(async move {
+            content::preview(&path_bg, VIEW_LINES, VIEW_WIDTH)
+                .map(|l| l.into_iter().map(SharedString::from).collect())
+                .map_err(|e| SharedString::from(format!("{e:#}")))
+        });
+        cx.spawn(async move |this, cx| {
+            let lines = task.await;
+            let _ = this.update(cx, |app, cx| {
+                if app.instances.generation == generation
+                    && app
+                        .instances
+                        .viewing
+                        .as_ref()
+                        .is_some_and(|(r, _)| *r == rel_done)
+                {
+                    app.instances.viewing = Some((rel_done, lines));
+                    cx.notify();
+                }
+            });
+        })
+        .detach();
     };
     let mut actions = Vec::new();
     // The Logs tab already shows the end of latest.log above the list.
@@ -553,7 +575,10 @@ pub(super) fn file_row(
                 SharedString::from(format!("inst-{folder}-view-{i}")),
                 &t(if shown { "inst.view_hide" } else { "inst.view" }),
             )
-            .on_click(cx.listener(move |this, _, _, cx| toggle(this, cx)))
+            .on_click(cx.listener(move |this, _, _, cx| {
+                cx.stop_propagation();
+                toggle(this, cx);
+            }))
             .into_any_element(),
         );
     }
@@ -567,7 +592,10 @@ pub(super) fn file_row(
                 "inst.open"
             }),
         )
-        .on_click(cx.listener(move |_, _, _, _| open_path(&open)))
+        .on_click(cx.listener(move |_, _, _, cx| {
+            cx.stop_propagation();
+            open_path(&open);
+        }))
         .into_any_element(),
     );
     let target = game_dir.join(&it.rel);
@@ -582,7 +610,7 @@ pub(super) fn file_row(
     )
     .cursor_pointer()
     .on_click(cx.listener(move |this, _, _, cx| {
-        if text {
+        if text && !tailed {
             toggle(this, cx);
         } else {
             open_path(&target);

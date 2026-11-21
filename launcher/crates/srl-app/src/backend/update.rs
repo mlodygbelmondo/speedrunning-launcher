@@ -503,9 +503,20 @@ mod apps_entry {
     /// alone.
     #[cfg_attr(not(windows), allow(dead_code))]
     pub(super) fn is_installed_here(install_location: &str, dir: &Path) -> bool {
-        let folder = |s: &str| s.trim_end_matches(['\\', '/']).to_lowercase();
-        !install_location.trim().is_empty()
-            && folder(install_location) == folder(&dir.to_string_lossy())
+        let folder = |s: &str| {
+            let s = s.trim().replace('/', "\\");
+            let s = if let Some(unc) = s
+                .strip_prefix(r"\\?\UNC\")
+                .or_else(|| s.strip_prefix(r"\\?\unc\"))
+            {
+                format!(r"\\{unc}")
+            } else {
+                s.strip_prefix(r"\\?\").unwrap_or(&s).to_string()
+            };
+            s.trim_end_matches('\\').to_lowercase()
+        };
+        let loc = folder(install_location);
+        !loc.is_empty() && loc == folder(&dir.to_string_lossy())
     }
 
     /// Sets the entry's `DisplayVersion` to `version` when the entry exists and names `dir`.
@@ -582,9 +593,21 @@ mod tests {
         for location in [
             r"C:\Users\Violet\AppData\Local\Programs\Speedrunning Launcher\",
             r"c:\users\violet\appdata\local\programs\speedrunning launcher",
+            r"\\?\C:\Users\Violet\AppData\Local\Programs\Speedrunning Launcher\",
+            "C:/Users/Violet/AppData/Local/Programs/Speedrunning Launcher/",
         ] {
             assert!(apps_entry::is_installed_here(location, dir), "{location}");
         }
+        assert!(apps_entry::is_installed_here(
+            r"C:\Users\Violet\AppData\Local\Programs\Speedrunning Launcher\",
+            std::path::Path::new(
+                r"\\?\C:\Users\Violet\AppData\Local\Programs\Speedrunning Launcher"
+            ),
+        ));
+        assert!(apps_entry::is_installed_here(
+            r"\\server\share\Speedrunning Launcher\",
+            std::path::Path::new(r"\\?\UNC\server\share\Speedrunning Launcher"),
+        ));
         for location in ["", r"D:\Games\Speedrunning Launcher\"] {
             assert!(!apps_entry::is_installed_here(location, dir), "{location}");
         }

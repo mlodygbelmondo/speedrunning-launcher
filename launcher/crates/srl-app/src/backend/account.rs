@@ -211,14 +211,20 @@ pub struct AccountSnapshot {
 }
 
 impl AccountSnapshot {
+    /// Who Play starts the game as, from this snapshot.
+    pub fn play_as(&self) -> PlayAs {
+        let active = self
+            .accounts
+            .iter()
+            .find(|a| Some(a.uuid) == self.active)
+            .map(|a| (a.uuid, a.needs_login));
+        play_as(self.available, self.signed_in_once, active)
+    }
+
     /// The account Play uses, if any (`play_as`): the active one, in a build that can log in.
     pub fn playing(&self) -> Option<&AccountView> {
         let active = self.accounts.iter().find(|a| Some(a.uuid) == self.active);
-        match play_as(
-            self.available,
-            self.signed_in_once,
-            active.map(|a| (a.uuid, a.needs_login)),
-        ) {
+        match self.play_as() {
             PlayAs::Offline | PlayAs::SignInFirst => None,
             PlayAs::Microsoft(_) | PlayAs::Relogin(_) => active,
         }
@@ -461,6 +467,8 @@ struct Inner {
     skin_urls: Mutex<HashMap<Uuid, String>>,
     skins_dir: PathBuf,
     http: reqwest::Client,
+    /// Notified after login, switch, logout or background refresh reloads accounts.
+    listeners: Mutex<Vec<Arc<dyn Fn() + Send + Sync>>>,
 }
 
 impl RealAccounts {
@@ -486,6 +494,7 @@ impl RealAccounts {
             skin_urls: Mutex::new(HashMap::new()),
             skins_dir: paths.meta().join("skins"),
             http,
+            listeners: Mutex::new(Vec::new()),
         });
         let list = inner.rt.block_on(inner.auth.accounts());
         inner.apply_list(list);
@@ -507,6 +516,16 @@ impl RealAccounts {
     /// The `Auth` handle, for Play.
     pub fn auth(&self) -> &Auth {
         &self.inner.auth
+    }
+
+    /// Runs `f` whenever a login, switch, log out or background refresh finishes.
+    pub fn on_change(&self, f: impl Fn() + Send + Sync + 'static) {
+        self.inner.listeners.lock().unwrap().push(Arc::new(f));
+    }
+
+    /// Re-reads the saved accounts (e.g. after `prepare_launch` marks an account for relogin).
+    pub async fn reload(&self) {
+        self.inner.reload().await;
     }
 }
 
@@ -642,6 +661,13 @@ impl Inner {
         self.apply_list(list);
     }
 
+    fn notify_listeners(&self) {
+        let listeners = self.listeners.lock().unwrap().clone();
+        for f in listeners {
+            f();
+        }
+    }
+
     /// Runs an account action on the runtime; a failure shows under the list.
     fn act<F>(self: &Arc<Self>, what: &'static str, f: impl FnOnce(Auth) -> F + Send + 'static)
     where
@@ -656,6 +682,9 @@ impl Inner {
                 me.update(|s| s.problem = Some(AccountProblem::of(e)));
             }
             me.reload().await;
+            if r.is_ok() {
+                me.notify_listeners();
+            }
         });
     }
 }
@@ -709,6 +738,7 @@ impl Accounts for RealAccounts {
                         info.name, info.uuid
                     ));
                     me.reload().await;
+                    me.notify_listeners();
                     LoginOutcome::Done(me.view(&info))
                 }
                 Err(e) => {
@@ -775,6 +805,7 @@ impl Accounts for RealAccounts {
             }
             if !results.is_empty() {
                 me.reload().await;
+                me.notify_listeners();
             }
         });
     }
@@ -802,6 +833,8 @@ pub enum AccountsPreset {
     LoginError,
     /// Violet_Runner logged in and active, no dialog (the `msa-*` screen ids).
     SignedIn,
+    /// Violet_Runner active but expired (`needs_login`), no dialog (`msa-relogin`).
+    Relogin,
 }
 
 /// `FakeAccounts`' fixed data and simulated login.
@@ -872,9 +905,13 @@ impl FakeAccounts {
         };
         match preset {
             Unavailable | Empty | Login | LoginNoBrowser | LoginSteps | LoginError => {}
-            List | LoginDone | SignedIn => {
-                s.accounts = vec![fake_account(true)];
-                s.active = Some(s.accounts[0].uuid);
+            List | LoginDone | SignedIn | Relogin => {
+                let mut main = fake_account(true);
+                if preset == Relogin {
+                    main.needs_login = true;
+                }
+                s.active = Some(main.uuid);
+                s.accounts = vec![main];
                 s.signed_in_once = true;
             }
         }
@@ -963,7 +1000,9 @@ impl Accounts for FakeAccounts {
             update(&state, &events, |s| {
                 let a = fake_account(true);
                 s.signed_in_once = true;
-                if !s.accounts.iter().any(|x| x.uuid == a.uuid) {
+                if let Some(existing) = s.accounts.iter_mut().find(|x| x.uuid == a.uuid) {
+                    *existing = a.clone();
+                } else {
                     s.accounts.insert(0, a.clone());
                 }
                 s.active = Some(a.uuid);

@@ -466,6 +466,11 @@ async fn launch(core: &Core, instance: Instance, args: LaunchArgs) -> Result<()>
     if let Some(cmd) = &args.ready_cmd {
         let status = shell(cmd).status().await?;
         println!("ready-cmd: {status}");
+        if !status.success() {
+            let _ = game.process.stop_detailed(Duration::from_secs(30)).await;
+            game.wait().await;
+            bail!("--ready-cmd exited with {status}");
+        }
     }
     if let Some(exit) = game.process.exit() {
         game.wait().await;
@@ -523,12 +528,16 @@ fn shell(cmd: &str) -> tokio::process::Command {
 /// the output is already redirected (CI pipes it).
 #[cfg(windows)]
 fn attach_console() {
-    use windows_sys::Win32::System::Console::{
-        ATTACH_PARENT_PROCESS, AttachConsole, GetStdHandle, STD_OUTPUT_HANDLE,
+    use windows_sys::Win32::{
+        Foundation::{HANDLE, INVALID_HANDLE_VALUE},
+        System::Console::{
+            ATTACH_PARENT_PROCESS, AttachConsole, GetStdHandle, STD_ERROR_HANDLE, STD_OUTPUT_HANDLE,
+        },
     };
+    let missing = |handle: HANDLE| handle.is_null() || handle == INVALID_HANDLE_VALUE;
     // SAFETY: plain Win32 calls without pointers.
     unsafe {
-        if GetStdHandle(STD_OUTPUT_HANDLE).is_null() {
+        if missing(GetStdHandle(STD_OUTPUT_HANDLE)) && missing(GetStdHandle(STD_ERROR_HANDLE)) {
             AttachConsole(ATTACH_PARENT_PROCESS);
         }
     }

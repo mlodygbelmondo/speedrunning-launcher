@@ -1269,6 +1269,35 @@ fn is_our_game(stamp: &PidFile) -> bool {
     unsafe { libc::kill(stamp.pid as libc::pid_t, 0) == 0 }
 }
 
+#[cfg_attr(not(windows), allow(dead_code))]
+fn is_java_image(image: &str) -> bool {
+    let file = image.rsplit(['\\', '/']).next().unwrap_or(image);
+    file.eq_ignore_ascii_case("java.exe") || file.eq_ignore_ascii_case("javaw.exe")
+}
+
+#[cfg(windows)]
+unsafe fn process_image_name(handle: windows_sys::Win32::Foundation::HANDLE) -> Option<String> {
+    use windows_sys::Win32::{
+        Foundation::{ERROR_INSUFFICIENT_BUFFER, GetLastError},
+        System::Threading::QueryFullProcessImageNameW,
+    };
+    let mut cap = 1024usize;
+    while cap <= 32_768 {
+        let mut buf = vec![0u16; cap];
+        let mut len = buf.len() as u32;
+        // SAFETY: `handle` is open with PROCESS_QUERY_LIMITED_INFORMATION; `buf` holds `len` u16s.
+        if unsafe { QueryFullProcessImageNameW(handle, 0, buf.as_mut_ptr(), &mut len) } != 0 {
+            return Some(String::from_utf16_lossy(&buf[..len as usize]));
+        }
+        // SAFETY: reads this thread's last Win32 error code.
+        if unsafe { GetLastError() } != ERROR_INSUFFICIENT_BUFFER {
+            return None;
+        }
+        cap *= 2;
+    }
+    None
+}
+
 #[cfg(windows)]
 fn is_our_game(stamp: &PidFile) -> bool {
     use windows_sys::Win32::{
@@ -1291,8 +1320,16 @@ fn is_our_game(stamp: &PidFile) -> bool {
         };
         let (mut created, mut exited, mut kernel, mut user) = (zero, zero, zero, zero);
         let times = GetProcessTimes(handle, &mut created, &mut exited, &mut kernel, &mut user) != 0;
+        let image = if alive && times {
+            process_image_name(handle)
+        } else {
+            None
+        };
         CloseHandle(handle);
-        if !alive || !times {
+        let Some(image) = image else {
+            return false;
+        };
+        if !is_java_image(&image) {
             return false;
         }
         // FILETIME counts 100 ns steps since 1601; the process must have started when the
@@ -1693,5 +1730,14 @@ A potential solution has been determined, this may resolve your problem:
         std::fs::remove_file(&java).unwrap();
         assert_eq!(core.local_state(custom), Local::NotInstalled);
         std::fs::remove_dir_all(&root).unwrap();
+    }
+
+    #[test]
+    fn java_image_check_matches_only_java_executables() {
+        assert!(is_java_image(r"C:\Program Files\Java\bin\java.exe"));
+        assert!(is_java_image(r"C:\Program Files\Java\bin\JAVAW.EXE"));
+        assert!(is_java_image("java.exe"));
+        assert!(!is_java_image(r"C:\Windows\System32\notepad.exe"));
+        assert!(!is_java_image(r"C:\Tools\notjava.exe"));
     }
 }

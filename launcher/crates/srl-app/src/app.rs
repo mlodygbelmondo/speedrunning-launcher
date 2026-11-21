@@ -219,7 +219,7 @@ pub struct Launcher {
     /// `account.active_name()` is the Microsoft account Play uses, if any.
     pub account: AccountSnapshot,
     /// A re-render is booked for when the login dialog's "valid for N min" changes.
-    pub login_tick: bool,
+    pub login_tick: Option<gpui::Task<()>>,
     /// The login dialog's link was copied (the button says so until the dialog closes).
     pub link_copied: bool,
     /// The last state the practice extension reported: the maps and the practice game.
@@ -290,12 +290,15 @@ impl Launcher {
         // The first start (no deep link) offers the settings import once, after the name. The
         // scan starts now, so the offer knows by then whether there is anything to offer.
         let offer = start.offer_import && !snap.settings.import_offered;
-        if offer && snap.settings.player_name.is_some() {
+        if offer && (snap.settings.player_name.is_some() || account.active_name().is_some()) {
             page = Page::Import;
         }
         // No name yet: the prompt comes first, whatever the deep link asked for (but the
         // screenshot states of the game screen keep their page).
-        if snap.settings.player_name.is_none() && page != Page::Game {
+        if snap.settings.player_name.is_none()
+            && account.active_name().is_none()
+            && page != Page::Game
+        {
             page = Page::Name;
         }
         if offer || start.page == Page::Import {
@@ -404,7 +407,7 @@ impl Launcher {
                 focus: draftout_focus,
             },
             account,
-            login_tick: false,
+            login_tick: None,
             link_copied: false,
             practice,
             practice_reveal: start.practice_open.is_some(),
@@ -561,11 +564,47 @@ impl Launcher {
                 self.stats.apply(ev);
             }
             Event::Account(snap) => {
+                let old_expires = self
+                    .account
+                    .login
+                    .as_ref()
+                    .and_then(|l| l.device.as_ref())
+                    .map(|d| d.expires_at);
+                let new_expires = snap
+                    .login
+                    .as_ref()
+                    .and_then(|l| l.device.as_ref())
+                    .map(|d| d.expires_at);
                 if snap.login.is_none() {
                     self.link_copied = false;
+                    self.login_tick = None;
+                } else if new_expires != old_expires {
+                    self.login_tick = None;
                 }
+                let login_done = matches!(
+                    snap.login.as_ref().map(|l| &l.outcome),
+                    Some(crate::backend::account::LoginOutcome::Done(_))
+                ) && !matches!(
+                    self.account.login.as_ref().map(|l| &l.outcome),
+                    Some(crate::backend::account::LoginOutcome::Done(_))
+                );
+                let auth_changed = login_done
+                    || snap.active != self.account.active
+                    || snap.signed_in_once != self.account.signed_in_once
+                    || snap
+                        .accounts
+                        .iter()
+                        .map(|a| (a.uuid, a.needs_login))
+                        .ne(self
+                            .account
+                            .accounts
+                            .iter()
+                            .map(|a| (a.uuid, a.needs_login)));
                 let names = self.stats_names();
                 self.account = *snap;
+                if auth_changed {
+                    self.clear_sign_in_failures();
+                }
                 // The Ranked and Draftout names may default to the Microsoft account's: after a
                 // login, a switch or a log out, look up the new name (its cache, or the API when
                 // Stats is open, as opening it would).
@@ -587,6 +626,9 @@ impl Launcher {
             }
             Event::Update(state) => self.update = state,
             Event::CustomState(id, state) => {
+                if !matches!(state, ModeState::Running | ModeState::Installing(_)) {
+                    self.instances.stopping.remove(&id);
+                }
                 let snap = self.customs.entry(id).or_insert_with(|| ModeSnapshot {
                     state: ModeState::NotInstalled,
                     info: Default::default(),
@@ -625,6 +667,29 @@ impl Launcher {
 
     pub fn backend(&self) -> &dyn Backend {
         &*self.backend
+    }
+
+    /// Clears `FailKind::SignIn` states after an account login, switch or log out so Play does not
+    /// stay stuck on a stale sign-in failure.
+    fn clear_sign_in_failures(&mut self) {
+        let clear = |state: &mut ModeState| {
+            if let ModeState::Failed(f) = state
+                && f.kind == crate::backend::FailKind::SignIn
+            {
+                *state = if f.installed {
+                    ModeState::Ready
+                } else {
+                    ModeState::NotInstalled
+                };
+            }
+        };
+        for m in &mut self.modes {
+            clear(&mut m.state);
+        }
+        for c in self.customs.values_mut() {
+            clear(&mut c.state);
+        }
+        clear(&mut self.practice.game.state);
     }
 
     fn apply_practice(&mut self, ev: PracticeEvent) {
@@ -674,9 +739,10 @@ impl Launcher {
     // -----------------------------------------------------------------------------------------
 
     /// The Play button of mode `mi`: install if needed and launch, or show the game screen if it
-    /// already runs. Without a player name the prompt comes first.
+    /// already runs. Without a player name (and without an active Microsoft account) the prompt
+    /// comes first.
     pub fn play(&mut self, mi: usize, cx: &mut Context<Self>) {
-        if self.settings.player_name.is_none() {
+        if self.settings.player_name.is_none() && self.account.active_name().is_none() {
             self.return_to = self.target;
             self.navigate(Page::Name, cx);
             return;
@@ -701,10 +767,12 @@ impl Launcher {
     }
 
     /// Why "Restart to update" has to wait, as a copy key: a game this launcher started is
-    /// running (restarting would lose track of it), or something is installing (a mode, the
-    /// practice game, a map, a tool, an import). `None`: it can restart now.
+    /// running (restarting would lose track of it), or something is installing (a mode, a custom
+    /// instance, the practice game, a map, a tool, an import or a copy). `None`: it can restart
+    /// now.
     pub fn restart_blocker(&self) -> Option<&'static str> {
         let game = self.modes.iter().any(|m| m.state == ModeState::Running)
+            || self.customs.values().any(|m| m.state == ModeState::Running)
             || self.practice.game.state == ModeState::Running;
         if game {
             return Some("settings.update_wait_game");
@@ -713,13 +781,18 @@ impl Launcher {
             .modes
             .iter()
             .any(|m| matches!(m.state, ModeState::Installing(_)))
+            || self
+                .customs
+                .values()
+                .any(|m| matches!(m.state, ModeState::Installing(_)))
             || matches!(self.practice.game.state, ModeState::Installing(_))
             || self.practice.maps.iter().any(|m| m.job.is_some())
             || self
                 .tools
                 .iter()
                 .any(|t| matches!(t.state, ToolState::Installing(_)))
-            || self.import.progress.is_some();
+            || self.import.progress.is_some()
+            || self.copying.is_some();
         installing.then_some("settings.update_wait_install")
     }
 
@@ -802,15 +875,34 @@ impl Launcher {
     /// pick the instance and ← and → the tab; Esc closes the Instances page's question, or goes
     /// back from the game screen.
     fn global_key(&mut self, ev: &gpui::KeyDownEvent, window: &mut Window, cx: &mut Context<Self>) {
-        // Nothing behind the login dialog moves either.
-        if !self.root_focus.is_focused(window)
-            || self.data_error.is_some()
-            || self.account.login.is_some()
-        {
+        if !self.root_focus.is_focused(window) || self.data_error.is_some() {
             return;
         }
         let k = &ev.keystroke;
         let ctrl = k.modifiers.control || k.modifiers.platform;
+        let plain = !ctrl && !k.modifiers.alt && !k.modifiers.shift;
+        // Nothing behind the login dialog moves; Esc closes it once it has finished.
+        if let Some(login) = &self.account.login {
+            if plain
+                && k.key == "escape"
+                && matches!(
+                    login.outcome,
+                    crate::backend::account::LoginOutcome::Done(_)
+                        | crate::backend::account::LoginOutcome::Failed(_)
+                )
+            {
+                self.backend().account().close_login();
+            }
+            return;
+        }
+        // Nothing behind a Practice confirmation moves either; Esc closes it.
+        if self.practice_ask.is_some() {
+            if plain && k.key == "escape" {
+                self.practice_ask = None;
+                cx.notify();
+            }
+            return;
+        }
         if k.modifiers.alt || k.modifiers.shift {
             return;
         }

@@ -1,9 +1,9 @@
 //! Settings in the v3 style: two columns of sections with hairline rows over the overworld art band.
 //! Left: language, the player name and the settings import, the Microsoft account (`account.rs`; in a build without
 //! Microsoft login only its one line), the Ranked and Draftout names for Stats, the optional mods,
-//! the data folder. Right: every mode's Java and memory in one table, then About (the version, the
-//! launcher's own updates, Mojang's disclaimer and the credits). The page scrolls once it is taller than the window. Every
-//! change is saved at once through the backend; the names when their edit ends.
+//! the data folder. Right: About (the version, the launcher's own updates, Mojang's disclaimer
+//! and the credits) and Keyboard shortcuts. The page scrolls once it is taller than the window.
+//! Every change is saved at once through the backend; the names when their edit ends.
 //!
 //! The credits are a view of their own (`Launcher::settings_credits`): `assets/credits.md` (or
 //! `credits.pl.md`) for the player, and every adapted project's licence from

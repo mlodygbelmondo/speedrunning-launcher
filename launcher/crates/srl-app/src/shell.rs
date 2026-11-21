@@ -224,7 +224,7 @@ impl Launcher {
                 )
             });
 
-        // Accounts isn't built yet; the player name lives in Settings, so the block opens it.
+        // Accounts and the offline player name live in Settings, so the block opens it.
         let me = self
             .account_block()
             .id("nav-account")

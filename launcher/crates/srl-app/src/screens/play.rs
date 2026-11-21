@@ -96,9 +96,17 @@ pub enum Fix {
     SignInFirst,
 }
 
-/// GB with at most one decimal ("6", "1.5").
-fn gb(mb: u32) -> String {
-    format!("{}", (mb as f32 / 1024. * 10.).round() / 10.)
+/// GB with at most one decimal ("6", "1.5", or "1,5" in Polish).
+pub fn gb(mb: u32) -> String {
+    format_gb(mb, crate::copy::lang())
+}
+
+fn format_gb(mb: u32, lang: crate::backend::Language) -> String {
+    let s = format!("{}", (mb as f32 / 1024. * 10.).round() / 10.);
+    match lang {
+        crate::backend::Language::Pl => s.replace('.', ","),
+        crate::backend::Language::En => s,
+    }
 }
 
 /// The heap the JVM couldn't reserve, in MiB, from its words ("Could not reserve enough space
@@ -166,9 +174,14 @@ impl Launcher {
             }
             FailDetail::Stopped(reason) => draftout_refused(reason).map(Fix::Mods),
             FailDetail::Account(p) if p.key == crate::backend::account::SIGN_IN_FIRST => {
-                Some(Fix::SignInFirst)
+                (self.account.play_as() == crate::backend::account::PlayAs::SignInFirst)
+                    .then_some(Fix::SignInFirst)
             }
-            FailDetail::Account(p) if p.relogin => Some(Fix::Relogin),
+            FailDetail::Account(p) if p.relogin => matches!(
+                self.account.play_as(),
+                crate::backend::account::PlayAs::Relogin(_)
+            )
+            .then_some(Fix::Relogin),
             _ => None,
         }
     }
@@ -540,5 +553,19 @@ impl Launcher {
                         })),
                 ),
         )
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::backend::Language;
+
+    #[test]
+    fn gb_uses_language_decimal_separator() {
+        assert_eq!(format_gb(2048, Language::En), "2");
+        assert_eq!(format_gb(2048, Language::Pl), "2");
+        assert_eq!(format_gb(1536, Language::En), "1.5");
+        assert_eq!(format_gb(1536, Language::Pl), "1,5");
     }
 }

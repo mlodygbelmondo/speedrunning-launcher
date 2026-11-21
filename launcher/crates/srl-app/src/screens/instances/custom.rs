@@ -22,10 +22,13 @@ impl Launcher {
         let ids: Vec<CustomId> = list.iter().map(|c| c.id).collect();
         self.settings.custom_instances = list;
         self.customs.retain(|id, _| ids.contains(id));
-        if let InstKey::Custom(id) = self.instances.sel
-            && !ids.contains(&id)
-        {
-            self.select_instance(InstKey::Shared, cx);
+        self.instances.stopping.retain(|id| ids.contains(id));
+        if let InstKey::Custom(id) = self.instances.sel {
+            if !ids.contains(&id) {
+                self.select_instance(InstKey::Shared, cx);
+            } else {
+                self.instances.reload_fields = true;
+            }
         }
         cx.notify();
     }
@@ -298,7 +301,7 @@ impl Launcher {
         let press = if live { Press::Live } else { Press::Busy };
         let btn = play_button("inst-custom-play", &label, hint, w, h, 15., press).when(live, |b| {
             b.on_click(cx.listener(move |this, _, _, cx| {
-                if this.settings.player_name.is_none() {
+                if this.settings.player_name.is_none() && this.account.active_name().is_none() {
                     this.return_to = Page::Instances;
                     this.navigate(Page::Name, cx);
                 } else {

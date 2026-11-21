@@ -187,6 +187,10 @@ impl Launcher {
             .flex_col()
             .child(section_head(&t("auth.title")).mb(px(14.)))
             .children(rows)
+            .children(
+                a.keystore_file
+                    .then(|| note(&t("auth.keystore_file"), faint3())),
+            )
             .children(a.problem.as_ref().map(|p| {
                 div()
                     .flex()
@@ -394,16 +398,16 @@ impl Launcher {
         match (&view.device, &view.device_failed) {
             (_, Some(_)) => right = right.child(text(&t("auth.device_unavailable"), faint3())),
             (Some(d), None) => {
-                let left_min = (d.expires_at - Utc::now()).num_seconds();
-                let expiry = if left_min > 0 {
+                let secs_left = (d.expires_at - Utc::now()).num_seconds();
+                let expiry = if secs_left > 0 {
                     tf(
                         "auth.device_expires",
-                        &[("minutes", &((left_min + 59) / 60).to_string())],
+                        &[("minutes", &((secs_left + 59) / 60).to_string())],
                     )
                 } else {
                     t("auth.device_expired")
                 };
-                self.tick_each_minute(left_min, cx);
+                self.tick_each_minute(secs_left, cx);
                 let qr = d.qr.as_ref().map(|m| qr_code(m, 164.).0);
                 let host = d
                     .verification_uri
@@ -456,19 +460,17 @@ impl Launcher {
     /// Re-renders when the code's minutes-left label changes (once a minute, only while the
     /// dialog shows a code), so an open dialog stays idle in between.
     fn tick_each_minute(&mut self, seconds_left: i64, cx: &mut Context<Self>) {
-        if self.login_tick || seconds_left <= 0 {
+        if self.login_tick.is_some() || seconds_left <= 0 {
             return;
         }
-        self.login_tick = true;
-        let wait = Duration::from_secs((seconds_left % 60) as u64 + 1);
-        cx.spawn(async move |this, cx| {
+        let wait = Duration::from_secs(((seconds_left - 1) % 60) as u64 + 1);
+        self.login_tick = Some(cx.spawn(async move |this, cx| {
             cx.background_executor().timer(wait).await;
             let _ = this.update(cx, |app, cx| {
-                app.login_tick = false;
+                app.login_tick = None;
                 cx.notify();
             });
-        })
-        .detach();
+        }));
     }
 
     fn login_done(v: &AccountView) -> Div {

@@ -10,17 +10,17 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/mlodygbelmondo/speedrunning-launcher/actions/workflows/launcher.yml"><img src="https://github.com/mlodygbelmondo/speedrunning-launcher/actions/workflows/launcher.yml/badge.svg?branch=launcher" alt="CI status"></a>
+  <a href="https://github.com/mlodygbelmondo/speedrunning-launcher/actions/workflows/launcher.yml"><img src="https://github.com/mlodygbelmondo/speedrunning-launcher/actions/workflows/launcher.yml/badge.svg?branch=main" alt="CI status"></a>
 </p>
 
 ![The Play page with RSG selected](docs/images/home-rsg.jpg)
 
 > [!NOTE]
-> **Early development.** Milestones 1 and 2 work, and most of milestone 3: the launcher installs and starts all five
-> modes with an offline account, starts Ninjabrain Bot, Toolscreen (Windows) or waywall (Linux) with the game, shows
-> your stats and installs practice maps. Microsoft login is built but off until Mojang approves our client ID. It is
-> **not yet on
-> speedrun.com's list of allowed launchers** (rule A.1.1), so don't submit runs made with it yet.
+> **Early development (v0.3.0).** Milestones 1–3, custom instances, settings import, the Windows installer and
+> auto-update are built: the launcher installs and starts all five modes with an offline account, starts Ninjabrain
+> Bot, Toolscreen (Windows) or waywall (Linux) with the game, shows your stats and installs practice maps. Microsoft
+> login is built but off until Mojang approves our client ID. It is **not yet on speedrun.com's list of allowed
+> launchers** (rule A.1.1), so don't submit runs made with it yet.
 
 ## Why another launcher
 
@@ -30,9 +30,9 @@
   against the community's `legal-builds.csv`, and the Ranked, FSG and Draftout mods against their published hashes.
   Jars that don't belong to the set are taken out; ones you added yourself go to `mods-removed/`, never deleted.
 - **One instance, your mods.** Ranked, RSG, FSG and SSG share one Minecraft 1.16.1 instance: the same options,
-  keys, worlds and resource packs. Each mode is a set of mods (and its own Atum settings), and on the Mods page you
-  turn mods on and off like in MultiMC, or add your own jars. A set that isn't legal for the mode is flagged; the
-  game still starts.
+  keys, worlds and resource packs. Each mode is a set of mods (and its own Atum settings), and on the Instances page
+  (Mods tab) you turn mods on and off like in MultiMC, or add your own jars. A set that isn't legal for the mode is
+  flagged; the game still starts.
 - **Tools with the game.** Ninjabrain Bot and, on Windows, Toolscreen are installed at legal versions, checked by
   hash, start with the game and close when it exits. You choose per mode which ones start; Draftout, which bans
   Ninjabrain Bot, never gets it. On Linux the launcher can run the game inside your own waywall.
@@ -56,7 +56,7 @@ content-addressed store.
 
 <table>
   <tr>
-    <td><img src="docs/images/modes.jpg" alt="The Modes page"></td>
+    <td><img src="docs/images/modes.jpg" alt="The Instances page"></td>
     <td><img src="docs/images/installing.jpg" alt="Installing a mode, with progress"></td>
   </tr>
 </table>
@@ -94,7 +94,7 @@ checks it against the release's SHA-256 and installs it for the next start (Sett
 [Code signing policy](#code-signing-policy)), SmartScreen may ask: choose *More info*, then *Run anyway*. The release
 notes say whether a build is signed.
 
-Test builds of every change on the `launcher` branch are the
+Test builds of every change on the `main` and `launcher` branches are the
 [`launcher-latest`](https://github.com/mlodygbelmondo/speedrunning-launcher/releases/tag/launcher-latest)
 prerelease. They update themselves to the next numbered release once it is newer than their version.
 
@@ -139,8 +139,8 @@ On Windows, build with the MSVC toolchain. Release builds also need the Windows 
     every mode plays with an offline account.
   - Tested end to end on Linux.
 - [ ] Approval as an allowed launcher on speedrun.com.
-- [ ] Auto-update: built (numbered releases from version tags, and the launcher updates itself from them); waits
-  for the first release and a test on Windows.
+- [ ] Auto-update: built (numbered releases from version tags, `v0.1.0`–`v0.3.0` published, and the launcher updates
+  itself from them); waits for a test on Windows.
 - [ ] Installer and code signing: the installer is built (per user, no admin rights); signing waits for SignPath.
 
 Day-to-day progress is in [`WORKLOG.md`](WORKLOG.md) (in Polish).
@@ -149,7 +149,7 @@ Day-to-day progress is in [`WORKLOG.md`](WORKLOG.md) (in Polish).
 
 | Path | What's there |
 |---|---|
-| [`launcher/`](launcher/) | The app. Crates: `srl-core` (shared types, verified downloads), `srl-game` (Minecraft, Java, Fabric, starting the game), `srl-mods` (legal mod sets), `srl-tools` (Ninjabrain Bot, Toolscreen, waywall), `srl-stats` (SpeedRunIGT records, MCSR Ranked and Draftout), `srl-practice` (practice maps), `srl-auth` (Microsoft login), `srl-app` (the GPUI app). |
+| [`launcher/`](launcher/) | The app. Crates: `srl-core` (shared types, verified downloads), `srl-game` (Minecraft, Java, Fabric, starting the game), `srl-mods` (legal mod sets), `srl-tools` (Ninjabrain Bot, Toolscreen, waywall), `srl-stats` (SpeedRunIGT records, MCSR Ranked and Draftout), `srl-practice` (practice maps), `srl-auth` (Microsoft login), `srl-import` (settings import from other launchers), `srl-update` (launcher self-update), `srl-app` (the GPUI app). |
 | [`bakeoff/`](bakeoff/) | The Tauri, Electron and GPUI performance bake-off, and the prototype the app's design comes from. |
 | [`research/`](research/) | Research reports: tech stack, the MCSR ecosystem, launcher internals, practice maps, visual directions. |
 | [`design-proposals/`](design-proposals/) | Redesign mockups and the Blender sources of the key art. |

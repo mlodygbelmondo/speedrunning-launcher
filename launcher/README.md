@@ -161,8 +161,8 @@ fontconfig are loaded at runtime):
 sudo apt install build-essential pkg-config libxkbcommon-dev libxkbcommon-x11-dev libxcb1-dev \
   libwayland-dev libfontconfig-dev libfreetype-dev libvulkan1
 export CARGO_TARGET_DIR=$HOME/.cache/srl-target/<stream>
-srl-cpu cargo test -j 4 --workspace
-srl-cpu cargo build -j 4 --release              # -> $CARGO_TARGET_DIR/release/speedrunning-launcher
+cargo test --workspace
+cargo build --release                            # -> $CARGO_TARGET_DIR/release/speedrunning-launcher
 SRL_HOME=$HOME/.cache/srl-dev/<stream> speedrunning-launcher                  # the launcher
 SRL_HOME=$HOME/.cache/srl-dev/<stream> speedrunning-launcher --install rsg    # headless, exit code 1 on failure
 ```
@@ -172,11 +172,11 @@ GitHub's `windows-latest` has.
 
 ## CI and the Windows build
 
-`.github/workflows/launcher.yml` runs on every push to the `launcher` branch that touches `launcher/`, on every tag
-`v<version>` and by hand:
+`.github/workflows/launcher.yml` runs on every push to `main` or `launcher` that touches `launcher/`, on pull requests
+to `main` or `launcher`, on every tag `v<version>` and by hand:
 
 - **Linux:** `cargo fmt --check`, `cargo clippy -D warnings`, `cargo test --workspace`, the release build.
-- **Windows:** `cargo fmt --check`, `cargo test --workspace`, the release build (its version resource must name
+- **Windows:** `cargo fmt --check`, `cargo clippy -D warnings`, `cargo test --workspace`, the release build (its version resource must name
   the product; it also carries the icon, `assets/icon.ico`, `build.rs`), then a headless RSG install into an
   empty `SRL_HOME`, a headless install of Ninjabrain Bot and Toolscreen into another one (every file the launcher
   reports is hashed again with coreutils and must match a hash pinned in `srl-tools`), the move of a data folder
@@ -193,12 +193,12 @@ GitHub's `windows-latest` has.
   zip and the installer; then the installer goes through a second request (`tools/windows/SIGNPATH.md`). A run
   started by hand with `sign` ticked always signs (and fails without the SignPath settings); a tag signs when the
   `SIGNPATH_API_TOKEN` secret and the `SIGNPATH_ORGANIZATION_ID` variable are set, and builds unsigned when they
-  aren't; a push to `launcher` never signs.
-- **Publish**, when both pass: the installer and the zip, each with its SHA-256 next to it
+  aren't; a push to `main` or `launcher` (or a pull request) never signs.
+- **Publish**, when both pass (never on pull requests): the installer and the zip, each with its SHA-256 next to it
   (`speedrunning-launcher-setup.exe.sha256`, `speedrunning-launcher-windows.zip.sha256`, one `sha256sum` line
   each). The zip stays: it is the portable download and what every launcher, installed or not, updates itself
   from. Where they go:
-  - a push to `launcher`: the assets of the `launcher-latest` prerelease, a test build:
+  - a push to `main` or `launcher`: the assets of the `launcher-latest` prerelease, a test build:
     <https://github.com/mlodygbelmondo/speedrunning-launcher/releases/download/launcher-latest/speedrunning-launcher-setup.exe>
     and
     <https://github.com/mlodygbelmondo/speedrunning-launcher/releases/download/launcher-latest/speedrunning-launcher-windows.zip>;
@@ -210,7 +210,7 @@ GitHub's `windows-latest` has.
 
 1. Bump `version` under `[workspace.package]` in `launcher/Cargo.toml` (semver: `0.2.0`), run `cargo check` so
    `Cargo.lock` follows, and add a line to `WORKLOG.md`.
-2. Commit and push to `launcher` as usual.
+2. Commit and push to `main` (or `launcher`) as usual.
 3. Tag that commit and push the tag: `git tag v0.2.0 && git push origin v0.2.0`.
 
 CI builds, tests and publishes the release `v0.2.0`. Never move or reuse a version tag: launchers that already
@@ -259,12 +259,8 @@ itself; a local build and other systems say so in Settings → About and do noth
 
 ## Rules for everyone working here (agents included)
 
-- **CPU:** Piotr uses this laptop for other work at the same time. Run every heavy command through `srl-cpu`, which
-  puts it in a systemd slice capped at 8 of the 16 threads and 12 GB of RAM, shared by all agents. Heavy commands
-  include cargo builds and tests, the game, Xvfb, ffmpeg and pnpm. Examples: `srl-cpu cargo test -j 4 -p srl-mods`,
-  `srl-cpu xvfb-run ...`.
-  - Pass `-j 4` to cargo.
-  - Use your own target directory: `CARGO_TARGET_DIR=$HOME/.cache/srl-target/<stream>`.
+- **Builds and processes:**
+  - Use your own target directory when working in parallel: `CARGO_TARGET_DIR=$HOME/.cache/srl-target/<stream>`.
   - Never leave a game, Xvfb or watcher running when you finish.
 - **Never on Piotr's desktop:** start every GUI or game test inside Xvfb with
   env -u WAYLAND_DISPLAY SDL_VIDEO_DRIVER=x11 DISPLAY=<the Xvfb display>. Minecraft 26.x (SDL3) and GPUI both pick

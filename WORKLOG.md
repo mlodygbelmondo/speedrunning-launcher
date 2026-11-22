@@ -28,11 +28,10 @@ commicie, który coś zmienia. Najnowsze wpisy dziennika są na górze.
   aż jeden dał 9. Zakończona w rundzie 11 (9 i 8,5, start 7 i 7), wydana jako `v0.2.2`. Recenzenci przy drobnych
   sformułowaniach zmieniają zdanie co rundę, więc takie wybory rozstrzygamy raz i nie gonimy każdej uwagi.
 
-- **Stan:** `launcher` i `main` to ten sam commit, a pierwsze numerowane wydanie
-  `v0.1.0` jest opublikowane (2026-10-31, niepodpisane, `releases/latest`). Gotowe są M1, M2 i M3 (statystyki
+- **Stan:** `launcher` i `main` to ten sam commit, najnowsze wydanie to `v0.3.0` (`releases/latest`, niepodpisane). Gotowe są M1, M2 i M3 (statystyki
   z prawdziwych danych, mapy treningowe, logowanie Microsoft z ekranami), import ustawień z innych launcherów,
-  jedna instancja 1.16.1 ze stroną Mody, szlif UI i tekstów, blokada grania offline w wersji z client ID,
-  podpis SignPath po stronie CI i samoaktualizacja. Szczegóły w dzienniku.
+  jedna instancja 1.16.1 ze stroną Instancje/Mody, szlif UI i tekstów, blokada grania offline w wersji z client ID,
+  podpis SignPath po stronie CI, instalator Windows i samoaktualizacja. Szczegóły w dzienniku.
 - **Repozytorium jest publiczne** od 2026-10-31 (GPL-3.0-or-later), z jednym commitem na start. Historia sprzed
   niego jest w prywatnym `mlodygbelmondo/speedrunning-launcher-private` (lokalnie remote `private`).
 - **Podpis SignPath:** CI jest gotowe (ręczne uruchomienie z zaznaczonym `sign`, a wydania z tagu same, gdy
@@ -121,7 +120,7 @@ commicie, który coś zmienia. Najnowsze wpisy dziennika są na górze.
   - Wspólna instancja: niesprawdzona na Windowsie (jary kopiowane, nie linkowane), z prawdziwym oknem wyboru pliku
     i w prawdziwym meczu Ranked.
   - Z oceny ekranów zostały decyzje Piotra: Tryby względem Startu i własna grafika map (system przycisków
-    i typografii jest na gałęzi `design-system`, czeka na scalenie).
+    i typografii jest już scalony w `srl-app/src/v3.rs`).
 
 ## Plan
 
@@ -150,7 +149,7 @@ Pozostałe ekrany powstają od razu w prawdziwej aplikacji (etap 4), już tylko 
 - [x] Strategia: własna aplikacja i moduły Pandory (MIT).
 - [ ] Logowanie Microsoft: na razie konto offline. Własny client ID u Mojang później.
 - [ ] Legalizacja launchera na Discordzie MCSR (speedrun.com, reguła A.1.1), gdy będzie działająca wersja.
-- [ ] Licencja kodu (przed publikacją).
+- [x] Licencja kodu (przed publikacją) — GPL-3.0-or-later.
 
 ### Etap 4: prawdziwy launcher, gałąź `launcher`, katalog `launcher/`
 
@@ -188,7 +187,7 @@ M3: statystyki z prawdziwych danych, mapy treningowe i logowanie Microsoft. Stru
 - [x] Przegląd kodu M3 (rdzeń) i poprawki, scalenie do `launcher`.
 - [x] Ekrany: Statystyki, konto Microsoft w Ustawieniach i w Graj, Trening (`launcher/docs/m3-ui-plan.md`), 38c66c1.
 - [x] Granie offline w wersji z client ID dopiero po pierwszym zalogowaniu (decyzja Piotra).
-- [ ] Przegląd kodu ekranów M3 (pominięty, żeby oszczędzić limit).
+- [x] Przegląd kodu ekranów M3 i całego workspace'u (2026-11-21, audyt swarm + poprawki).
 - [ ] Client ID od Mojanga (Piotr, `launcher/docs/microsoft-login.md`).
 
 Poza planem, na prośbę Piotra:
@@ -257,6 +256,15 @@ Potem:
 - **2026-10-23:** styl A+D, czyli Violet Noir plus dane speedrunowe.
 
 ## Dziennik
+
+### 2026-11-21
+
+- **Pełny audyt kodu (swarm, 10 crate'ów + CI + dokumentacja) i poprawki:**
+  - `srl-app` i ekrany M3 (wcześniej nieprzejrzane): naprawiony deadlock przycisku Graj po `Fix::SignInFirst`/`Relogin` i po blokadzie niedozwolonego modu w Draftout; naprawione przyciski Podgląd/Edytuj/Otwórz w zakładkach Konfiguracja i Logi (`stop_propagation`); `restart_blocker()` uwzględnia teraz własne instancje i kopiowanie; ekran Treningu pokazuje `valid_until` (`auth.renew_warning`) i `tool_notes`, poprawnie wraca po `Page::Name`, pozwala anulować mapę w stanie oczekiwania i blokuje skróty klawiszowe oraz `Esc` przy otwartym oknie potwierdzenia; kafel Draftout w Statystykach ma akcję naprawy/ponowienia; Home filtruje delta elo po `MatchKind::Ranked`; renderowana notatka `keystore_file`; poprawiony `copy::size(0)` (`0 KB`), 6 polskich tłumaczeń i usuniętych 16 osieroconych kluczy pluralnych PL (z zaostrzonym testem); bezpieczny `open_path` na Windowsie (`ShellExecuteW` zamiast `cmd /C start`), poprawione `attach_console()`, normalizacja `\\?\` w `apps_entry::is_installed_here` oraz weryfikacja `java.exe`/`javaw.exe` przy przejmowaniu PID-ów.
+  - `srl-core`, `srl-game`, `srl-mods`, `srl-tools`: unikalne pliki tymczasowe `.part`/`.tmp` (koniec wyścigów przy równoległym pobieraniu i zapisie metadanych) i limit bajtów przy strumieniowaniu; normalizacja względnego `SRL_HOME`; dodanie `config/mcsr/atum.global` do `PER_MODE_FILES`, bezpieczne ponawianie `shared::switch_to` i przyrostowy zapis w `migrate()`; poprawka X11 `CLOSE_RESEND` (nie wysyła już `SIGTERM` po 3 s podczas zapisywania świata); walidacja PID (`!= 0 && <= i32::MAX`) w `kill`/`killpg` i sprawdzenie zombie na Linuksie; normalizacja ścieżek przed sprawdzeniem symlinków w `java::plan`; poprawki `srl-mods` (`known_jars` po wersji MC, zachowanie `keep_installed` przy przełączaniu trybów w `mcsr`, kolizje nazw i duplikaty SHA-512 własnych jarów); domknięty wyścig `Tools::release` vs `acquire_ninjabrain`, rozróżnienie brakującego Toolscreen od `Unverified`, poprawki `LegalDlls::load` na zimnym starcie, `ninjabrain` (ukryte okna na Windowsie, wymóg `-jar` na Linuksie) i `waywall`.
+  - `srl-auth`, `srl-update`, `srl-import`, `srl-practice`, `srl-stats`: naprawiony UB z null pointerem przy pustych blobach `CredReadW`/DPAPI na Windowsie, zerowanie kluczy (`Zeroizing` + wipe `pbData`), `spawn_blocking` dla CredMan, niezmienianie `chmod 0700` na całym katalogu głównym, clamping `expires_in`/`interval`/`Retry-After`; limit rozmiaru przy pobieraniu aktualizacji i guard `#[cfg(unix)]` na `set_permissions` w `swap.rs`; pomijanie `session.lock` i rollback przy imporcie, naprawa strażnika nakładania się ścieżek z `\\?\`; naprawa `world_in_use` na Windowsie (`ERROR_SHARING_VIOLATION` + `LockFileEx`) i Linuksie (`O_RDONLY`); wybór najnowszego `latest_world.json` po `mtime`, usuwanie cache po `NotFound`, nasycona arytmetyka i niewrażliwe na wielkość liter dopasowanie UUID w Draftout.
+  - CI, instalator i dokumentacja: `launcher.yml` obejmuje `main` i `pull_request`, uruchamia `cargo clippy` na Windowsie, chroni `launcher-latest` przed ręcznymi runami z gałęzi roboczych, wydłuża timeout Windows (180 min) i obsługuje spacje w ścieżkach hashy; `draftout-check.yml` używa domyślnej gałęzi; `installer.iss` sprząta `.srl-update-probe-*`; `license.workspace = true` we wszystkich 10 crate'ach; zaktualizowane `README.md`, `launcher/README.md`, `launcher/crates/srl-app/README.md`.
+  - Weryfikacja: `cargo fmt --check`, `cargo clippy --workspace --all-targets -- -D warnings` (Linux i `x86_64-pc-windows-gnu`), `cargo test --workspace`, `draftout_upstream` (Draftout 1.18.0 zgodny), `check-learn-links.sh` (59/59 OK).
 
 ### 2026-11-02
 

@@ -2,8 +2,9 @@
 # and Toolscreen headless on Windows, and publish the Windows build: the installer
 # (speedrunning-launcher-setup.exe), the portable zip the launcher also updates itself from, and
 # the SHA-256 of each.
-# - A push to `launcher`: the `launcher-latest` prerelease, unsigned. Run by hand with `sign`
-#   ticked, the exe and the installer are signed through SignPath first.
+# - A push to `main` or `launcher`: the `launcher-latest` prerelease, unsigned. Run by hand with
+#   `sign` ticked, the exe and the installer are signed through SignPath first.
+# - A pull request to `main` or `launcher`: format, clippy, tests and builds only (never publishes).
 # - A tag `v<version>` (the `[workspace.package]` version in launcher/Cargo.toml): the release
 #   `v<version>`, the one GitHub's `releases/latest` returns and the launcher updates itself from.
 #   Signed when SignPath is set up, else unsigned.
@@ -12,9 +13,14 @@ name: launcher
 
 on:
   push:
-    branches: [launcher]
+    branches: [main, launcher]
     # Path filters don't apply to tags: every version tag builds.
     tags: ['v*']
+    paths:
+      - 'launcher/**'
+      - '.github/workflows/launcher.yml'
+  pull_request:
+    branches: [main, launcher]
     paths:
       - 'launcher/**'
       - '.github/workflows/launcher.yml'
@@ -26,7 +32,7 @@ on:
         default: false
 
 permissions:
-  contents: write
+  contents: read
 
 concurrency:
   group: launcher-${{ github.ref }}
@@ -86,7 +92,8 @@ jobs:
 
   windows:
     runs-on: windows-latest
-    timeout-minutes: 120
+    # Build, clippy, tests and headless installs plus up to two 60-minute SignPath approval waits.
+    timeout-minutes: 180
     outputs:
       signed: ${{ steps.signed.outputs.signed }}
     defaults:
@@ -107,7 +114,7 @@ jobs:
 
       - uses: dtolnay/rust-toolchain@stable
         with:
-          components: rustfmt
+          components: rustfmt, clippy
 
       - uses: Swatinem/rust-cache@v2
         with:
@@ -115,6 +122,9 @@ jobs:
 
       - name: cargo fmt --check
         run: cargo fmt --all --check
+
+      - name: cargo clippy
+        run: cargo clippy --workspace --all-targets --locked -- -D warnings
 
       - name: cargo test
         run: cargo test --workspace --locked --no-fail-fast
@@ -158,7 +168,17 @@ jobs:
           done
           "$exe" --tools
           n=0
-          while read -r _ path kind hash; do
+          while IFS= read -r line; do
+            line=${line%$'\r'}
+            rest=${line#file }
+            hash=${rest##* }
+            rest=${rest% *}
+            kind=${rest##* }
+            path=${rest% *}
+            case "$kind" in
+              sha256|sha512) ;;
+              *) echo "unexpected hash kind '$kind' in: $line"; exit 1 ;;
+            esac
             got=$("${kind}sum" "$path" | cut -d' ' -f1)
             got=${got#\\}
             [ "$got" = "$hash" ] || { echo "$path: ${kind} $got, the launcher printed $hash"; exit 1; }
@@ -193,7 +213,7 @@ jobs:
       # approvals. Needs the SIGNPATH_API_TOKEN secret
       # and the SIGNPATH_ORGANIZATION_ID variable (tools/windows/SIGNPATH.md). A run by hand with
       # `sign` ticked fails without them; a release tag signs when they are set and builds unsigned
-      # when they aren't; a push to `launcher` never signs.
+      # when they aren't; a push to `main` or `launcher` (or a pull request) never signs.
       - name: Sign or not
         id: signing
         env:
@@ -378,9 +398,12 @@ jobs:
   # (crates/srl-update). The zip keeps its name and stays: it is the portable download and what
   # every launcher, installed or unzipped, updates itself from.
   publish:
+    if: github.event_name != 'pull_request' && (github.ref_type == 'tag' || github.ref == 'refs/heads/main' || github.ref == 'refs/heads/launcher')
     needs: [linux, windows]
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    permissions:
+      contents: write
     steps:
       - uses: actions/download-artifact@v4
         with:
@@ -398,7 +421,7 @@ jobs:
           done
 
       - name: Publish prerelease launcher-latest
-        if: github.ref_type != 'tag'
+        if: (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/launcher') && github.event_name != 'pull_request'
         env:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
@@ -437,7 +460,7 @@ jobs:
       # A normal release (not a prerelease), marked latest: `releases/latest` returns it, so every
       # installed launcher finds it on its next start.
       - name: Publish release ${{ github.ref_name }}
-        if: github.ref_type == 'tag'
+        if: github.ref_type == 'tag' && github.event_name != 'pull_request'
         env:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}

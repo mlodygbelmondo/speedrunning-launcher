@@ -4,7 +4,7 @@ The GPUI desktop app: scene v3 from the prototype (`../../../bakeoff/REDESIGN.md
 `../../../bakeoff/gpui/src/v3.rs`), with real state. The binary is `speedrunning-launcher`.
 
 ```sh
-CARGO_TARGET_DIR=$HOME/.cache/srl-target/app srl-cpu cargo run -j 4 -p srl-app
+CARGO_TARGET_DIR=$HOME/.cache/srl-target/app cargo run -p srl-app
 ```
 
 With arguments the same binary is a headless command line for CI and support (`src/cli.rs`): no window, the same
@@ -35,7 +35,7 @@ output, and when CI pipes the output it writes there.
 | `src/main.rs` | Startup, the window, the dev switches and the `SRL_SCREEN` deep links. |
 | `src/app.rs` | `Launcher`, the root view: pages, navigation, the page transition, backend events. |
 | `src/shell.rs` | The top nav and the account block. |
-| `src/screens/*.rs` | One file per screen: `home`, `instances` (with `mods`, its Mods tab), `practice`, `learn`, `tools`, `stats`, `settings` (with the credits view), `game` (Minecraft is running), `name` (first-run prompt), `import` (the settings import); `play` (Play button, progress, errors) and `field` (text input) are shared. |
+| `src/screens/*.rs` | One file per screen: `home`, `instances/` (with `mods.rs`, its Mods tab), `practice`, `learn`, `tools`, `stats`, `settings` (with the credits view), `game` (Minecraft is running), `name` (first-run prompt), `import` (the settings import); `play` (Play button, progress, errors) and `field` (text input) are shared. |
 | `src/v3.rs` | Tokens and primitives ported from the prototype (letter-spacing, rings, pixel corners, gradients, the fade veil), and the UI system every screen uses (below, "Buttons and labels"). |
 | `src/backend.rs` | The facade and the settings file. |
 | `src/backend/pipeline.rs` | What Play does, over `srl-game`, `srl-mods` and `srl-tools`: `Core::prepare_instance` (metadata, game, mods, the tools; a mode, practice or a custom instance), `Core::launch` (through the tools' launch hook, then the tools start), `Game::startup` (title screen or startup failure), `Game::wait` (the game and its tools), `Core::install_tool`, `Core::local_state` (the start-up check). Shared by the window and the CLI. |
@@ -50,7 +50,7 @@ output, and when CI pipes the output it writes there.
 | `src/backend/instances.rs` | Custom instances on disk: `NewInstance`, `Created`, `CopyProgress`, `CopyPlan` (counting, then copying a game directory with progress; `NOT_COPIED`), `fix_per_mode_files` (a copy of the shared directory gets the source mode's Atum settings), `reserve` (a new number and its directory), `move_to_trash`. |
 | `src/backend/importer.rs` | The settings import's extension of the facade: `Importer`, `ImportEvent`, `ImportResult`, `targets` (every mode and the practice instance, Draftout with its seeded line), `effective` (the ticks a source can bring), `RealImport` (srl-import on the blocking pool, instances whose game runs or installs left out) and `FakeImport` (`ImportPreset`). |
 | `src/backend/update.rs` | The launcher's own update (srl-update): `Updates`, `UpdateState`, `RealUpdates` (when a build checks, the check on start and by hand, the swap right after the verified download, Restart) and `FakeUpdates` (`UpdatePreset`). Settings → About shows it; the gear in the top nav carries an accent square while an update is ready. |
-| `src/screens/instances.rs` | The Instances page (`InstancesView`): the instances on the left; the selected one's Play, facts and tabs (worlds with the reset-world clean-up, mods, resource packs, config, screenshots, logs, settings). The folder work is `backend/content.rs`, run with `cx.background_spawn`. Single deletes go to `<data>/trash/`; only the clean-up deletes for good. |
+| `src/screens/instances/` | The Instances page (`InstancesView`): `mod.rs` (the instances on the left, Play, facts), `tabs.rs` (worlds with the reset-world clean-up, mods, resource packs, config, screenshots, logs), `settings.rs` (instance settings, rename, memory, JVM arguments, delete) and `custom.rs` (New instance, duplicate and import forms). The folder work is `backend/content.rs`, run with `cx.background_spawn`. Single deletes go to `<data>/trash/`; only the clean-up deletes for good. |
 | `src/screens/import.rs` | The Import page (`ImportView`): the instances found, "Choose folder…", the four ticks, Import, the result; the first start's offer. |
 | `src/cli.rs` | The headless command line. |
 | `src/catalog.rs` | Static data: modes, their layers, the practice maps (srl-practice's catalogue, the one source), Practice's categories and tools (`assets/practice.json`), Learn's topics and guides (`assets/learn.json`). |
@@ -88,21 +88,27 @@ once at start, then applies `Event`s; it asks for work only through the trait:
 
 ```rust
 pub trait Backend {
-    fn snapshot(&self) -> Snapshot;          // modes[5] (state + info) and settings, no I/O
+    fn snapshot(&self) -> Snapshot;          // modes[5] (state + info), customs and settings, no I/O
     fn play(&self, mode: Mode);              // install or update if needed, then launch
     fn cancel(&self, mode: Mode);            // stop an install (state goes back) or the game
     fn set_settings(&self, settings: Settings); // everything on Settings; persisted
     fn open_data_folder(&self);              // the data folder in the system file manager
+    fn open_containing_folder(&self, path: &Path); // the folder a log or backup is in
     fn tools(&self) -> &dyn Tools;           // Ninjabrain Bot, Toolscreen, waywall
     fn stats(&self) -> &dyn StatsService;    // SpeedRunIGT records, MCSR Ranked, Draftout
     fn account(&self) -> &dyn Accounts;      // Microsoft accounts (srl-auth)
+    fn practice(&self) -> &dyn PracticeMaps; // practice maps and the practice game (srl-practice)
     fn import(&self) -> &dyn Importer;       // the settings import (srl-import)
+    fn updates(&self) -> &dyn Updates;       // the launcher's own updates (srl-update)
+    fn add_jar(&self, mode: Mode, path: PathBuf); // Event::JarAdded
     // Custom instances (below): Play and Stop, and their lifecycle; results come as events.
     fn play_custom(&self, id: CustomId);
     fn cancel_custom(&self, id: CustomId);
     fn create_instance(&self, spec: NewInstance);          // Event::InstanceCreated
-    fn duplicate_instance(&self, from: Instance, name: String, with_worlds: bool); // InstanceCopy, then InstanceCreated
+    fn duplicate_instance(&self, from: Instance, name: String, with_worlds: bool); // InstanceCopy, then InstanceCopied
     fn delete_instance(&self, id: CustomId);               // Event::InstanceDeleted
+    fn cancel_copy(&self);                                 // stops running duplicate/import copies
+    fn import_instance(&self, dir: PathBuf, base: Mode, name: String, with_worlds: bool); // InstanceCopy, then InstanceCopied
     fn add_instance_jar(&self, id: CustomId, path: PathBuf); // Event::InstanceJarAdded
     fn open_game_folder(&self, instance: Instance);
 }
@@ -124,6 +130,7 @@ pub trait Tools {
     fn snapshot(&self) -> Vec<ToolSnapshot>; // every tool, in ToolId::ALL order, no I/O
     fn install(&self, tool: ToolId);         // install or update; progress comes as Event::Tool
     fn cancel(&self, tool: ToolId);          // stop an install; the state goes back
+    fn reload(&self);                        // re-read tools from disk and PATH
 }
 
 pub trait Updates {
@@ -231,11 +238,13 @@ pub trait Accounts {
   - **Delete** is refused while the instance installs, runs or is being copied from; otherwise its directory moves
     to `<data>/trash/custom-<n>-<unix time>/` (a rename) and its record, stamp and pid file go. New instances take
     the next number whose directory doesn't exist (`Settings::next_custom_id`, `instances::reserve`).
-  - **Not yet:** Stats don't count a custom instance's runs (srl-stats attributes records to the modes' own
-    directories), and the import doesn't offer custom instances as targets.
-- **Events** (`Event::State`, `Event::Info`, `Event::Tool`, `Event::Stats`, `Event::Account`, `Event::Import`, and the
-  custom instances' `CustomState`, `CustomInfo`, `CustomInstances`, `InstanceCreated`, `InstanceCopy`,
-  `InstanceDeleted`, `InstanceJarAdded`) go over a `futures`
+  - **Stats:** A custom instance's runs count in Statistics for its base mode (`RealStats::set_instance_dirs` keeps
+    `srl-stats` updated with the current custom instance directories). **Not yet:** the import doesn't offer custom
+    instances as targets.
+- **Events** (`Event::State`, `Event::Info`, `Event::Tool`, `Event::Stats`, `Event::Account`, `Event::Practice`,
+  `Event::Import`, `Event::JarAdded`, `Event::Update`, and the custom instances' `CustomState`, `CustomInfo`,
+  `CustomInstances`, `InstanceCreated`, `InstanceCopied`, `InstanceCopy`, `InstanceDeleted`, `InstanceJarAdded`) go
+  over a `futures`
   unbounded channel given at creation, from any thread. The app drains it on the GPUI executor and calls `notify` once per batch.
 - **Rules:** methods return at once and never block the UI thread; idle sends nothing, so an idle app renders no
   frames; `play` does nothing while the mode is already installing or running.
@@ -360,7 +369,7 @@ Learn is real: other runners' guides in `assets/learn.json`, each with its autho
 | `SRL_IMPORT_HOME=<dir>` | The settings import searches this folder as if it were the home folder, and nothing else (tests with fake MultiMC, Prism, MCSR Launcher and `.minecraft` trees). |
 | `SRL_IMPORT_PICK=<dir>` | "Choose folder…" takes this folder instead of opening the system's folder picker (tests: the picker is a desktop portal on Linux, which would open on the real desktop). |
 | `SRL_UPDATE_URL=<url>` | The launcher's update check asks this URL for the latest release's JSON instead of GitHub's API, and runs on Linux too (still only in a CI-like build with `SRL_COMMIT`: `GITHUB_SHA=<sha> cargo build`). For tests with a local server; the swap then replaces the running binary. |
-| `SRL_DEV_GAME_HOME=<dir>` | Every game this launcher starts (modes and practice) gets `-Duser.home=<dir>`, so a test game keeps what mods write to the home folder (SpeedRunIGT's records) out of the real one. For tests; the app has no JVM arguments setting. |
+| `SRL_DEV_GAME_HOME=<dir>` | Every game this launcher starts (modes, practice and custom instances) gets `-Duser.home=<dir>`, so a test game keeps what mods write to the home folder (SpeedRunIGT's records) out of the real one. For tests (built-in modes have no JVM arguments setting; custom instances have their own). |
 
 ## Screen ids
 
@@ -427,9 +436,9 @@ Learn is real: other runners' guides in `assets/learn.json`, each with its autho
 - `../../tools/idle-check.sh`: frames and CPU time while idle, installing and running.
 - `../../tools/idle-pages.sh <ids...>`: frames drawn while idle on each screen id (must be 0).
 - `../../tools/check-learn-links.sh`: the HTTP status of every Learn link, and YouTube's oEmbed status for videos (a
-  removed video still answers its watch page with 200). No `srl-cpu` needed.
+  removed video still answers its watch page with 200).
 
-Run them through `srl-cpu`. Screenshots of milestone 1 are in `../../shots/m1/`, of milestone 2 (Settings, Tools,
+Screenshots of milestone 1 are in `../../shots/m1/`, of milestone 2 (Settings, Tools,
 Learn, Stats, the startup failures and the end-to-end run with the tools) in `../../shots/m2/`, of the Microsoft
 account (every screen id above in English and Polish, `*-pl.jpg`, and `e2e-*` from a run against srl-auth's mock
 services up to the game's title screen) in `../../shots/m3/account/`, of Stats and Practice by their streams in

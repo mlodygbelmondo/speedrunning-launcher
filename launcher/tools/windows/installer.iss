@@ -83,6 +83,7 @@ Filename: "{app}\{#AppExe}"; Description: "{cm:LaunchProgram,{#AppName}}"; Flags
 [UninstallDelete]
 Type: files; Name: "{app}\speedrunning-launcher.old*.exe"
 Type: files; Name: "{app}\speedrunning-launcher.exe.new"
+Type: files; Name: "{app}\.srl-update-probe-*"
 
 [Code]
 // The data folder stays: it holds the player's worlds, often many GB. Say where it is instead.
